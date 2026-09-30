@@ -46,3 +46,20 @@ Coordinate system: metres, Y up, yaw 0 faces −Z. Player: 1.8 m tall, 0.36 m ra
 * 60 fps target on mid-range integrated GPU (draw calls < 350, tris < 400k, no per-frame allocations in hot loops, instanced/merged static geometry, pooled particles). Headless software-GL runs slow — use `advance()` not wall clock.
 * No console errors/warnings. `npm run smoke` must pass after every edit.
 * Every piece is judged against **real CS2 frames** in `reference/cs2/` (screenshots `ss_*.jpg`, trailer frames `frames/t*_*.jpg` — regenerate with `tools/fetch_refs.sh` if missing).
+
+## Data contracts between pieces (so pieces can be built in parallel)
+```
+ctx.match  { phase:'warmup'|'buy'|'freeze'|'live'|'armed'|'roundEnd'|'halftime'|'matchEnd', round:int, scores:{ember,tide}, timeLeft:s, phaseTime:s,
+             playerTeam, sideOf(team)->'attack'|'defend',
+             beacon:{ state:'carried'|'dropped'|'arming'|'armed'|'disarming'|'disarmed'|'complete', site:'A'|'B'|null, pos:Vector3, carrier:Actor|null, progress:0..1, fuseLeft:s },
+             teams:{ember:Actor[],tide:Actor[]}, lossStreak:{ember,tide}, mvp:Actor|null, history:[{n,winner,reason}],
+             catalog:[{id,name,cost,slot,category,teams:['ember','tide'],killReward,desc}], canBuy(actor)->bool, buy(actor,id)->{ok,reason},
+             startMatch({difficulty, playerTeam, bots:true}), debug:{forcePhase(p), skipRound(winner), setCredits(actor,n)} }
+ctx.combat { taggers:{[id]:TaggerDef}, equipped(actor)->{def,mag,reserve,state:'idle'|'draw'|'fire'|'reload'|'scoped'|'throw',t,scoped,burst}|null,
+             crosshairSpread(actor)->number (0..1, drives dynamic crosshair), inventory(actor), give(actor,id), applyTag(hit), utility:{throw,count(actor,type),trajectory(actor)}, viewmodel:{setVisible} }
+ctx.characters.hitTest(ray, ignore) ; ctx.audio.play(name,opts) ; ctx.vfx.* ; ctx.cosmetics.getLoadout(actor)
+```
+Each piece must ALSO work stand-alone when the others are stubs (`stub()` null objects): guard calls with `ctx.x?.fn?.()`.
+
+## Cross-piece requests
+If you need something from a piece you don't own: write `docs/requests/<targetPiece>-from-<you>-<n>.md` (1 paragraph: what + why) and code defensively meanwhile. The orchestrator routes requests. Builders owning a piece read `docs/requests/<theirPiece>-*.md` at the start of every round.
