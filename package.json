@@ -1,0 +1,32 @@
+{
+  "name": "flux-tag",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite --port 5173 --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --port 4173 --host 0.0.0.0",
+    "shot": "node tools/shot.mjs",
+    "smoke": "node tools/smoke.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JaydenUrizar/csgoweb.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JaydenUrizar/csgoweb/issues"
+  },
+  "homepage": "https://github.com/JaydenUrizar/csgoweb#readme",
+  "dependencies": {
+    "playwright-core": "^1.63.0",
+    "three": "^0.186.1",
+    "three-mesh-bvh": "^0.9.15",
+    "vite": "^8.3.1"
+  },
+  "type": "module",
+  "private": true
+}

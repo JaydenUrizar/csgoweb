@@ -1,0 +1,176 @@
+{
+ "updated": "2026-09-30T00:48:07.227Z",
+ "wave": 0,
+ "phase": "Foundation ready — architecture, harness, real CS2 reference footage",
+ "pieces": [
+  {
+   "id": "render",
+   "name": "Rendering, lighting & post-FX",
+   "group": "look",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "map",
+   "name": "Map — Crux Station",
+   "group": "world",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "nav",
+   "name": "Navigation & pathing",
+   "group": "ai",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "move",
+   "name": "Movement & camera feel",
+   "group": "feel",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "tagger",
+   "name": "Tagger gunplay & viewmodel",
+   "group": "feel",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "utility",
+   "name": "Utility (Haze / Strobe / Pulse)",
+   "group": "feel",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "avatars",
+   "name": "Characters & animation",
+   "group": "look",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "cosmetics",
+   "name": "Cosmetics & locker",
+   "group": "look",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "vfx",
+   "name": "VFX & juice",
+   "group": "look",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "audio",
+   "name": "Audio & music",
+   "group": "feel",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "bots",
+   "name": "Bot AI",
+   "group": "ai",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "flow",
+   "name": "Match flow & economy",
+   "group": "systems",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "hud",
+   "name": "HUD",
+   "group": "ui",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "menu",
+   "name": "Menus, settings & onboarding",
+   "group": "ui",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "perf",
+   "name": "Performance & QA harness",
+   "group": "systems",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  }
+ ],
+ "log": [
+  {
+   "t": "2026-09-30T00:48:07.175Z",
+   "text": "Foundation built: engine core, module registry, test harness, real CS2 reference frames (trailer + screenshots)",
+   "kind": "integrate"
+  },
+  {
+   "t": "2026-09-30T00:47:45.203Z",
+   "text": "WAVE 0 — Foundation ready — architecture, harness, real CS2 reference footage",
+   "kind": "wave"
+  }
+ ],
+ "snaps": [
+  {
+   "t": "2026-09-30T00:48:07.227Z",
+   "src": "progress/1790729287226_base.png",
+   "caption": "Foundation placeholder scene"
+  }
+ ]
+}
