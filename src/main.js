@@ -9,7 +9,7 @@ import { stub } from './core/stub.js';
 // Global context handed to every module. See docs/ARCHITECTURE.md.
 const ctx = {
   params: new URLSearchParams(location.search),
-  actors: [], localActor: null, manualStepping: false, modules: {}, errors: (window.__errors = window.__errors || []),
+  actors: [], localActor: null, debugScenes: {}, manualStepping: false, modules: {}, errors: (window.__errors = window.__errors || []),
 };
 ctx.events = createEvents();
 ctx.settings = createSettings(ctx);
@@ -33,7 +33,10 @@ async function boot() {
     }
     if (ctx[key].fixedUpdate || ctx[key].update) ctx.engine.add(ctx[key], MODULES.findIndex((m) => m[0] === key));
   }
+  ctx.debugScenes = ctx.debugScenes || {};
   ctx.events.emit('boot:done');
+  const scene = ctx.params.get('scene');
+  if (scene) { try { await ctx.debugScenes[scene]?.(ctx); if (!ctx.debugScenes[scene]) ctx.errors.push('unknown scene ' + scene); } catch (e) { ctx.errors.push('scene ' + scene + ': ' + (e?.stack || e)); } }
   ctx.engine.start();
   ctx.ready = true;
 }

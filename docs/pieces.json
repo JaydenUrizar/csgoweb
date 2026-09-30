@@ -1,17 +1,82 @@
 [
- {"id":"render","name":"Rendering, lighting & post-FX","group":"look"},
- {"id":"map","name":"Map — Crux Station","group":"world"},
- {"id":"nav","name":"Navigation & pathing","group":"ai"},
- {"id":"move","name":"Movement & camera feel","group":"feel"},
- {"id":"tagger","name":"Tagger gunplay & viewmodel","group":"feel"},
- {"id":"utility","name":"Utility (Haze / Strobe / Pulse)","group":"feel"},
- {"id":"avatars","name":"Characters & animation","group":"look"},
- {"id":"cosmetics","name":"Cosmetics & locker","group":"look"},
- {"id":"vfx","name":"VFX & juice","group":"look"},
- {"id":"audio","name":"Audio & music","group":"feel"},
- {"id":"bots","name":"Bot AI","group":"ai"},
- {"id":"flow","name":"Match flow & economy","group":"systems"},
- {"id":"hud","name":"HUD","group":"ui"},
- {"id":"menu","name":"Menus, settings & onboarding","group":"ui"},
- {"id":"perf","name":"Performance & QA harness","group":"systems"}
+ {
+  "id": "render",
+  "name": "Rendering, lighting & post-FX",
+  "group": "look"
+ },
+ {
+  "id": "map",
+  "name": "Map \u2014 Crux Station",
+  "group": "world"
+ },
+ {
+  "id": "nav",
+  "name": "Navigation & pathing",
+  "group": "ai"
+ },
+ {
+  "id": "move",
+  "name": "Movement & camera feel",
+  "group": "feel"
+ },
+ {
+  "id": "tagger",
+  "name": "Tagger ballistics, recoil & inventory",
+  "group": "feel"
+ },
+ {
+  "id": "viewmodel",
+  "name": "First-person viewmodels & animation",
+  "group": "feel"
+ },
+ {
+  "id": "utility",
+  "name": "Utility (Haze / Strobe / Pulse)",
+  "group": "feel"
+ },
+ {
+  "id": "avatars",
+  "name": "Characters & animation",
+  "group": "look"
+ },
+ {
+  "id": "cosmetics",
+  "name": "Cosmetics & locker",
+  "group": "look"
+ },
+ {
+  "id": "vfx",
+  "name": "VFX & juice",
+  "group": "look"
+ },
+ {
+  "id": "audio",
+  "name": "Audio & music",
+  "group": "feel"
+ },
+ {
+  "id": "bots",
+  "name": "Bot AI",
+  "group": "ai"
+ },
+ {
+  "id": "flow",
+  "name": "Match flow & economy",
+  "group": "systems"
+ },
+ {
+  "id": "hud",
+  "name": "HUD",
+  "group": "ui"
+ },
+ {
+  "id": "menu",
+  "name": "Menus, settings & onboarding",
+  "group": "ui"
+ },
+ {
+  "id": "perf",
+  "name": "Performance & QA harness",
+  "group": "systems"
+ }
 ]

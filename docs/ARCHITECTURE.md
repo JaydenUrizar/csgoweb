@@ -63,3 +63,20 @@ Each piece must ALSO work stand-alone when the others are stubs (`stub()` null o
 
 ## Cross-piece requests
 If you need something from a piece you don't own: write `docs/requests/<targetPiece>-from-<you>-<n>.md` (1 paragraph: what + why) and code defensively meanwhile. The orchestrator routes requests. Builders owning a piece read `docs/requests/<theirPiece>-*.md` at the start of every round.
+
+## Stable shared APIs (code against these NOW, even if the owner hasn't finished; use `?.` + fallback)
+**`ctx.render.materials`** (owner: render). `flat(color, o?)` faceted low-poly lit material with vertex-colour AO support · `toon(color, o?)` soft 3-band gradient-lit · `emissive(color, intensity=2)` (bloom-friendly) · `glass(color, opacity)` · `metal(color, rough)` · `textured(kind, color?)` kind ∈ `sand|brick|concrete|metal|tile|wood|grass|water|grid|rubber` (small procedural canvas textures) · `team(teamId)` team-colour suit material · `hologram(color)` · `unlit(color)`. `ctx.render.bakeVertexAO(geometry, {samples, radius})` for static geometry. `ctx.render.shake(amount, decay)`, `ctx.render.screen.{flash(color,amount,decay), blur(amount), tint(color,amount), damage(dirRad, amount), whiteout(t)}`. Layers: `ctx.render.layers.{world:0,actor:1,fx:2,viewmodel:3}`.
+**`ctx.combat.viewmodel`** (owner: viewmodel): `setTagger(id, skin)`, `event(name, payload)` where name ∈ `fire|reloadStart|reloadEnd|draw|holster|inspect|scopeIn|scopeOut|throw|melee|empty|heat`, `worldModel(id, skin) -> Object3D` (3rd-person/pickup model, ~1 m long, origin at grip, barrel toward −Z), `muzzle` (Object3D in viewScene whose world position is the muzzle), `update(dt, {speed, onGround, crouch, walking, aimPunch, lookDelta:{x,y}, scoped, hp})`, `setVisible(b)`.
+**Tagger ids** (owner: tagger, in `src/combat/taggers.js`): `tap` (grip/melee), `pip`, `twin`, `judge`, `zip`, `hum`, `arc`, `rail`, `halo`, `lance`, `scatter`, `storm`; utility ids `haze`, `strobe`, `pulse`; gear `vest`, `kit`, `beacon`.
+**`CosmeticSpec`** (produced by `ctx.cosmetics.resolve(loadout)`, consumed by `ctx.characters` & `viewmodel`; the vocabulary below is fixed — extend only via a request):
+```
+{ suit:{base,accent,pattern:'solid|stripes|hex|chevron|camo|circuit|gradient|checker',patternColor,material:'matte|satin|metallic|holo'},
+  helmet:{shape:'round|visorcap|hex|crest|antenna|horns|halo|none',color,accent},
+  visor:{shape:'wide|slit|round|shades|cyclops|x',color,glow},
+  back:{model:'none|pack|wings|tail|jet|banner',color}, trail:{type:'none|sparks|ribbon|pixels|comet|petals',color,color2},
+  tagOutEffect:'shatter|confetti|pixelate|fireworks|petals|stars', taggerSkin:{pattern,primary,accent,glow,wear},
+  charm:{model:'none|orb|cube|star|cat|bolt',color}, nameplate:{style:'plain|glow|hex',color}, emote:string, rarity:'common|rare|epic|legendary' }
+```
+(colours are 0xRRGGBB numbers). Team identity must remain readable: `characters` always tints a team-coloured emissive element regardless of cosmetics.
+**Scenes**: `?scene=<name>` — every piece registers `ctx.debugScenes[name] = async (ctx)=>{…}`; `main.js` runs the requested scene after boot. Scenes must clean up after themselves and never break normal play.
+**Menu bypass**: `?test=1` skips the main menu and auto-starts a practice state; `?menu=1` forces menu even in test.

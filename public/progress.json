@@ -1,5 +1,5 @@
 {
- "updated": "2026-09-30T00:48:07.227Z",
+ "updated": "2026-09-30T00:50:39.299Z",
  "wave": 0,
  "phase": "Foundation ready — architecture, harness, real CS2 reference footage",
  "pieces": [
@@ -45,7 +45,17 @@
   },
   {
    "id": "tagger",
-   "name": "Tagger gunplay & viewmodel",
+   "name": "Tagger ballistics, recoil & inventory",
+   "group": "feel",
+   "status": "queued",
+   "round": 0,
+   "score": 0,
+   "gap": "",
+   "history": []
+  },
+  {
+   "id": "viewmodel",
+   "name": "First-person viewmodels & animation",
    "group": "feel",
    "status": "queued",
    "round": 0,
