@@ -1,117 +1,128 @@
 {
- "updated": "2026-09-30T00:50:39.299Z",
- "wave": 0,
- "phase": "Foundation ready — architecture, harness, real CS2 reference footage",
+ "updated": "2026-09-30T00:53:06.109Z",
+ "wave": 1,
+ "phase": "Builders fan out — 14 pieces built in parallel",
  "pieces": [
   {
    "id": "render",
    "name": "Rendering, lighting & post-FX",
    "group": "look",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.415Z"
   },
   {
    "id": "map",
    "name": "Map — Crux Station",
    "group": "world",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.462Z"
   },
   {
    "id": "nav",
    "name": "Navigation & pathing",
    "group": "ai",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.515Z"
   },
   {
    "id": "move",
    "name": "Movement & camera feel",
    "group": "feel",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.563Z"
   },
   {
    "id": "tagger",
    "name": "Tagger ballistics, recoil & inventory",
    "group": "feel",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.614Z"
   },
   {
    "id": "viewmodel",
    "name": "First-person viewmodels & animation",
    "group": "feel",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.669Z"
   },
   {
    "id": "utility",
    "name": "Utility (Haze / Strobe / Pulse)",
    "group": "feel",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.717Z"
   },
   {
    "id": "avatars",
    "name": "Characters & animation",
    "group": "look",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.763Z"
   },
   {
    "id": "cosmetics",
    "name": "Cosmetics & locker",
    "group": "look",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.815Z"
   },
   {
    "id": "vfx",
    "name": "VFX & juice",
    "group": "look",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.861Z"
   },
   {
    "id": "audio",
    "name": "Audio & music",
    "group": "feel",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.907Z"
   },
   {
    "id": "bots",
@@ -127,31 +138,34 @@
    "id": "flow",
    "name": "Match flow & economy",
    "group": "systems",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:05.969Z"
   },
   {
    "id": "hud",
    "name": "HUD",
    "group": "ui",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:06.016Z"
   },
   {
    "id": "menu",
    "name": "Menus, settings & onboarding",
    "group": "ui",
-   "status": "queued",
-   "round": 0,
+   "status": "building",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-09-30T00:53:06.062Z"
   },
   {
    "id": "perf",
@@ -165,6 +179,16 @@
   }
  ],
  "log": [
+  {
+   "t": "2026-09-30T00:53:06.109Z",
+   "text": "Wave 1 launched: 14 builders (render, map, nav, move, tagger, viewmodel, utility, avatars, cosmetics, vfx, audio, flow, hud, menu). Bots & QA start once movement/combat/match land.",
+   "kind": "wave"
+  },
+  {
+   "t": "2026-09-30T00:53:05.366Z",
+   "text": "WAVE 1 — Builders fan out — 14 pieces built in parallel",
+   "kind": "wave"
+  },
   {
    "t": "2026-09-30T00:48:07.175Z",
    "text": "Foundation built: engine core, module registry, test harness, real CS2 reference frames (trailer + screenshots)",
