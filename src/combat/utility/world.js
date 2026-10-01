@@ -37,7 +37,7 @@ export function createWorld(ctx) {
       const bvh = W.bvh;
       if (!bvh) { const y = 0; const dist = Math.abs(p.y - y); if (dist > maxD) return null; _tgt.point.set(p.x, y, p.z); _tgt.distance = dist; _tgt.faceIndex = -1; return _tgt; }
       const r = bvh.closestPointToPoint(p, _tgt, 0, maxD);
-      return r || null;
+      return r && r.distance <= maxD ? r : null;
     },
     /** Push a sphere out of geometry. Returns penetration normal in `nrm` and true if touched. */
     pushOut(p, radius, nrm) {

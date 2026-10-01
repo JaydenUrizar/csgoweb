@@ -66,5 +66,9 @@ Bakes ambient-occlusion (+ optional cool sky/warm ground tint) into a `color` ve
 * `__game.ctx.render.debug.*`, `__game.ctx.render.setQuality('low')`.
 * `node tools/shot.mjs shots/render/gallery.png --params "test=1&seed=1&scene=render-gallery" --adv 1`
 
-## Status
-(round 1 in progress — sections below are updated as work lands)
+## Status (round 1)
+Done: lean HDR pipeline (MSAA world RT + depth, depth-based SSAO half-res, dual-filter bloom with threshold ~1.7, god-ray pass, ACES + grade/vignette/grain/CA, FXAA), separate alpha-blended viewmodel pass (camera-space lit), sky dome + faceted clouds + PMREM env, texel-snapped follow sun shadow (1024-4096), fog, full materials API, bakeVertexAO (+`bakeVertexAOAsync`), screen fx, shake, dynamic resolution (off in ?test).
+Quality presets: low (no MSAA/SSAO), medium (2048 shadows), high (default: MSAA4, SSAO, shafts), ultra (4096, more SSAO taps). `?q=low` overrides.
+Tuning: `ctx.render.debug.fx` (exposure .85, bloom, ao, vignette, contrast, saturation), `setSky({sunElevation,sunAzimuth,skyTop,...})`.
+Known gaps: single shadow cascade (R=26-40 m around view); `addPostPass` is a no-op; no SSR/DOF; menu backdrop patches ctx.render.render so `?test=1` shows the menu unless `ctx.menu.backdrop.leave()` is called (render scenes hide HUD via #ui).
+Inspect: `?test=1&seed=1&scene=render-gallery`, `?scene=render-fx` (`__game.ctx.render.debug.fxScene.jump(i)`), toggles via `debug.toggle('ssao'|'bloom'|'grain'|'vignette'|'shadows'|'shafts', bool)`, `debug.stageCam.pos/look` to move the camera.

@@ -4,8 +4,8 @@ import { clamp, easeOut, h, fmtMoney, fmtTime, readLoadout, teamName } from './c
 import { icon, NAMES } from './icons.js';
 
 export const css = `
-.bdim{position:absolute;inset:0;background:radial-gradient(ellipse at 45% 50%,rgba(4,6,12,.30),rgba(4,6,12,.62));opacity:0;pointer-events:none;display:none;will-change:opacity}
-.buy{position:absolute;left:50%;top:50%;width:962px;transform:translate(-50%,-50%);opacity:0;pointer-events:auto;display:none;will-change:opacity,transform;color:#fff}
+.bdim{position:absolute;inset:0;background:radial-gradient(ellipse at 45% 50%,rgba(4,6,12,.30),rgba(4,6,12,.62));opacity:0;pointer-events:none;will-change:opacity}
+.buy{position:absolute;left:50%;top:50%;width:962px;transform:translate(-50%,-50%);opacity:0;pointer-events:auto;will-change:opacity,transform;color:#fff}
 .buy .hd{display:flex;align-items:flex-end;justify-content:space-between;padding:0 4px 8px;text-shadow:0 1px 3px #000}
 .buy .hd .cash{font:700 34px/32px var(--font);letter-spacing:.02em;color:#f4f8ff;font-variant-numeric:tabular-nums}
 .buy .hd .cash i{font-style:normal;color:#8fe3a0;font-size:27px;margin-right:2px}
@@ -59,8 +59,8 @@ export const css = `
 .buy .lockmsg{position:absolute;left:0;right:0;top:50%;text-align:center;font:700 24px/26px var(--font);letter-spacing:.2em;color:#ff9c8c;text-shadow:0 2px 6px #000;display:none;pointer-events:none;text-transform:uppercase}
 `;
 
-const ORDER = ['equipment', 'gear', 'pistol', 'pistols', 'sidearm', 'smg', 'smgs', 'mid-tier', 'rifle', 'rifles', 'sniper', 'shotgun', 'heavy', 'utility', 'grenade', 'grenades'];
-const TITLE = { equipment: 'Equipment', gear: 'Gear', pistol: 'Pistols', pistols: 'Pistols', sidearm: 'Pistols', smg: 'SMGs', smgs: 'SMGs', rifle: 'Rifles', rifles: 'Rifles', sniper: 'Sniper', shotgun: 'Shotgun', heavy: 'Heavy', utility: 'Utility', grenade: 'Utility', grenades: 'Utility' };
+const ORDER = ['equipment', 'gear', 'pistol', 'pistols', 'sidearm', 'smg', 'smgs', 'mid-tier', 'rifle', 'rifles', 'sniper', 'shotgun', 'heavy', 'utility', 'util', 'grenade', 'grenades'];
+const TITLE = { util: 'Utility', equipment: 'Equipment', gear: 'Gear', pistol: 'Pistols', pistols: 'Pistols', sidearm: 'Pistols', smg: 'SMGs', smgs: 'SMGs', rifle: 'Rifles', rifles: 'Rifles', sniper: 'Sniper', shotgun: 'Shotgun', heavy: 'Heavy', utility: 'Utility', grenade: 'Utility', grenades: 'Utility' };
 const REBUY_KEY = 'fluxtag.rebuy';
 
 export function create(H) {
@@ -81,7 +81,7 @@ export function create(H) {
   try { S.lastBuys = JSON.parse(localStorage.getItem(REBUY_KEY) || '[]'); } catch {}
 
   const actor = () => H.local;
-  const catalog = () => { const c = H.R.match?.catalog; return Array.isArray(c) ? c : []; };
+  const catalog = () => { let c = H.R.match?.catalog; if (typeof c === 'function') c = c(); return Array.isArray(c) ? c : []; };
   const catOf = (it) => String(it.category || it.slot || 'other').toLowerCase();
 
   function build() {
@@ -93,7 +93,7 @@ export function create(H) {
     // team-restricted items sink to the bottom of each column
     for (const c of cols) c.items.sort((a, b) => (isLocked(a) - isLocked(b)) || (a.cost - b.cost));
     S.cat = cols; S.items.clear(); colsEl.innerHTML = '';
-    const maxRows = Math.max(4, ...cols.map((c) => c.items.length));
+    const maxRows = Math.max(...cols.map((c) => c.items.length));
     cols.forEach((c, ci) => {
       const col = h('div', 'col', colsEl); col.dataset.ci = ci;
       h('div', 'ch', col, `<span>${ci + 1}</span><span>${c.title}</span>`);
@@ -133,7 +133,7 @@ export function create(H) {
     }
     S.sig = ''; return res;
   }
-  const reasonText = (r) => ({ credits: 'Not enough credits', money: 'Not enough credits', team: 'Other team only', owned: 'Already owned', full: 'Slot full', phase: 'Buy time over', time: 'Buy time over', max: 'Max carried' }[String(r)] || (r ? String(r) : 'Cannot buy'));
+  const reasonText = (r) => ({ limit: 'Max carried', credits: 'Not enough credits', money: 'Not enough credits', team: 'Other team only', owned: 'Already owned', full: 'Slot full', phase: 'Buy time over', time: 'Buy time over', max: 'Max carried' }[String(r)] || (r ? String(r) : 'Cannot buy'));
 
   // ------------------------------------------------------------------ open/close & input
   function setOpen(v) {
@@ -163,6 +163,7 @@ export function create(H) {
     const a = actor(); if (!a) return; const pref = H.playerTeam === 'ember' ? ['arc', 'vest', 'strobe', 'haze'] : ['rail', 'vest', 'kit', 'haze', 'strobe'];
     for (const id of pref) { const st = S.items.get(id); if (!st) continue; if ((a.credits ?? 0) < st.it.cost) continue; const load = readLoadout(H.R, a, []); if (owned(a, id, load)) continue; purchase(st.it); }
   }
+  H.bus.on('reset', () => { S.open = false; S.a = 0; H.menuOpen = false; S.flash.length = 0; });
   H.bus.on('round:start', () => { if (S.curBuys.length) { S.lastBuys = S.curBuys.slice(); try { localStorage.setItem(REBUY_KEY, JSON.stringify(S.lastBuys)); } catch {} } S.curBuys = []; });
   H.bus.on('round:phase', (d) => { if (d?.phase === 'live' || d?.phase === 'roundEnd' || d?.phase === 'freeze' && false) { /* keep open through freeze; close when live */ if (d.phase !== 'freeze') setOpen(false); } });
 
@@ -198,7 +199,7 @@ export function create(H) {
   function drawPreview() {
     if (!S.drawPrev) return; S.drawPrev = false;
     const cv = prev.querySelector('canvas'), R = H.R, a = actor(); prev.querySelector('.tn').textContent = teamName(H.playerTeam);
-    const fg = prev.querySelector('.fg'); const eq = R.combat?.equipped?.(a)?.def?.id;
+    const fg = prev.querySelector('.fg'); const e0 = R.combat?.equipped?.(a); const eq = e0?.id || e0?.def?.id;
     fg.innerHTML = eq ? icon(eq) : '';
     try {
       if (R.cosmetics?.renderPreview && !R.cosmetics.__stub) { cv.width = 412; cv.height = 300; R.cosmetics.renderPreview(cv, R.cosmetics.getLoadout?.(a)); }
@@ -218,8 +219,8 @@ export function create(H) {
       if (S.open) build();
       // header
       const m = R.match, ph = m?.phase; const t = m?.timeLeft ?? 0;
-      const buyable = ph === 'buy' || ph === 'warmup' || ph === 'freeze' || (ph === 'live' && (m?.canBuy?.(H.local))); 
-      const bt = ph === 'buy' ? t : ph === 'freeze' ? t + 0 : t;
+      
+      const bt = m?.buyTimeLeft ?? t;
       btB.textContent = ph === 'warmup' ? '∞' : fmtTime(bt).padStart(4, '0').replace(/^(\d):/, '0$1:');
       btEl.classList.toggle('off', !(ph === 'buy' || ph === 'warmup' || ph === 'freeze'));
       tmEl.textContent = '';

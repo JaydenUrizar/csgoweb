@@ -25,8 +25,10 @@ const POSES = {
   pistol: { weapon: 'pip' }, smg: { weapon: 'zip' }, rifle: { weapon: 'arc' }, sniper: { weapon: 'lance' }, shotgun: { weapon: 'scatter' }, lmg: { weapon: 'storm' }, grenade: { weapon: 'haze' }, beacon: { weapon: 'beacon' },
 };
 const PAGES = [
-  ['idle', 'walk', 'walkBack', 'strafeL', 'strafeR', 'run', 'runBack', 'runFL', 'runFR', 'runBL', 'runBR', 'crouch', 'crouchWalk', 'jump', 'fall', 'slide'],
-  ['pistol', 'smg', 'rifle', 'sniper', 'shotgun', 'lmg', 'melee', 'grenade', 'beacon', 'fire', 'reload', 'switch', 'throw', 'plant', 'hit', 'aimUp', 'aimDown'],
+  ['idle', 'walk', 'walkBack', 'strafeL', 'strafeR', 'run', 'runBack', 'runFL'],
+  ['runFR', 'runBL', 'runBR', 'crouch', 'crouchWalk', 'jump', 'fall', 'slide'],
+  ['pistol', 'smg', 'rifle', 'sniper', 'shotgun', 'lmg', 'melee', 'grenade'],
+  ['beacon', 'fire', 'reload', 'switch', 'throw', 'plant', 'hit', 'aimUp'],
   ['tagout', 'tagout', 'tagout', 'tagout', 'tagout', 'tagout', 'spawn'],   // tag-out styles page: each figure uses a style
 ];
 const TAG_STYLE_PAGE = TAGOUTS;
@@ -90,8 +92,8 @@ export function registerGallery(ctx, api, X) {
       const ms = [];
       ms.push(makeActor('ember', 0, SAMPLE_SPECS[0]));
       if (kind === 'pair') ms.push(makeActor('tide', 0, SAMPLE_SPECS[0]));
-      ms.forEach((m, i) => { m.actor.pos.set(kind === 'pair' ? (i ? 0.85 : -0.85) : 0, 0, 0); m.cur.copy(m.actor.pos); m.prev.copy(m.actor.pos); m.rp.copy(m.actor.pos); m.lastRp.copy(m.actor.pos); m.root.position.copy(m.actor.pos); m.hipsYaw = m.actor.yaw; });
-      S.orbit.dist = kind === 'pair' ? 4.6 : 3.6; S.orbit.ty = 0.95; S.orbit.tx = 0; S.orbit.el = 8;
+      ms.forEach((m, i) => { m.actor.pos.set(kind === 'pair' ? (i ? 0.7 : -0.7) : 0, 0, 0); m.cur.copy(m.actor.pos); m.prev.copy(m.actor.pos); m.rp.copy(m.actor.pos); m.lastRp.copy(m.actor.pos); m.root.position.copy(m.actor.pos); m.hipsYaw = m.actor.yaw; });
+      S.orbit.dist = kind === 'pair' ? 5.6 : 3.6; S.orbit.ty = 0.95; S.orbit.tx = 0; S.orbit.el = 8;
       if (poseOverride) ms.forEach((m) => applyPose(m, poseOverride));
       return ms;
     }
@@ -106,14 +108,14 @@ export function registerGallery(ctx, api, X) {
     // lineup: two rows (ember front, tide back), one column per pose
     const names = PAGES[page] || PAGES[0], n = names.length, gap = 1.25, ms = [];
     for (let i = 0; i < n; i++) for (const team of ['ember', 'tide']) {
-      const spec = page === 2 ? { tagOutEffect: TAG_STYLE_PAGE[i % TAG_STYLE_PAGE.length] } : SAMPLE_SPECS[0];
+      const spec = page === 4 ? { tagOutEffect: TAG_STYLE_PAGE[i % TAG_STYLE_PAGE.length] } : SAMPLE_SPECS[0];
       const m = makeActor(team, i, spec), a = m.actor;
       a.pos.set((i - (n - 1) / 2) * gap, 0, team === 'ember' ? 0.9 : -0.9); m.cur.copy(a.pos); m.prev.copy(a.pos); m.rp.copy(a.pos); m.lastRp.copy(a.pos); m.root.position.copy(a.pos);
-      applyPose(m, names[i], { style: page === 2 ? TAG_STYLE_PAGE[i % TAG_STYLE_PAGE.length] : undefined });
-      if (team === 'ember') label(page === 2 && names[i] === 'tagout' ? TAG_STYLE_PAGE[i % TAG_STYLE_PAGE.length] : names[i], a.pos.x, 2.05, a.pos.z);
+      applyPose(m, names[i], { style: page === 4 ? TAG_STYLE_PAGE[i % TAG_STYLE_PAGE.length] : undefined });
+      if (team === 'ember') label(page === 4 && names[i] === 'tagout' ? TAG_STYLE_PAGE[i % TAG_STYLE_PAGE.length] : names[i], a.pos.x, 2.05, a.pos.z);
       ms.push(m);
     }
-    S.orbit.dist = Math.max(8, n * gap * 0.78); S.orbit.el = 13; S.orbit.ty = 0.95; S.orbit.tx = 0; S.orbit.az = 0;
+    S.orbit.dist = Math.max(7, n * gap * 0.74); S.orbit.el = 13; S.orbit.ty = 0.95; S.orbit.tx = 0; S.orbit.az = 0;
     return ms;
   }
 
@@ -133,11 +135,12 @@ export function registerGallery(ctx, api, X) {
     scene.background = new THREE.Color(0x2b3240); scene.fog = null;
     const la = ctx.localActor; if (la) { const m = api.model(la); if (m) { m.manualNoHit = true; } api.setVisible(la, false); S.hiddenLocal = la; }
     api.setViewActor(null);
+    ctx.hud?.setVisible?.(false); ctx.combat?.viewmodel?.setVisible?.(false); S.hudHidden = true;
   }
   function exitStage() {
     clearActors(); if (S.group) { S.group.removeFromParent(); S.group = null; }
     const r = ctx.render; if (ctx.map?.group && S.saved.map !== undefined) ctx.map.group.visible = S.saved.map; if (r?.sun && S.saved.sun !== undefined) r.sun.visible = S.saved.sun; if (r?.hemi && S.saved.hemi !== undefined) r.hemi.visible = S.saved.hemi;
-    scene.background = S.saved.bg ?? scene.background; scene.fog = S.saved.fog ?? scene.fog; if (S.hiddenLocal) api.setVisible(S.hiddenLocal, true); S.active = false; api.setViewActor(undefined);
+    scene.background = S.saved.bg ?? scene.background; scene.fog = S.saved.fog ?? scene.fog; if (S.hiddenLocal) api.setVisible(S.hiddenLocal, true); S.active = false; api.setViewActor(undefined); if (S.hudHidden) { ctx.hud?.setVisible?.(true); ctx.combat?.viewmodel?.setVisible?.(true); S.hudHidden = false; }
     if (S.overlay) { S.overlay.remove(); S.overlay = null; }
   }
 
@@ -145,7 +148,9 @@ export function registerGallery(ctx, api, X) {
   const _cam = new THREE.Vector3();
   const sys = {
     update() {
-      if (!S.active) return; const o = S.orbit, cam = ctx.render.camera, az = THREE.MathUtils.degToRad(o.az), el = THREE.MathUtils.degToRad(o.el);
+      if (!S.active) return;
+      for (const m of models.values()) if (!m.manual && (m.visible || m.root.visible)) { m.visible = false; m.root.visible = false; }
+      const o = S.orbit, cam = ctx.render.camera, az = THREE.MathUtils.degToRad(o.az), el = THREE.MathUtils.degToRad(o.el);
       cam.fov = o.fov; cam.updateProjectionMatrix?.();
       cam.position.set(o.tx + Math.sin(az) * Math.cos(el) * o.dist, o.ty + Math.sin(el) * o.dist, o.tz + Math.cos(az) * Math.cos(el) * o.dist);
       cam.lookAt(o.tx, o.ty, o.tz);
@@ -162,7 +167,7 @@ export function registerGallery(ctx, api, X) {
     addEventListener('wheel', (e) => { if (S.active) S.orbit.dist = THREE.MathUtils.clamp(S.orbit.dist * (1 + Math.sign(e.deltaY) * 0.08), 1.6, 30); }, { passive: true });
     addEventListener('keydown', (e) => {
       if (!S.active) return;
-      if (e.code === 'KeyH') api.showHitboxes(!api.__hb && (api.__hb = true)) , (api.__hb = api.__hb), toggleHb();
+      if (e.code === 'KeyH') toggleHb();
       else if (e.code === 'KeyT') replayTagOut();
       else if (e.code === 'KeyN') { S.names = !S.names; api.showNameplates(S.names); }
       else if (e.code === 'BracketRight') layout('lineup', (S.page + 1) % PAGES.length);

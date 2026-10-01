@@ -15,8 +15,8 @@ export const TUNE = {
   accel: 9.0, friction: 5.6, stopSpeed: 1.6,            // ground (Source formulas)
   gravity: 23, terminal: 46, jumpHeight: 1.05,           // jump v0 = sqrt(2 g h) = 6.95 m/s, hang ≈ 0.60 s
   airAccel: 12, airCap: 0.79,                            // 30 u/s * (6.6/250) ≈ 0.79 m/s wish cap
-  softStart: 8.4, softEnd: 12.4, hardMax: 15,            // air-strafe gain fades 1 → 0 between these horizontal speeds
-  bhopCap: 8.1, bhopKeep: 0.45,                           // takeoff above bhopCap keeps only this fraction of the excess
+  softStart: 8.0, softEnd: 12.0, hardMax: 15,            // air-strafe gain fades 1 → 0 between these horizontal speeds
+  bhopCap: 8.1, bhopKeep: 0.4,                           // takeoff above bhopCap keeps only this fraction of the excess
   coyote: 0.075, jumpBuffer: 0.11,
   stepHeight: 0.45, snapDown: 0.45,
   launchSpeed: 7.4,                                      // running off a ramp crest faster than this launches instead of gluing

@@ -40,7 +40,7 @@ async function buildLab(ctx, util) {
   // Isolate the lab from match flow / bots / HUD (deterministic, and immune to other pieces' work-in-progress). ?isolate=0 keeps them.
   const detached = [];
   if (ctx.params.get('isolate') !== '0') {
-    for (const k of ['hud', 'menu', 'ai', 'match']) { const m = ctx[k]; if (m) { ctx.engine.remove(m); detached.push(m); } }
+    for (const k of ['hud', 'menu', 'ai', 'match', 'player']) { const m = ctx[k]; if (m) { ctx.engine.remove(m); detached.push(m); } }
     const ui = document.getElementById('ui'); if (ui) { ui.dataset.utilHidden = ui.style.display || ''; ui.style.display = 'none'; }
   }
   const solids = [], visuals = [], ceilings = [];
@@ -94,12 +94,13 @@ async function buildLab(ctx, util) {
   if (!R.sun) { const sun = new THREE.DirectionalLight(0xfff0d8, 2.6); sun.position.set(18, 30, 12); sun.castShadow = true; scene.add(sun); own.push(sun); }
   const bg0 = scene.background; scene.background = new THREE.Color(0x9cc0e4);
   // ---- stand-in actors
-  const mkActor = (name, team, x, z, yawDeg) => { const a = createActor({ name, team }); a.pos.set(x, 0, z); a.yaw = THREE.MathUtils.degToRad(yawDeg); a.hp = 100; const f = figure(team === 'ember' ? 0xff7a2f : 0x2fd0ff, 'lab-actor-' + name); a.model = f; f.position.copy(a.pos); f.rotation.y = a.yaw; group.add(f); return a; };
+  const mkActor = (name, team, x, z, yawDeg) => { const a = createActor({ name, team }); a.pos.set(x, 0, z); a.yaw = THREE.MathUtils.degToRad(yawDeg); a.hp = 100; if (!ctx.characters || ctx.characters.__stub) { const f = figure(team === 'ember' ? 0xff7a2f : 0x2fd0ff, 'lab-actor-' + name); a.labFig = f; f.position.copy(a.pos); f.rotation.y = a.yaw; group.add(f); } else ctx.characters.spawn?.(a, { auto: true, materialise: false }); return a; };
   const actors = { A: mkActor('A', 'tide', 0, -17.5, 0), B: mkActor('B', 'ember', 9, 24, 200), C: mkActor('C', 'tide', -3.5, -26.5, 0), D: mkActor('D', 'tide', 0, -12.5, 0) };
   const added = []; for (const a of Object.values(actors)) { ctx.actors.push(a); added.push(a); }
   // ---- local actor
-  let me = ctx.localActor; let ownMe = false;
+  let me = ctx.localActor; let ownMe = ctx.params.get('isolate') !== '0';
   if (!me) { me = createActor({ name: 'You', team: 'ember', isPlayer: true }); ctx.actors.push(me); ctx.localActor = me; ownMe = true; }
+  me.pos.y = 0;
   if (ctx.params.get('vm') !== '1') ctx.combat?.viewmodel?.setVisible?.(false);
   me.pos.set(0, 0, 14); me.yaw = 0; me.pitch = 0; me.alive = true; util.infinite = true;
   // ---- API
@@ -111,7 +112,7 @@ async function buildLab(ctx, util) {
     lookAt(from, to) { const d = to.clone().sub(from); const yaw = Math.atan2(-d.x, -d.z), pitch = Math.asin(d.y / d.length()); lab.view(from.x, from.y, from.z, yaw, pitch); },
     ceilings(on) { for (const c of ceilings) c.visible = on; },
     reset() { util.clear(); for (const a of Object.values(actors)) { a.alive = true; a.hp = 100; a.armor = 0; a.blind = null; a.vel.set(0, 0, 0); } me.blind = null; me.hp = 100; },
-    place(name, x, z) { const a = actors[name]; a.pos.set(x, 0, z); a.model.position.copy(a.pos); },
+    place(name, x, z) { const a = actors[name]; a.pos.set(x, 0, z); },
     /** Named vantage points: {eye, target} */
     points: {
       yardLookCorridor: { eye: V(0, 1.62, 16), target: V(0, 1.6, -20) },
@@ -136,14 +137,19 @@ async function buildLab(ctx, util) {
       if (l || r) util.preview.show(me, type, held.both ? 'medium' : held.l ? 'strong' : 'weak');
       else if (held.l || held.r) { util.preview.hide(); util.throw(me, type, held.both ? 'medium' : held.l ? 'strong' : 'weak'); held = { l: false, r: false, both: false }; }
       if (hud) hud.textContent = `UTILITY LAB   [${TYPES[type].name.toUpperCase()}]  Z / 1-3 cycle\nLMB strong · RMB short · both medium (release throws)\nsmokes ${util.smokes.length}   blind ${util.blindAmount(me).toFixed(2)}`;
-      if (ownMe) { const c = R.camera; me.eyePos(c.position); c.rotation.set(me.pitch, me.yaw, 0, 'YXZ'); }
+      if (ownMe) {
+        const md = inp.consumeMouse(), sens = 0.0022 * (ctx.settings?.get?.('sensitivity') ?? 1); me.yaw -= md.dx * sens; me.pitch = Math.max(-1.5, Math.min(1.5, me.pitch - md.dy * sens));
+        const dt = 1 / 60, sp = (inp.down('walk') ? 3 : 6.5) * dt, fw = (inp.down('forward') ? 1 : 0) - (inp.down('back') ? 1 : 0), st = (inp.down('right') ? 1 : 0) - (inp.down('left') ? 1 : 0);
+        me.pos.x += (-Math.sin(me.yaw) * fw + Math.cos(me.yaw) * st) * sp; me.pos.z += (-Math.cos(me.yaw) * fw - Math.sin(me.yaw) * st) * sp; if (inp.down('jump')) me.pos.y += sp; if (inp.down('crouch')) me.pos.y = Math.max(0, me.pos.y - sp);
+        me.vel.set(0, 0, 0);
+        const c = R.camera; me.eyePos(c.position); c.rotation.set(me.pitch, me.yaw, 0, 'YXZ'); }
     },
   };
   ctx.engine.add(sys, 8);
   lab.type = (t) => { if (t) type = t; return type; };
   ctx.utilityLab = lab;
   // keep stand-in models on their actors + knock-back follow
-  const follow = { update() { for (const a of Object.values(actors)) { if (a.alive) { a.model.visible = true; } else a.model.visible = false; a.model.position.copy(a.pos); a.model.rotation.y = a.yaw; } } };
+  const follow = { update() { for (const a of Object.values(actors)) { const f = a.labFig; if (!f) continue; f.visible = a.alive; f.position.copy(a.pos); f.rotation.y = a.yaw; } } };
   ctx.engine.add(follow, 9);
   lab.view(0, 1.62, 16, 0, -0.02);
   lab.dispose = () => { group.parent?.remove(group); for (const o of own) scene.remove(o); scene.background = bg0; ctx.engine.remove(sys); ctx.engine.remove(follow); if (ctx.map?.group) ctx.map.group.visible = true; util.setWorld(null); util.infinite = false; hud?.remove(); for (const m of detached) ctx.engine.add(m, 20); const u2 = document.getElementById('ui'); if (u2 && 'utilHidden' in u2.dataset) u2.style.display = u2.dataset.utilHidden; for (const a of added) { const i = ctx.actors.indexOf(a); if (i >= 0) ctx.actors.splice(i, 1); } };

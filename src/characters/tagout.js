@@ -183,7 +183,7 @@ export function createTagOutFx(ctx, parent) {
         for (let i = 0; i < N(80); i++) {
           samples(pt); rad(r2); const sp = 1.6 + P() * 3.4, s = 0.07 + P() * 0.09, k = P(), c = k < 0.55 ? ice : k < 0.8 ? pal[0] : pal[1 + ((P() * (pal.length - 1)) | 0)];
           const m = k < 0.55 ? 1 : 1.6;
-          spawn(KINDS.shard, pt.x, pt.y, pt.z, r2.x * sp + ux * (1.8 + P() * 2.5), 1.4 + P() * 3.4, r2.z * sp + uz * (1.8 + P() * 2.5), s * 0.7, s * 1.5, s * 0.7, c[0] * m, c[1] * m, c[2] * m, 2 + P() * 0.9, { g: -9.5, drag: 0.35, bounce: 0.34, spin: 18 });
+          spawn(KINDS.shard, pt.x, pt.y, pt.z, r2.x * sp + ux * (1.8 + P() * 2.5), 1.4 + P() * 3.4, r2.z * sp + uz * (1.8 + P() * 2.5), s * 1.1, s * 1.5, s * 1.0, c[0] * m, c[1] * m, c[2] * m, 2 + P() * 0.9, { g: -9.5, drag: 0.35, bounce: 0.34, spin: 18 });
         }
       }
     }

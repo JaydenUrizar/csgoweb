@@ -24,7 +24,7 @@ void main(){
   gl_FragColor = vec4(col * a, 1.0);
   #include <colorspace_fragment>
 }`;
-const RING_VERT = /* glsl */`varying vec2 vUv; void main(){ vUv = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const RING_VERT = /* glsl */`varying vec2 vUv; void main(){ vUv = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 const RING_FRAG = /* glsl */`
 uniform float uProg, uAlpha, uT; uniform vec3 uCol; varying vec2 vUv;
 float ring(float r, float c, float w){ float d = (r - c) / w; return exp(-d * d); }
@@ -104,7 +104,6 @@ export function createPulse(ctx, W, deps) {
       }
       grenades?.knock?.(pos, P.radius * 0.8, 7);
       haze?.disturb?.(pos, P.radius * 0.72, 1, 3.4);
-      ctx.audio?.play?.('util.pulse.boom', { pos: pos.clone(), gain: 1 });
       // ------ visuals
       const b = pool.pop() || mk(); b.busy = true; b.t = 0; b.pos.copy(pos);
       // floor height under the blast for the ground ring

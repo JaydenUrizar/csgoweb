@@ -129,7 +129,7 @@ export function createMock(H) {
       H.bus.emit('credits', { actor: you, delta: 300, reason: 'Tag' });
       H.bus.emit('tag:hit', { attacker: you, victim: B[0], damage: 27, hitgroup: 'chest', tagger: 'arc' });
       H.bus.emit('tag:hit', { attacker: B[0], victim: you, damage: 18, hitgroup: 'chest', tagger: 'rail' });
-      H.toast?.('<b>+$300</b> Tag reward', ''); H.toast?.('Kestrel: <b>Haze out!</b>', '');
+      H.toast?.('Kestrel: <b>Haze out!</b>', '');
     },
     lowhp() { you.hp = 17; you.armor = 0; you.helmet = false; },
     buy() { match.phase = 'buy'; match.timeLeft = 9.4; you.credits = 3450; you.armor = 0; you.helmet = false; you.inventory = { slots: { secondary: 'pip', grip: 'tap' }, current: 'pip', utility: ['strobe'] }; Object.assign(eq, { def: DEFS.pip, mag: 13, reserve: 39 }); H.buy.open(); },

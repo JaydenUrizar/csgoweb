@@ -246,7 +246,8 @@ export function create(ctx) {
     const sid = typeof style === 'number' ? style : (STYLE_ID[style] ?? 0);
     const c = lin(color), w = o.white ?? look.white ?? 0.35, cm = mixLin(c, [1, 1, 1], w);
     const inten = o.intensity ?? look.intensity ?? 1.6, len = Math.min(o.len ?? look.len ?? 3, dist + 0.5), width = o.width ?? look.width ?? 0.02;
-    tracers.add(now, from.x, from.y, from.z, to.x, to.y, to.z, o.speed ?? look.speed ?? 480, cm[0], cm[1], cm[2], inten, width, len, sid, rnd());
+    const spd0 = o.speed ?? look.speed ?? 480, spd = Math.min(spd0, (dist + len) / 0.11);   // always visible for >= ~6 frames
+    tracers.add(now, from.x, from.y, from.z, to.x, to.y, to.z, spd, cm[0], cm[1], cm[2], inten, width * 1.5, len, sid, rnd());
     if ((sid === 2 || sid === 3 || o.sparkle) && dist > 1) {          // glitter trail left behind by fancy styles
       const n = Math.min(P.n(dist * 0.45), 28), sp = (o.speed ?? look.speed ?? 480);
       for (let i = 0; i < n; i++) {
@@ -499,14 +500,14 @@ export function create(ctx) {
     for (let i = 0; i < n; i++) {
       const th = rnd() * 6.283, ph = Math.acos(1 - rnd() * 1.6), rr = Math.cbrt(rnd()) * rad * 0.62;
       const dx = Math.sin(ph) * Math.cos(th), dy = Math.abs(Math.cos(ph)) * 0.75, dz = Math.sin(ph) * Math.sin(th);
-      const sp = rr * 2.7, sz = rad * (0.55 + rnd() * 0.45);
+      const sp = rr * 5.2, sz = rad * (0.6 + rnd() * 0.5);
       const v = 0.85 + rnd() * 0.25;
       E.reset(); E.pos(pos.x, pos.y + 0.4, pos.z); E.vel(dx * sp, dy * sp + 0.6, dz * sp); E.life = dur * (0.9 + rnd() * 0.15); E.g = 0.0; E.drag = 2.6; E.s0 = sz * 0.5; E.s1 = sz * 1.05; E.shape = S.SMOKE; E.add = 0; E.fadeIn = 0.5 / dur * 1.2; E.fadeOut = 0.78;
       E.seed = rnd(); E.rot = rnd() * 6; E.spin = (rnd() - 0.5) * 0.12; E.floor = pos.y + 0.05;
       E.col(c[0] * v, c[1] * v, c[2] * v, 0.62, c[0] * v, c[1] * v, c[2] * v, 0.62); PL.emit(now, E);
     }
     E.reset(); E.pos(pos.x, pos.y + 0.6, pos.z); E.life = 0.3; E.s0 = 0.5; E.s1 = rad * 1.4; E.shape = S.GLOW; E.add = 1; E.fadeIn = 0; E.col(1.2, 1.3, 1.4, 0.6, 0.5, 0.6, 0.7, 0); P.emit(now, E);
-    rings.add(now, pos.x, pos.y + 0.03, pos.z, 0, 1, 0, 0.9, 0.3, rad * 1.5, DECAL.PULSE, rnd(), 0.6, 0.7, 0.8, 0.7);
+    rings.add(now, pos.x, pos.y + 0.03, pos.z, 0, 1, 0, 0.9, 0.3, rad * 1.5, DECAL.PULSE, rnd(), 0.6, 0.7, 0.8, 0.22);
     return { pos, radius: rad, born: now, life: dur };
   }
 
@@ -560,12 +561,22 @@ export function create(ctx) {
   });
   on('tag:out', (e) => {
     const v = e.victim; if (!v) return;
-    if (ctx.characters?.tagOut && !ctx.characters.__stub && v.model) return;       // the avatars piece plays its own shatter on real models
+    if (ctx.characters?.handlesTagOut || (ctx.characters?.tagOut && !ctx.characters.__stub && v.model)) return;       // the avatars piece plays its own shatter on real models
     let style = v.cosmetics?.tagOutEffect;
     try { style = ctx.cosmetics?.resolve?.(v.cosmetics)?.tagOutEffect || style; } catch { /* stub */ }
     _hp.set(v.pos.x, v.pos.y + (v.height || 1.8) * 0.55, v.pos.z);
     let dir = e.dir; if (!dir && e.attacker) dir = _hn.set(v.pos.x - e.attacker.pos.x, 0, v.pos.z - e.attacker.pos.z);
     burstShards(_hp, TEAM_COL[v.team] ?? 0xffffff, style || 'shatter', { dir });
+  });
+  on('character:shatter', (e) => {                                       // avatars owns the shards; we add flash, floor rings, light, sparkles
+    const p = e?.point; if (!p) return; const c = lin(e.color ?? 0xffffff), x = p.x, y = p.y, z = p.z, sc = 1;
+    const gy = shards.groundAt ? shards.groundAt(x, y, z, y - 1) : y - 1;
+    E.reset(); E.pos(x, y, z); E.life = 0.22; E.s0 = 0.5; E.s1 = 1.9 * sc; E.shape = S.GLOW; E.add = 1; E.fadeIn = 0; E.col(1.2 + c[0] * 2.2, 1.2 + c[1] * 2.2, 1.2 + c[2] * 2.2, 0.9, c[0], c[1], c[2], 0); P.emit(now, E);
+    E.reset(); E.pos(x, y, z); E.life = 0.14; E.s0 = 0.7; E.s1 = 1.3; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.col(3.2, 3.2, 3.2, 1, 1.5, 1.5, 1.5, 0); P.emit(now, E);
+    rings.add(now, x, gy + 0.03, z, 0, 1, 0, 0.75, 0.3, 2.6, DECAL.PULSE, rnd(), c[0] * 1.6 + 0.3, c[1] * 1.6 + 0.3, c[2] * 1.6 + 0.3, 0.9);
+    rings.add(now + 0.08, x, gy + 0.03, z, 0, 1, 0, 0.9, 0.3, 4.0, DECAL.PULSE, rnd(), c[0] * 1.1, c[1] * 1.1, c[2] * 1.1, 0.5);
+    lightPulse(x, y + 0.3, z, c[0] * 1.2 + 0.2, c[1] * 1.2 + 0.2, c[2] * 1.2 + 0.2, 22, 10, 0.32);
+    sparkleBurst(x, y, z, c[0], c[1], c[2], 28, 1);
   });
   on('footstep', (e) => { if (!e.pos || e.crouch || e.walk) return; if ((e.speed ?? 6) < 3.8) return; footstepDust(e.pos, e.surface, e.speed); });
   on('land', (e) => { const a = e.actor; if (a) landPuff(a.pos, e.speed ?? 6, surfaceAt(a.pos)); });
@@ -622,7 +633,7 @@ export function create(ctx) {
   // ---- public API ---------------------------------------------------------------------------------------------------
   const api = {
     particles: P, longParticles: PL, viewParticles: PV, decals, rings, tracers, ambient, beacon, screenFx: screen,
-    spec: () => new Spec(), get now() { return now; }, SHAPE, DECAL, autoHaze: true, autoUtility: () => { const u = ctx.combat?.utility; return !u || u.__stub || u.selfFx === false; }, lightPulse, glint, sparkleBurst,
+    spec: () => new Spec(), get now() { return now; }, SHAPE, DECAL, autoHaze: true, characterDriven: true, autoUtility: () => { const u = ctx.combat?.utility; return !u || u.__stub || u.selfFx === false; }, lightPulse, glint, sparkleBurst,
     tracer(from, to, color, style, o) {
       if (o == null && typeof style === 'object' && style) { o = style; style = o.style; }
       // combat passes the tagger id as `style` (e.g. 'arc'): resolve to that tagger's look

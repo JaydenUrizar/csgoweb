@@ -22,15 +22,15 @@ export function slide(V, when, dur, { f0 = 600, f1 = 1800, g = 0.2, q = 1.3 } = 
 function gun(V, P) {
   const { r, fp } = V, o = V.o, rr = (o.rr | 0) & 3, pit = (o.pitch || 1) * RR[rr];
   const J = (x, p = 0.07) => x * (1 + (r() * 2 - 1) * p);
-  const gk = fp ? 1 : 0.8, tailK = fp ? 1 : 1.5, tailD = fp ? 1 : 1.45;
+  const gk = (fp ? 1 : 0.8), tailK = (fp ? 1 : 1.5) * 0.75, tailD = fp ? 1 : 1.45, BK = 0.5, SK = 0.3;
   const c = P.crack;
-  click(V, { g: (P.click ?? 0.6) * gk, hp: J(P.clickHp ?? 2600), d: 0.003 });
-  noise(V, { a: 0.0003, d: c.d * (fp ? 1 : 1.2), g: c.g * gk, bp: J(c.f * RRC[rr], 0.06), q: c.q ?? 0.8, hp: c.hp ?? 500, lp: (c.lp ?? 9000) * (fp ? 1 : 0.5), sat: c.sat ?? 0.2 });
+  click(V, { g: (P.click ?? 0.6) * gk * 0.45, hp: J(P.clickHp ?? 2600), d: 0.003 });
+  noise(V, { a: 0.0003, d: c.d * (fp ? 1 : 1.2), g: c.g * gk * 1.5, bp: J(c.f * RRC[rr], 0.06), q: c.q ?? 0.8, hp: (c.hp ?? 500) * 1.2, lp: (c.lp ?? 9000) * (fp ? 1 : 0.5), sat: c.sat ?? 0.2 });
   const b = P.body;
-  osc(V, { f0: J(b.f0, 0.03) * pit, f1: b.f1 * pit, pt: b.pt, d: b.d * (fp ? 1 : 0.9), g: b.g * (fp ? 1 : 0.85), sat: b.sat ?? 0.15, type: b.type ?? 'sine' });
-  if (P.body2) osc(V, { f0: P.body2.f0 * pit, f1: P.body2.f1 * pit, pt: P.body2.pt, d: P.body2.d, g: P.body2.g * gk, type: P.body2.type ?? 'triangle', sat: 0.25 });
+  osc(V, { f0: J(b.f0, 0.03) * pit, f1: b.f1 * pit, pt: b.pt, d: b.d * (fp ? 1 : 0.9), g: b.g * BK * (fp ? 1 : 0.85), sat: b.sat ?? 0.15, type: b.type ?? 'sine' });
+  if (P.body2) osc(V, { f0: P.body2.f0 * pit, f1: P.body2.f1 * pit, pt: P.body2.pt, d: P.body2.d, g: P.body2.g * BK * gk, type: P.body2.type ?? 'triangle', sat: 0.25 });
   if (P.zap) osc(V, { type: P.zap.type ?? 'sawtooth', f0: J(P.zap.f0) * pit, f1: P.zap.f1 * pit, pt: P.zap.pt, d: P.zap.d, g: P.zap.g * gk, lp: P.zap.lp ?? 5000, hp: P.zap.hp ?? 200 });
-  if (P.sub) osc(V, { f0: P.sub.f * pit * 1.2, f1: P.sub.f * pit, pt: 0.05, d: P.sub.d, g: P.sub.g * (fp ? 1 : 0.35) });
+  if (P.sub) osc(V, { f0: P.sub.f * pit * 1.2, f1: P.sub.f * pit, pt: 0.05, d: P.sub.d, g: P.sub.g * SK * (fp ? 1 : 0.35) });
   const t = P.tail;
   noise(V, { kind: 'pink', a: 0.002, d: t.d * tailD, g: t.g * tailK, hp: t.hp ?? 90, lp: [t.hi * (fp ? 1 : 0.6), t.lo, t.d * tailD], when: t.delay ?? 0.004 });
   if (P.ring) ring(V, { f: P.ring.f * pit, ratios: P.ring.ratios, decays: P.ring.decays, gains: P.ring.gains, d: P.ring.d, g: P.ring.g * (fp ? 1 : 0.6), when: 0.002 });
@@ -154,13 +154,14 @@ function inspect(V, id) {
 const IDS = ['pip', 'twin', 'judge', 'zip', 'hum', 'arc', 'rail', 'halo', 'lance', 'scatter', 'storm'];
 const REACH = { pip: 7, twin: 6, judge: 11, zip: 5, hum: 6, arc: 9, rail: 8, halo: 8, lance: 16, scatter: 11, storm: 10 };
 const SEND = { pip: 0.32, twin: 0.28, judge: 0.42, zip: 0.22, hum: 0.25, arc: 0.4, rail: 0.34, halo: 0.55, lance: 0.6, scatter: 0.5, storm: 0.42 };
+export const TRIM = { arc: 0.8, judge: 0.55, lance: 0.55, scatter: 0.55, storm: 0.55, halo: 1.2, hum: 1.45, twin: 1.45, zip: 3 };
 const MAXV = { zip: 12, hum: 10, storm: 10, twin: 10 };
 
 export function registerWeapons() {
   for (const id of IDS) {
-    reg(`tagger.${id}.fire`, (V) => gun(V, FIRE[id]), { cat: 'tagger.' + id, ref: REACH[id], roll: 1.05, maxDist: 160, send: SEND[id], voices: MAXV[id] ?? 8, prio: 3, gain: 1 });
+    reg(`tagger.${id}.fire`, (V) => gun(V, FIRE[id]), { cat: 'tagger.' + id, ref: REACH[id], roll: 1.05, maxDist: 160, send: SEND[id], voices: MAXV[id] ?? 8, prio: 3, gain: TRIM[id] ?? 1 });
   }
-  reg('tagger.tap.fire', tapFire, { cat: 'tagger.tap', ref: 2.5, send: 0.05, prio: 2 });
+  reg('tagger.tap.fire', tapFire, { cat: 'tagger.tap', ref: 2.5, send: 0.05, prio: 2, gain: 2 });
   reg('tagger.tap.hit', tapHit, { cat: 'tagger.tap', ref: 4, send: 0.15, prio: 3 });
   for (const id of [...IDS, 'tap']) {
     reg(`tagger.${id}.draw`, (V) => draw(V, id), { cat: 'tagger.' + id, ref: 2, send: 0.06, maxDist: 30, prio: 1 });

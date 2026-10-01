@@ -21,7 +21,7 @@ export function create(ctx) {
 
   // ------------------------------------------------------------------ DOM
   const style = document.createElement('style'); style.id = 'fx-style';
-  style.textContent = CSS + LOGO_CSS + '\nhtml.fx-menu #ui>:not(.fx){visibility:hidden!important}\n';
+  style.textContent = CSS + LOGO_CSS + '\nhtml.fx-menu #ui>:not(.fx),html.fx-nohud #ui>:not(.fx){visibility:hidden!important}\n';
   document.head.append(style);
   try { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = FONT_LINK; document.head.append(l); } catch {}
   if (test) document.documentElement.classList.add('fx-test');
@@ -40,7 +40,9 @@ export function create(ctx) {
   let lastFocus = null, lockerOpen = false, lastOpts = null, endDelay = -1, extModal = 0, cheatOpen = false, bootAbort = false;
   let inMenuWorld = false;
 
-  const backdrop = createBackdrop(ctx);
+  // Lazy: nothing is built (and render.render is never touched) unless the menu world is actually shown.
+  let _bd = null; const bdGet = () => (_bd ||= createBackdrop(ctx));
+  const backdrop = { enter: () => bdGet()?.enter(), leave: () => _bd?.leave(), warm: () => bdGet()?.warm(), setMood: (m) => _bd?.setMood(m), snapMood: () => _bd?.snapMood(), update: (dt) => _bd?.update(dt), dispose: () => _bd?.dispose(), get real() { return _bd; } };
   const prefs = () => ({ difficulty: 'pro', side: 'random', map: 'crux', ...(S.get('menuPrefs') || {}) });
 
   const A = {
@@ -98,19 +100,19 @@ export function create(ctx) {
     if (v === inMenuWorld) return; inMenuWorld = v;
     document.documentElement.classList.toggle('fx-menu', v);
     scrim.style.opacity = v ? 1 : 0;
-    if (backdrop) { if (v) backdrop.enter(); else backdrop.leave(); }
+    if (v) backdrop.enter(); else backdrop.leave();
   }
   function focusIn(el) { requestAnimationFrame(() => nav.focusFirst(el)); }
   function activeScopeEl() { const top = overlays[overlays.length - 1]; return top ? screens[top].el : screens[base]?.el; }
   function setBase(name) {
     base = name; for (const n of ['main', 'pause', 'end']) { const s = n === 'end' ? end : screens[n]; if (s) setOn(s, n === name); }
-    captureKeys(name !== 'game'); ctx.events.emit('menu:state', { state: name });
+    document.documentElement.classList.toggle('fx-nohud', name === 'end'); captureKeys(name !== 'game'); ctx.events.emit('menu:state', { state: name });
   }
   function showOverlay(name, arg) {
     const below = activeScopeEl(); if (below) below.inert = true; lastFocus = document.activeElement;
     overlays.push(name); setOn(screens[name], true); screens[name].el.inert = false;
     if (name === 'settings') settings.open(arg || settings.active); if (name === 'help') help.refresh(); if (name === 'cheat') cheat.refresh();
-    if (backdrop && inMenuWorld) backdrop.setMood(name === 'settings' || name === 'help' || name === 'credits' ? 'side' : 'main');
+    if (inMenuWorld) backdrop.setMood(name === 'settings' || name === 'help' || name === 'credits' ? 'side' : 'main');
     ctx.events.emit('ui:open', { owner: 'menu', name }); focusIn(screens[name].el);
   }
   function openOverlay(name, arg) { if (overlays.includes(name)) return; showOverlay(name, arg); }
@@ -119,14 +121,14 @@ export function create(ctx) {
     if (name === 'settings') settings.leave();
     setOn(screens[name], false); const below = activeScopeEl(); if (below) below.inert = false;
     ctx.events.emit('ui:close', { owner: 'menu', name }); ctx.events.emit('ui:click');
-    if (!overlays.length && backdrop && inMenuWorld) backdrop.setMood('main');
+    if (!overlays.length && inMenuWorld) backdrop.setMood('main');
     const f = lastFocus; if (f && document.contains(f) && f !== document.body) requestAnimationFrame(() => f.focus({ preventScroll: true })); else focusIn(below);
   }
   function clearOverlays() { while (overlays.length) { const n = overlays.pop(); setOn(screens[n], false); screens[n].el.inert = false; } for (const s of [main, pause]) s.el.inert = false; if (end) end.el.inert = false; }
 
   // ------------------------------------------------------------------ main menu / boot
   async function showMain({ instant = false } = {}) {
-    clearOverlays(); worldMenu(true); backdrop?.setMood('main'); if (instant) backdrop?.snapMood();
+    clearOverlays(); worldMenu(true); backdrop.setMood('main'); if (instant) backdrop.snapMood();
     setBase('main'); main.paint(); boot.el.classList.add('out'); boot.el.classList.remove('on');
     ctx.audio?.music?.set?.('menu'); focusIn(main.el);
   }
@@ -138,7 +140,7 @@ export function create(ctx) {
     // fonts
     prog(.42, 'Loading typography'); try { await Promise.race([document.fonts?.ready, sleep(fast ? 50 : 1400)]); } catch {} await raf();
     prog(.6, 'Staging showcase'); await raf();
-    if (backdrop) { try { backdrop.warm(); } catch (e) { ctx.errors.push('menu warm ' + e); } }
+    if (!bypass) { try { backdrop.warm(); } catch (e) { ctx.errors.push('menu warm ' + e); } }
     prog(.82, 'Compiling shaders'); await raf();
     ctx.events.on('boot:done', () => {});
     prog(.95, 'Profile'); applySettings(); await raf();
@@ -173,13 +175,13 @@ export function create(ctx) {
   }
   function openPause() {
     if (base !== 'game') return;
-    pause.refresh(); clearOverlays(); setBase('pause'); ctx.engine && (ctx.engine.paused = true); tutorial.show(false);
+    pause.refresh(); clearOverlays(); setBase('pause'); ctx.engine && (ctx.engine.paused = true); try { ctx.match?.pause?.(); } catch {} tutorial.show(false);
     ctx.events.emit('ui:open', { owner: 'menu', name: 'pause' }); ctx.events.emit('game:pause', { paused: true }); focusIn(pause.el);
   }
   function resume() {
     if (base !== 'pause') return; clearOverlays(); setOn(pause, false);
     try { ctx.input?.lock?.(); } catch {}
-    setBase('game'); ctx.engine && (ctx.engine.paused = false); tutorial.show(true);
+    setBase('game'); ctx.engine && (ctx.engine.paused = false); try { ctx.match?.resume?.(); } catch {} tutorial.show(true);
     ctx.events.emit('ui:close', { owner: 'menu', name: 'pause' }); ctx.events.emit('game:pause', { paused: false }); ctx.events.emit('ui:click');
     setTimeout(() => { if (base === 'game' && !ctx.input?.locked && !test) openPause(); }, 350);
   }
@@ -189,8 +191,8 @@ export function create(ctx) {
     pause.el.append(box); pause.el.inert = true; box.inert = false; focusIn(box);
   }
   async function leaveMatch() {
-    tutorial.stop(); if (ctx.engine) ctx.engine.paused = false; endDelay = -1;
-    const m = ctx.match; const fn = m?.leaveMatch || m?.endMatch || m?.stopMatch || m?.leave || m?.reset || m?.abort;
+    tutorial.stop(); if (ctx.engine) ctx.engine.paused = false; endDelay = -1; try { ctx.match?.resume?.(); } catch {}
+    const m = ctx.match; const fn = m?.leaveMatch || m?.quit || m?.endMatch || m?.stopMatch || m?.leave || m?.abort;
     if (fn) { try { await fn.call(m); } catch (e) { ctx.errors.push('menu leave ' + e); } }
     else if (!test) { wipe.classList.add('on'); wipe.querySelector('.msg span').textContent = 'Returning to menu'; await sleep(200); location.reload(); return; }
     if (end) { setOn(end, false); end.el.remove(); end = null; }
@@ -219,11 +221,11 @@ export function create(ctx) {
   // ------------------------------------------------------------------ locker
   function openLocker() {
     const c = ctx.cosmetics;
-    if (!c || c.__stub || typeof c.openLocker !== 'function') { toast('Locker unlocks soon — cosmetics piece not loaded'); return; }
-    lockerOpen = true; document.documentElement.classList.remove('fx-menu'); setOn(main, false); backdrop?.setMood('locker');
-    const done = () => { if (!lockerOpen) return; lockerOpen = false; document.documentElement.classList.toggle('fx-menu', inMenuWorld); if (base === 'main') { setOn(main, true); backdrop?.setMood('main'); focusIn(main.el); } };
-    try { const r = c.openLocker({ onClose: done }); if (r && typeof r.then === 'function') r.then(done, done); } catch (e) { ctx.errors.push('menu locker ' + e); done(); }
-    const off = ctx.events.on('ui:close', (d) => { if (d?.name === 'locker') { off(); done(); } });
+    if (!c || c.__stub || typeof c.openLocker !== 'function') { toast('Locker unavailable'); return; }
+    lockerOpen = true; document.documentElement.classList.remove('fx-menu'); setOn(main, false); backdrop.setMood('locker');
+    const done = () => { if (!lockerOpen) return; lockerOpen = false; document.documentElement.classList.toggle('fx-menu', inMenuWorld); if (base === 'main') { setOn(main, true); backdrop.setMood('main'); focusIn(main.el); } };
+    try { const r = c.openLocker({ onClose: done, side: ctx.match?.playerTeam || (prefs().side === 'tide' ? 'tide' : 'ember') }); if (r && typeof r.then === 'function') r.then(done, done); } catch (e) { ctx.errors.push('menu locker ' + e); done(); }
+    const off = ctx.events.on('ui:close', (d) => { if ((d?.name || d?.id) === 'locker') { off(); done(); } });
     const esc = (e) => { if (e.code === 'Escape' && lockerOpen) setTimeout(() => { if (lockerOpen && (c.isOpen ? !c.isOpen() : !document.querySelector('#ui [data-fx-locker]'))) { /* keep open: cosmetics owns Esc */ } }, 0); };
     addEventListener('keydown', esc, { once: true });
   }
@@ -233,7 +235,6 @@ export function create(ctx) {
     try {
       fpsEl.hidden = !get('showFps');
       if (S.get('keybinds') && Object.keys(S.get('keybinds')).length) ctx.menu_applyBinds();
-      if (!S.get('menuInit')) { S.set('menuInit', 1); if (S.get('sensitivity') === 1 || S.get('sensitivity') === undefined) S.set('sensitivity', SD.sensitivity); }
       ctx.render?.setQuality?.(get('quality'));
       if (get('resolutionScale') !== 100) ctx.render?.setResolutionScale?.(get('resolutionScale') / 100);
       for (const [b, k] of [['master', 'volume'], ['sfx', 'sfxVolume'], ['music', 'musicVolume'], ['voice', 'voiceVolume']]) ctx.audio?.setVolume?.(b, get(k));
@@ -247,6 +248,7 @@ export function create(ctx) {
   ctx.events.on('ui:close', (d) => { if (d?.owner !== 'menu') extModal = Math.max(0, extModal - 1); });
   ctx.events.on('input:unlock', () => { if (base !== 'game') return; setTimeout(() => { if (base === 'game' && !ctx.input.locked && !extModal && !lockerOpen) openPause(); }, 60); });
   ctx.events.on('input:lock', () => { if (base === 'pause' && !overlays.length && !wipe.classList.contains('on')) resume(); });
+  ctx.events.on('locker:close', () => { if (lockerOpen) { lockerOpen = false; document.documentElement.classList.toggle('fx-menu', inMenuWorld); if (base === 'main') { setOn(main, true); backdrop.setMood('main'); focusIn(main.el); } } });
   ctx.events.on('match:end', (d) => { if (base === 'game') { endDelay = 2.6; ctx._menuEndData = d; } });
   addEventListener('keydown', (e) => {
     if (e.code === 'F1') { e.preventDefault(); if (base === 'game') { cheatOpen = !cheatOpen; cheat.refresh(); setOn(cheat, cheatOpen); } else if (base === 'main') { overlays.includes('cheat') ? back() : openOverlay('help'); } else if (overlays[overlays.length - 1] === 'cheat') back(); return; }
@@ -265,8 +267,8 @@ export function create(ctx) {
     if (k === 'boot') { worldMenu(false); boot.el.classList.remove('out'); boot.el.classList.add('on'); boot.set(.72, 'Compiling shaders'); base = 'boot'; return; }
     boot.el.classList.add('out'); boot.el.classList.remove('on');
     if (['main', 'settings', 'help', 'credits'].includes(k)) {
-      await showMain({ instant: true }); backdrop?.snapMood();
-      if (k !== 'main') { openOverlay(k, arg); backdrop?.snapMood(); }
+      await showMain({ instant: true }); backdrop.snapMood();
+      if (k !== 'main') { openOverlay(k, arg); backdrop.snapMood(); }
     } else {
       worldMenu(false); scrim.style.opacity = 0; setOn(main, false);
       if (k === 'pause') { setBase('game'); openPause(); }
@@ -285,21 +287,21 @@ export function create(ctx) {
 
   // ------------------------------------------------------------------ boot decision
   if (bypass) { setBase('game'); captureKeys(false); boot.el.remove(); }
-  else if (test && !P.get('boot')) { queueMicrotask(() => { bootAbort = true; boot.el.classList.add('out'); showMain({ instant: true }); }); }
-  else queueMicrotask(() => runBoot());
+  else if (test && !P.get('boot')) { queueMicrotask(() => { if (bootAbort) return; bootAbort = true; boot.el.classList.add('out'); showMain({ instant: true }); }); }
+  else queueMicrotask(() => { if (!bootAbort) runBoot(); });
   applySettings();
 
   let fpsAcc = 0;
   return {
     update(dt) {
-      if (inMenuWorld && backdrop) backdrop.update(dt);
+      if (inMenuWorld) backdrop.update(dt);
       if (base === 'main') main.tick(dt);
       if (base === 'game') tutorial.update(dt);
       if (endDelay >= 0 && base === 'game') { endDelay -= dt; if (endDelay < 0) showEnd(ctx._menuEndData); }
       if (!fpsEl.hidden) { fpsAcc += dt; if (fpsAcc > .5) { fpsAcc = 0; fpsEl.textContent = Math.round(1 / (ctx.engine?.dtSmooth || .0167)) + ' FPS'; } }
     },
-    get state() { return base; }, backdrop, settings, tutorial,
-    dispose() { nav.dispose(); cancelAnimationFrame(padRaf); backdrop?.dispose(); root.remove(); style.remove(); },
-    debug: { show: debugShow, screens: GALLERY, get base() { return base; }, get overlays() { return overlays.slice(); }, showMain, play, openPause, resume, showEnd: (w) => showEnd(fakeEndData(ctx, w || 'ember')), tutorial, settings, backdrop, toast, focus: () => document.activeElement?.outerHTML?.slice(0, 120) },
+    get state() { return base; }, get backdrop() { return backdrop; }, settings, tutorial,
+    dispose() { nav.dispose(); cancelAnimationFrame(padRaf); backdrop.dispose(); root.remove(); style.remove(); },
+    debug: { show: debugShow, screens: GALLERY, get base() { return base; }, get overlays() { return overlays.slice(); }, showMain, play, openPause, resume, showEnd: (w) => showEnd(fakeEndData(ctx, w || 'ember')), tutorial, settings, get backdrop() { return backdrop; }, toast, focus: () => document.activeElement?.outerHTML?.slice(0, 120) },
   };
 }

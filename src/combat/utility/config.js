@@ -23,15 +23,15 @@ export const TYPES = {
 export const LIMITS = { haze: 1, strobe: 2, pulse: 1, total: 3 };
 export const HAZE = {
   voxel: 0.5,             // flood-fill cell size
-  budget: 900,            // cells filled (=112 m^3): sphere-ish in the open, longer in corridors
+  budget: 1100,            // cells filled (=112 m^3): sphere-ish in the open, longer in corridors
   maxRadius: 8.0,         // hard cap on flood distance from the seed
-  squash: 1.2,            // vertical distance weight (>1 => flatter dome)
-  seedHeight: 0.85,       // seed sits this far above the resting grenade (clamped by ceilings)
+  squash: 0.95,            // vertical distance weight (>1 => flatter dome)
+  seedHeight: 1.2,       // seed sits this far above the resting grenade (clamped by ceilings)
   expandTime: 1.15,       // seconds for the front to reach full size
   life: 18,               // seconds until fully gone
   fadeStart: 12.6,        // gentle dissipation begins
   blockDepth: 0.85,       // metres of full-density smoke that hides a line of sight
-  maxPuffs: 300,
+  maxPuffs: 600,
   wakeMax: 8,
 };
 export const STROBE = {

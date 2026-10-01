@@ -6,7 +6,7 @@ import fs from 'node:fs'; import path from 'node:path';
 export const GAME_URL = process.env.GAME_URL || 'http://localhost:5173/';
 const CHROME = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 export async function open({ params = 'test=1', size = [1280, 720], url = GAME_URL, wait = 60000, headed = false } = {}) {
-  const browser = await chromium.launch({ executablePath: CHROME, headless: !headed, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl', '--autoplay-policy=no-user-gesture-required', '--mute-audio'] });
+  const browser = await chromium.launch({ executablePath: CHROME, headless: !headed, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl', '--autoplay-policy=no-user-gesture-required', '--mute-audio', '--ignore-certificate-errors'] });
   const page = await browser.newPage({ viewport: { width: size[0], height: size[1] } });
   const logs = []; page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' || m.type() === 'warning') logs.push(`[${m.type()}] ${t}`); }); page.on('pageerror', (e) => logs.push('[pageerror] ' + e.message));
   await page.goto(url + (url.includes('?') ? '&' : '?') + params.replace(/^\?/, ''), { waitUntil: 'load' });

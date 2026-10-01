@@ -89,10 +89,10 @@ export function registerLab(ctx, vfx) {
     TSTYLE.forEach((st, i) => {
       cat['tracer-' + st] = { cam: () => CAMS.tracer, run: () => {
         const cols = [0xff9a4a, 0x5fe0ff, 0xffe066, 0xffffff, 0xff5a5a, 0x9f7bff];
-        vfx.tracer(P3(0.9, 1.25, 1.0), P3(-1.2 + i * 0.5, 1.4, -8.8), cols[i], st, { look: { style: st, width: st === 'laser' ? 0.045 : 0.026, len: st === 'laser' ? 14 : st === 'comet' ? 6 : 4.4, speed: 260, intensity: 1.9, white: 0.3 }, force: true });
+        vfx.tracer(P3(0.9, 1.25, 1.0), P3(-1.2 + i * 0.5, 1.4, -8.8), cols[i], st, { look: { style: st, width: st === 'laser' ? 0.045 : 0.026, len: st === 'laser' ? 14 : st === 'comet' ? 6 : 4.4, speed: 900, intensity: 1.9, white: 0.3 }, force: true });
       } };
     });
-    cat['tracer-volley'] = { cam: () => CAMS.tracer, run: () => { for (let i = 0; i < 6; i++) vfx.tracer(P3(0.9, 1.25, 1.0), P3(-3 + i * 1.2, 1.2 + (i % 3) * 0.3, -8.8), i % 2 ? 0x5fe0ff : 0xff9a4a, 'beam', { look: { style: 'beam', width: 0.024, len: 4, speed: 200, intensity: 1.8, white: 0.3 }, force: true }); } };
+    cat['tracer-volley'] = { cam: () => CAMS.tracer, run: () => { for (let i = 0; i < 6; i++) vfx.tracer(P3(0.9, 1.25, 1.0), P3(-3 + i * 1.2, 1.2 + (i % 3) * 0.3, -8.8), i % 2 ? 0x5fe0ff : 0xff9a4a, 'beam', { look: { style: 'beam', width: 0.024, len: 4, speed: 900, intensity: 1.8, white: 0.3 }, force: true }); } };
     cat['muzzle-world'] = { cam: () => CAMS.muzzle, run: () => { const d = lab.dummy; d.forward(new THREE.Vector3()); vfx.muzzleFlash(d, 'arc'); } };
     cat['muzzle-view'] = { cam: () => CAMS.view, run: () => vfx.muzzleFlash('view', 'arc') };
     SHARD.forEach((st, i) => { cat['shards-' + st] = { cam: () => CAMS.dummy, run: () => vfx.shards(P3(lab.dummy.pos.x, 1.0, lab.dummy.pos.z), i % 2 ? 0x2fd0ff : 0xff7a2f, st, { dir: P3(-0.5, 0, 1), force: true }) }; });
@@ -117,7 +117,7 @@ export function registerLab(ctx, vfx) {
       // stress: ~10 shots/s worth of everything at once
       for (let i = 0; i < 10; i++) {
         const s = SURF[i % 5], t = T[s]; if (!t) continue;
-        vfx.tracer(P3(0.9 - i * 0.3, 1.25, 1.0), P3(t.x, 1.3 + (i % 3) * 0.2, -8.8), i % 2 ? 0x5fe0ff : 0xff9a4a, 'beam', { look: { style: 'beam', width: 0.024, len: 4, speed: 300, intensity: 1.8, white: 0.3 }, force: true });
+        vfx.tracer(P3(0.9 - i * 0.3, 1.25, 1.0), P3(t.x, 1.3 + (i % 3) * 0.2, -8.8), i % 2 ? 0x5fe0ff : 0xff9a4a, 'beam', { look: { style: 'beam', width: 0.024, len: 4, speed: 900, intensity: 1.8, white: 0.3 }, force: true });
         vfx.impact(P3(t.x, 1.3 + (i % 3) * 0.2, -8.82), P3(0, 0, 1), s, { force: true });
       }
       vfx.muzzleFlash(lab.dummy, 'arc'); vfx.muzzleFlash(lab.dummy2, 'rail'); vfx.muzzleFlash('view', 'arc');

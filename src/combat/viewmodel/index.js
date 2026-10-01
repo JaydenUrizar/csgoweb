@@ -151,13 +151,13 @@ export function createViewmodel(ctx) {
   function onClipEnd(name) {
     if (name === 'holster' && S.pending) { const p = S.pending; S.pending = null; setModel(p.id, p.skin); startClip('draw', { dur: p.time ?? S.prof.draw }); }
     else if (name === 'holster') { S.hidden = true; }
-    else if (name === 'reload') { S.ammoLock = -1; resetParts(); }
+    else if (name.startsWith('reload')) { S.ammoLock = -1; resetParts(); }
     else if (name === 'draw') { /* idle */ }
     else if (name === 'throwRel') { S.hidden = true; ctx.events?.emit?.('viewmodel:throwDone', { id: S.id }); }
     if (name === 'melee1' || name === 'melee2' || name === 'bash' || name === 'inspect' || name === 'empty' || name === 'pump' || name === 'bolt') fx.trailStop();
     resetPartsAfter(name);
   }
-  function resetPartsAfter(name) { if (name === 'reload' || name === 'inspect' || name === 'pump' || name === 'bolt') { if (S.model) for (const n in S.model.parts) S.model.parts[n].visible = true; } }
+  function resetPartsAfter(name) { if (name.startsWith('reload') || name === 'inspect' || name === 'pump' || name === 'bolt') { if (S.model) for (const n in S.model.parts) S.model.parts[n].visible = true; } }
 
   // ---------------------------------------------------------------- events
   const nowT = () => S.time;
@@ -199,20 +199,25 @@ export function createViewmodel(ctx) {
   }
   let afterFireT = -1;
 
+  function reloadClipFor(p) {
+    if (p.shell && S.clips.reloadShell) { const n = Math.max(1, (S.ammoMax || 6) - (S.ammo || 0)); const key = 'reloadShell' + n; if (!S.clips[key]) S.clips[key] = S.clips.reloadShell(n); return key; }
+    return S.clips.reload ? 'reload' : null;
+  }
   function event(name, p = {}) {
+    const dur0 = p.dur ?? p.time ?? p.duration;
     if (!S.model && name !== 'ammo' && name !== 'heat') return;
     switch (name) {
       case 'fire': if (dedupe('fire', 0.012)) return; fire(p); break;
-      case 'reloadStart': { if (!S.clips?.reload) return; if (act.on && act.name === 'reload') return; S.scopeIn = false; startClip('reload', { dur: p.time ?? p.duration ?? S.prof.reload }); break; }
+      case 'reloadStart': { if (act.on && act.name === 'reload') return; S.scopeIn = false; const c = reloadClipFor(p); if (!c) return; startClip(c, { dur: dur0 ?? S.prof.reload }); break; }
       case 'reloadEnd': { if (act.on && act.name === 'reload') { act.speed = Math.max(act.speed, 4); } break; }
-      case 'draw': S.hidden = false; S.consumed = false; if (S.model) S.model.root.visible = true; startClip('draw', { dur: p.time ?? S.prof.draw }); break;
-      case 'holster': startClip('holster'); break;
+      case 'draw': if (S.pending) { S.pending.time = Math.max(0.25, (dur0 ?? S.prof.draw) - 0.14); break; } S.hidden = false; S.consumed = false; if (S.model) S.model.root.visible = true; startClip('draw', { dur: dur0 ?? S.prof.draw }); break;
+      case 'holster': if (!(act.on && act.name === 'holster')) startClip('holster'); break;
       case 'inspect': if (!busy() && !S.consumed) startClip('inspect', { dur: p.time }); break;
       case 'scopeIn': if (S.meta?.scope) { S.scopeIn = true; if (p.level != null) S.zoomLevel = p.level; ctx.events?.emit?.('viewmodel:scope', { id: S.id, level: S.zoomLevel }); } break;
       case 'scopeOut': S.scopeIn = false; break;
       case 'empty': if (dedupe('empty', 0.08)) return; if (!busy()) startClip('empty'); break;
       case 'melee': if (dedupe('melee', 0.1)) return; if (S.consumed) return; if (S.clips.melee1) { S.meleeSide ^= 1; startClip(S.meleeSide ? 'melee2' : 'melee1'); } else startClip('bash'); break;
-      case 'heat': S.heatOverride = p.value ?? p.heat ?? null; if (S.heatOverride != null) S.heat = S.heatOverride; break;
+      case 'heat': S.heat = Math.max(S.heat, p.value ?? p.heat ?? 0); break;
       case 'ammo': if (p.mag != null) { S.ammo = p.mag; } if (p.max != null) S.ammoMax = p.max; S.ammoShown = -1; break;
       case 'throw': {
         if (!S.clips.throwWind) return; const st = p.stage;
@@ -244,15 +249,16 @@ export function createViewmodel(ctx) {
 
   function update(dt, st = {}) {
     if (!S.model) return;
+    if (ctx.__vmGallery && !st.__g) return;   // gallery drives the rig itself
     dt = clamp(dt, 0, 0.05); if (dt <= 0) { dt = 1 / 240; }
     S.time += dt;
     const pr = S.prof, meta = S.meta, model = S.model, wgt = pr.weight;
     // ---- inputs
     const speed = st.speed || 0, onGround = st.onGround !== false, crouch = !!st.crouch, walking = !!st.walking;
     const sprint = st.sprinting != null ? (st.sprinting ? 1 : 0) : smooth(7.6, 9.6, speed);
-    const lx = clamp(st.lookDelta?.x || 0, -0.35, 0.35), ly = clamp(st.lookDelta?.y || 0, -0.35, 0.35);
+    const lx = -clamp(st.lookDelta?.x || 0, -0.35, 0.35), ly = clamp(st.lookDelta?.y || 0, -0.35, 0.35);
     if (st.scoped != null && meta.scope) S.scopeIn = !!st.scoped;
-    if (st.ammo != null) { if (S.ammoLock < 0) { S.ammo = st.ammo; } if (st.ammoMax) S.ammoMax = st.ammoMax; }
+    if (st.ammo !== undefined) { if (st.ammo != null) { if (S.ammoLock < 0) S.ammo = st.ammo; S.ammoMax = st.ammoMax || S.ammoMax; } else S.ammoMax = 0; }
     if (st.heat != null) S.heatOverride = st.heat;
     S.speed = speed;
     // ---- jump / land
@@ -278,7 +284,7 @@ export function createViewmodel(ctx) {
     S.lookVX = approach(S.lookVX, lx / dt, 24, dt); S.lookVY = approach(S.lookVY, ly / dt, 24, dt);
     const lg = 0.028 * wgt, wx = clamp(S.lookVX, -14, 14), wy = clamp(S.lookVY, -10, 10);
     look.t[4] = wx * lg; look.t[3] = -wy * lg * 0.7; look.t[5] = wx * lg * 0.55; look.t[0] = -wx * lg * 0.075; look.t[1] = wy * lg * 0.06; look.t[2] = Math.abs(wx) * 0.0009 * wgt;
-    if (st.aimPunch) { const ap = st.aimPunch; look.t[3] += -(ap.y ?? ap.x ?? ap) * 0.35 || 0; }
+    if (st.aimPunch) look.t[3] -= (st.aimPunch.x || 0) * 0.15;
     look.k = 60 + 30 / wgt; look.c = 9 + 4 / wgt;
     look.step(dt);
     kick.k = pr.kick.k; kick.c = pr.kick.c; kick.step(dt); climb.step(dt); land.step(dt); jump.step(dt);
@@ -323,7 +329,6 @@ export function createViewmodel(ctx) {
     for (const n of partNames) { const g = model.parts[n], pv = model.pivots[n], o = chA[n], sp = partSp[n];
       g.position.set(pv[0] * 0.01 + o[0] + sp.x[0], pv[1] * 0.01 + o[1] + sp.x[1], pv[2] * 0.01 + o[2] + sp.x[2]);
       g.rotation.set(o[3] + sp.x[3], o[4] + sp.x[4], o[5] + sp.x[5], 'YXZ'); }
-    if (meta.spin) for (const s of meta.spin) { const g = model.parts[s.part]; if (g) g.rotation[s.axis] += (s.base + S.heat * (s.heat || 0) + (act.name === 'inspect' ? s.inspect || 0 : 0)) * S.time * 0 + 0; }
     // hands
     const hd = meta.hands || {};
     placeHand(handR, hd.r, chA.rh, chA.rc[0]); placeHand(handL, hd.l, chA.lh, chA.lc[0]);
@@ -364,17 +369,24 @@ export function createViewmodel(ctx) {
   ctx.events?.on?.('land', (e) => { if (isMe(e?.actor) && S.time - S.landAt > 0.15) doLand(clamp((e?.speed ?? 6) / 9, 0.25, 1.4)); });
   ctx.events?.on?.('footstep', (e) => { if (e?.actor && e.actor === ctx.localActor && S.bobAmp > 0.15) { const d = S.bobPhase - Math.round(S.bobPhase / Math.PI) * Math.PI; S.bobPhase -= d * 0.3; } });
 
+  function setTaggerRaw(id, skin = null, opts = {}) {
+    if (!DEFS[id]) id = 'pip'; skin = skinOf(skin);
+    if (S.id === id && !S.pending) {
+      if (JSON.stringify(skin) !== JSON.stringify(S.skin)) { S.model.mats.apply(skin); S.skin = skin; fx.setCellColor(S.model.mats.glowColor); }
+      if (S.hidden && !opts.keep) { S.hidden = false; S.consumed = false; S.model.root.visible = true; startClip('draw', { dur: opts.time ?? S.prof.draw }); }
+      return;
+    }
+    if (S.model && !S.hidden && !opts.instant && S.visible && S.ready) { S.pending = { id, skin, time: opts.time }; if (!(act.on && act.name === 'holster')) startClip('holster'); return; }
+    S.pending = null; S.hidden = false; setModel(id, skin); S.ready = true; startClip('draw', { dur: opts.time ?? S.prof.draw });
+  }
+
   // ---------------------------------------------------------------- public API
   const api = {
     __viewmodel: true,
     /** Equip a tagger model. skin = CosmeticSpec.taggerSkin (or a whole spec). opts.instant skips the holster of the previous model. */
-    setTagger(id, skin = null, opts = {}) {
-      if (!DEFS[id]) id = 'pip'; skin = skinOf(skin);
-      if (S.id === id && !S.pending) { if (JSON.stringify(skin) !== JSON.stringify(S.skin)) { S.model.mats.apply(skin); S.skin = skin; fx.setCellColor(S.model.mats.glowColor); } if (S.hidden && !opts.keep) { S.hidden = false; S.consumed = false; S.model.root.visible = true; startClip('draw', { dur: opts.time ?? S.prof.draw }); } return; }
-      if (S.model && !S.hidden && !opts.instant && S.visible && S.ready) { S.pending = { id, skin, time: opts.time }; if (!(act.on && act.name === 'holster')) startClip('holster'); return; }
-      S.pending = null; S.hidden = false; setModel(id, skin); S.ready = true; S.time += 0; startClip('draw', { dur: opts.time ?? S.prof.draw });
-    },
-    event, update,
+    setTagger(id, skin = null, opts = {}) { if (ctx.__vmGallery && !opts.__g) return; return setTaggerRaw(id, skin, opts); },
+    event(name, p) { if (ctx.__vmGallery) return; return event(name, p); },
+    update,
     setVisible(b) { S.visible = !!b; rig.visible = S.visible && !S.hidden; fx.clear(); },
     worldModel: (id, skin) => getWorldModel(id, skinOf(skin)),
     get muzzle() { return muzzleObj; },
@@ -393,7 +405,7 @@ export function createViewmodel(ctx) {
     get ids() { return IDS; },
     debug: {
       state: () => ({ id: S.id, action: act.on ? act.name : 'idle', t: act.on ? act.t / act.clip.dur : 0, heat: S.heat, ammo: S.ammo, ammoMax: S.ammoMax, scopeT: S.scopeT, fovMul: S.fovMul, shots: S.shots, bob: S.bobAmp, sprint: S.sprint }),
-      play: (name, o) => startClip(name, o), stop: () => endClip(),
+      play: (name, o) => startClip(name, o), stop: () => endClip(), event, update: (dt, st) => update(dt, st), setTagger: (id, sk, o) => setTaggerRaw(id, sk, { ...o, __g: true }),
       clips: () => Object.keys(S.clips || {}), events: ['fire', 'reloadStart', 'reloadEnd', 'draw', 'holster', 'inspect', 'scopeIn', 'scopeOut', 'throw', 'melee', 'empty', 'heat', 'ammo', 'plant', 'disarm'],
       model: () => S.model, hands: () => ({ r: handR, l: handL }), rig, root, fx, S, chA,
       setAmmo(m, M) { S.ammo = m; if (M) S.ammoMax = M; S.ammoShown = -1; S.ammoLock = -1; },

@@ -2,9 +2,9 @@
 export const NAV_DEFAULTS = {
   cell: 0.5,            // grid spacing (must be <= 0.7 so clear nodes can never straddle a thin wall)
   radius: 0.36,         // player capsule radius
-  margin: 0.04,         // extra clearance baked into node validity (absorbs grid discretisation error)
+  margin: 0.08,         // extra clearance baked into node validity (absorbs grid discretisation error)
   height: 1.8,          // capsule height
-  headroom: 1.85,       // required free height above a node (height + tiny slack)
+  headroom: 2.0,        // required free height above a node (height + tiny slack)
   stepUp: 0.45,         // max ledge the movement code steps over (CS: 0.46). Also the "lift" of the clearance capsule
   slopeDeg: 45,         // max walkable surface angle
   jumpMax: 1.1,         // highest crate/ledge a bot can jump onto

@@ -1,5 +1,5 @@
 {
- "updated": "2026-09-30T00:53:06.109Z",
+ "updated": "2026-10-01T23:53:55.328Z",
  "wave": 1,
  "phase": "Builders fan out — 14 pieces built in parallel",
  "pieces": [
@@ -7,122 +7,123 @@
    "id": "render",
    "name": "Rendering, lighting & post-FX",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.415Z"
+   "updated": "2026-10-01T23:53:54.427Z"
   },
   {
    "id": "map",
    "name": "Map — Crux Station",
    "group": "world",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.462Z"
+   "updated": "2026-10-01T23:53:54.501Z"
   },
   {
    "id": "nav",
    "name": "Navigation & pathing",
    "group": "ai",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.515Z"
+   "updated": "2026-10-01T23:53:54.568Z"
   },
   {
    "id": "move",
    "name": "Movement & camera feel",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.563Z"
+   "updated": "2026-10-01T23:53:54.626Z"
   },
   {
    "id": "tagger",
    "name": "Tagger ballistics, recoil & inventory",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.614Z"
+   "updated": "2026-10-01T23:53:54.691Z"
   },
   {
    "id": "viewmodel",
    "name": "First-person viewmodels & animation",
    "group": "feel",
-   "status": "building",
+   "status": "queued",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.669Z"
+   "updated": "2026-10-01T23:53:55.268Z",
+   "note": "Builder was stopped mid-work; awaiting go-ahead to relaunch"
   },
   {
    "id": "utility",
    "name": "Utility (Haze / Strobe / Pulse)",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.717Z"
+   "updated": "2026-10-01T23:53:54.754Z"
   },
   {
    "id": "avatars",
    "name": "Characters & animation",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.763Z"
+   "updated": "2026-10-01T23:53:54.816Z"
   },
   {
    "id": "cosmetics",
    "name": "Cosmetics & locker",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.815Z"
+   "updated": "2026-10-01T23:53:54.884Z"
   },
   {
    "id": "vfx",
    "name": "VFX & juice",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.861Z"
+   "updated": "2026-10-01T23:53:54.968Z"
   },
   {
    "id": "audio",
    "name": "Audio & music",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.907Z"
+   "updated": "2026-10-01T23:53:55.029Z"
   },
   {
    "id": "bots",
@@ -138,34 +139,34 @@
    "id": "flow",
    "name": "Match flow & economy",
    "group": "systems",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:05.969Z"
+   "updated": "2026-10-01T23:53:55.085Z"
   },
   {
    "id": "hud",
    "name": "HUD",
    "group": "ui",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:06.016Z"
+   "updated": "2026-10-01T23:53:55.144Z"
   },
   {
    "id": "menu",
    "name": "Menus, settings & onboarding",
    "group": "ui",
-   "status": "building",
+   "status": "judging",
    "round": 1,
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-09-30T00:53:06.062Z"
+   "updated": "2026-10-01T23:53:55.206Z"
   },
   {
    "id": "perf",
@@ -179,6 +180,11 @@
   }
  ],
  "log": [
+  {
+   "t": "2026-10-01T23:53:55.327Z",
+   "text": "Round 1 built for 13 of 14 pieces; blind critics run next. Viewmodel builder was stopped and still needs a relaunch.",
+   "kind": "wave"
+  },
   {
    "t": "2026-09-30T00:53:06.109Z",
    "text": "Wave 1 launched: 14 builders (render, map, nav, move, tagger, viewmodel, utility, avatars, cosmetics, vfx, audio, flow, hud, menu). Bots & QA start once movement/combat/match land.",

@@ -100,8 +100,10 @@ export function create(ctx) {
     if (!pos && a && !local && a.pos) { lp.x = a.pos.x; lp.y = a.pos.y + 1.1; lp.z = a.pos.z; pos = lp; }
     return mixer.play(n, { ...o, fp: local, pos: local ? null : pos });
   }
+  const annLast = {};
   function announce(id, o = {}) {
     const a = resolveAnnounce(id); if (!a || !mixer) return null;
+    const now = performance.now(); if (annLast[a] && now - annLast[a] < 2500) return null; annLast[a] = now;   // several pieces announce the same event
     mixer.duck('music', 0.35, 0.03, 1.2, 0.8);
     return mixer.play('announce.' + a, { fp: true, ...o });
   }

@@ -17,7 +17,7 @@ function pluck(V, w, note, g = 0.12, d = 0.28) { const f = midi(note), v = at(V,
 function riser(V, w, len, g = 0.1) { noise(at(V, w), { a: len * 0.9, hold: 0.05, d: 0.1, g, bp: 400, q: 0.6, sweep: [7000, len], hp: 300 }); }
 
 export const MUSIC_STATES = ['menu', 'buy', 'live', 'armed', 'win', 'lose', 'off'];
-export const STATE_GAIN = { menu: 0.75, buy: 0.6, live: 0.42, armed: 0.7, win: 1, lose: 1 };
+export const STATE_GAIN = { menu: 0.6, buy: 0.45, live: 0.4, armed: 0.45, win: 1, lose: 1 };
 export const STATE_BPM = { menu: 84, buy: 100, live: 90, armed: 112, win: 110, lose: 80 };
 
 /** Schedule one 16th step of a looping state. */

@@ -39,7 +39,7 @@ void main() {
   float style = aParm.z;
   if (style > 1.5 && style < 2.5) taper = mix(0.2, 1.0, pow(s, 2.2));
   float w = aParm.x * taper;
-  float minW = uPx * max(-pv.z, 0.1) * 1.15;
+  float minW = uPx * max(-pv.z, 0.1) * 1.8;
   float hw = max(w * 0.5, minW * 0.5);
   float thin = clamp(w / max(minW, 1e-5), 0.3, 1.0);          // keep sub-pixel tracers from over-brightening
   pv += side * corner.x * hw;

@@ -94,7 +94,7 @@ export function createUtility(ctx) {
   function detonate(gr) {
     const pos = gr.g.pos.clone(); gr.dead = true;
     ctx.events.emit('util:detonate', { type: gr.type, pos, thrower: gr.g.thrower });
-    if (gr.type === 'haze') { haze.spawn(pos, gr.g.thrower); ctx.audio?.play?.('util.haze.pop', { pos, gain: 1 }); }
+    if (gr.type === 'haze') { haze.spawn(pos, gr.g.thrower); }
     else if (gr.type === 'strobe') strobe.detonate(pos, gr.g.thrower);
     else if (gr.type === 'pulse') pulse.detonate(pos, gr.g.thrower);
   }
@@ -113,7 +113,6 @@ export function createUtility(ctx) {
     ctx.events.emit('util:throw', { actor, type, power: s });
     const delay = opts.instant ? 0 : (opts.delay ?? C.releaseDelay);
     if (actor === ctx.localActor || opts.viewmodel) ctx.combat?.viewmodel?.event?.('throw', { type, power: s, delay });
-    ctx.audio?.play?.('util.throw', { actor, gain: 0.6 + 0.4 * s, pitch: 0.9 + 0.2 * s });
     if (delay <= 0) return release(actor, type, s) != null;
     pending.push({ actor, type, s, at: time + delay }); return true;
   };
@@ -126,9 +125,9 @@ export function createUtility(ctx) {
   util.trajectory = function (actor, type = 'haze', power = 'strong', out = []) {
     const s = util.strength(power); launch(actor, s, _p, _vv);
     const g = _sim; g.pos.copy(_p); g.prev.copy(_p); g.vel.copy(_vv); g.rest = false; g.age = 0; g.restT = 0; g.bounces = 0; g.spin = 0; g.thrower = null; g.lastBounceT = -1;
-    out.length = 0; out.push(g.pos.clone());
-    const maxT = 5; for (let i = 0; i < maxT * 120 && !g.rest; i++) { stepGrenade(g, STEP, W, null); if (i % 3 === 2) out.push(g.pos.clone()); if (g.bounces >= 3 || (type !== 'haze' && g.age > TYPES[type].fuse)) break; }
-    out.push(g.pos.clone()); return out;
+    let n = 0; const put = (p) => { (out[n] ||= new THREE.Vector3()).copy(p); n++; }; put(g.pos);
+    const maxT = 5; for (let i = 0; i < maxT * 120 && !g.rest; i++) { stepGrenade(g, STEP, W, null); if (i % 3 === 2) put(g.pos); if (g.bounces >= 3 || (type !== 'haze' && g.age > TYPES[type].fuse)) break; }
+    put(g.pos); out.length = n; return out;
   };
 
   // ---------------------------------------------------------------- practice arc preview line
@@ -193,7 +192,7 @@ export function createUtility(ctx) {
     for (let i = grenades.length - 1; i >= 0; i--) {
       const gr = grenades[i]; if (gr.dead) { gr.model.parent?.remove(gr.model); grenades.splice(i, 1); continue; }
       gr.t += dt;
-      const impact = stepGrenade(gr.g, dt, W, actors, (g, sp) => { ctx.audio?.play?.('util.' + gr.type + '.bounce', { pos: g.impactPos.clone(), gain: Math.min(1, 0.25 + sp / 12), pitch: 0.9 + Math.min(0.3, sp / 40) }); });
+      const impact = stepGrenade(gr.g, dt, W, actors, (g, sp) => { ctx.events.emit('util:bounce', { type: gr.type, pos: g.impactPos.clone(), speed: sp, thrower: g.thrower }); });
       if (gr.g.age > C.maxAge || gr.t >= gr.fuse || (gr.def.popOnRest && gr.g.rest)) detonate(gr);
     }
     haze.fixedUpdate(dt);

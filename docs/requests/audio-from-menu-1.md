@@ -1,0 +1,1 @@
+Menu requests for audio: implement `ctx.audio.test(bus)` for bus in master|sfx|music|voice (short sample on that bus; menu falls back to its own WebAudio tones otherwise) and `ctx.audio.setVolume(bus,v)`; also listen for ui:hover / ui:click / ui:tick (slider step) / ui:open / ui:close and `game:pause {paused}` (duck/mute world while paused).

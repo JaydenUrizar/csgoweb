@@ -91,7 +91,7 @@ export function registerScenes(ctx, R) {
       if (t >= next) {
         idx = (idx + 1) % seq.length; const [name, dur, fn] = seq[idx]; label.textContent = 'render-fx: ' + name; next = t + dur; fn();
       }
-      if (seq[idx] && seq[idx][0].startsWith('blur') || seq[idx]?.[0].startsWith('tint')) { const n = seq[idx][0]; if (n.startsWith('blur')) R.screen.blur(0.8); else R.screen.tint(0x2fd0ff, 0.5); }
+      const n = seq[idx]?.[0] || ''; if (n.startsWith('blur')) R.screen.blur(0.8); else if (n.startsWith('tint')) R.screen.tint(0x2fd0ff, 0.5);
     } };
     ctx.engine.add(sys, 9998);
     R.debug.fxScene = { seq, get index() { return idx; }, jump(i) { idx = i - 1; next = 0; } };

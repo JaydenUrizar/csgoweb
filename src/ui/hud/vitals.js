@@ -1,5 +1,5 @@
 // Bottom HUD: charge (health) + armor with animated bars, credits with delta ticks, ammo + reload, weapon slot list.
-import { clamp, damp, easeOut, h, txt, flag, tf, style, fmtMoney, readLoadout } from './core.js';
+import { clamp, damp, easeOut, h, txt, flag, tf, style, fmtMoney, readLoadout, reasonLabel } from './core.js';
 import { icon, NAMES } from './icons.js';
 
 export const css = `
@@ -38,16 +38,14 @@ export const css = `
 .ammo.util .mb,.ammo.none .mb{display:none}
 .ammo .cnt{position:absolute;right:0;top:0;font:700 48px/48px var(--font);display:none}
 .ammo.util .cnt{display:block}
-.slots{position:absolute;right:0;bottom:96px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-.slot{position:relative;display:flex;align-items:center;justify-content:flex-end;height:29px;padding:0 24px 0 10px;color:rgba(230,238,250,.62);filter:drop-shadow(0 1px 2px rgba(0,0,0,.65))}
+.slots{position:absolute;right:0;bottom:108px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.slot{position:relative;display:flex;align-items:center;justify-content:flex-end;height:32px;min-width:120px;padding:0 28px 0 14px;color:rgba(230,238,250,.62);filter:drop-shadow(0 1px 2px rgba(0,0,0,.65))}
 .slot .sn{position:absolute;right:8px;top:2px;font:700 11px/11px var(--font);opacity:.85}
-.slot .ic{height:22px;width:auto;aspect-ratio:120/48;display:block}
-.slot .ic-g{width:22px;aspect-ratio:1}
-.slot.cur{color:#fff;background:linear-gradient(270deg,rgba(14,18,28,.72),rgba(14,18,28,0));height:36px;padding-right:26px}
-.slot.cur .ic{height:28px}.slot.cur .ic-g{width:28px}
+.slot .ic{height:26px;width:auto;aspect-ratio:120/48;display:block}
+.slot .ic-g{width:26px;aspect-ratio:1}
+.slot.cur{color:#fff;background:linear-gradient(270deg,rgba(14,18,28,.72),rgba(14,18,28,0));height:40px;min-width:150px}
+.slot.cur .ic{height:32px}.slot.cur .ic-g{width:32px}
 .slot.cur .sn{top:4px;color:#ffd25a;opacity:1}
-.slot .nm{font:600 14px/14px var(--font);letter-spacing:.1em;text-transform:uppercase;margin-right:12px;opacity:0;display:none}
-.slot.cur .nm{display:block;opacity:.85}
 .slot .ct{position:absolute;left:auto;right:30px;bottom:1px;font:700 11px/11px var(--font);color:#fff;text-shadow:0 1px 1px #000}
 .slot.pop{animation:none}
 .lowfx{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse 75% 70% at 50% 50%,rgba(120,0,0,0) 45%,rgba(200,20,10,.55) 100%);will-change:opacity}
@@ -84,7 +82,7 @@ export function create(H) {
     if (!d || d.actor !== H.view || !d.delta) return;
     let s = dls.find((x) => H.T - x.t0 > 1.9) || dls[0];
     s.t0 = H.T; s.el.className = 'dl ' + (d.delta > 0 ? 'up' : 'dn');
-    s.el.innerHTML = (d.delta > 0 ? '+' : '−') + '$' + Math.abs(Math.round(d.delta)).toLocaleString('en-US') + (d.reason ? `<small>${d.reason}</small>` : '');
+    const rl = reasonLabel(d.reason); s.el.innerHTML = (d.delta > 0 ? '+' : '−') + '$' + Math.abs(Math.round(d.delta)).toLocaleString('en-US') + (rl ? `<small>${rl}</small>` : '');
     // stack: push others up
     S.cashDirty = true;
   });
@@ -96,7 +94,7 @@ export function create(H) {
     const key = list.map((s) => s.slot + s.id + s.count + (s.cur ? '*' : '')).join('|');
     if (key === S.slotKey) return; S.slotKey = key;
     let html = '';
-    for (const s of list) html += `<div class="slot${s.cur ? ' cur' : ''}"><span class="nm">${NAMES[s.id] || s.id}</span>${icon(s.id)}${s.count > 1 ? `<span class="ct">×${s.count}</span>` : ''}<span class="sn">${s.slot}</span></div>`;
+    for (const s of list) html += `<div class="slot${s.cur ? ' cur' : ''}">${icon(s.id)}${s.count > 1 ? `<span class="ct">×${s.count}</span>` : ''}<span class="sn">${s.slot}</span></div>`;
     slotsEl.innerHTML = html;
   }
 
@@ -132,10 +130,10 @@ export function create(H) {
         const d = dls[i], age = H.T - d.t0, life = 1.9;
         if (age > life || age < 0) { if (d.a !== 0) { d.a = 0; d.el.style.opacity = 0; } continue; }
         const p = age / life, e = easeOut(Math.min(1, age / 0.28)); const a = p < 0.6 ? 1 : 1 - (p - 0.6) / 0.4;
-        d.el.style.opacity = a.toFixed(2); d.tf(`translateY(${(-(28 * (1 - e) ) * -1 - p * 20 - n * 24).toFixed(1)}px) scale(${(0.85 + 0.15 * e).toFixed(3)})`); n++; d.a = 1;
+        d.el.style.opacity = a.toFixed(2); d.tf(`translateY(${((1 - e) * 10 - p * 22 - n * 24).toFixed(1)}px) scale(${(0.85 + 0.15 * e).toFixed(3)})`); n++; d.a = 1;
       }
       // ---------------- ammo
-      const eq = R.combat?.equipped?.(v); const id = eq?.def?.id || '';
+      const eq = R.combat?.equipped?.(v); const id = eq?.id || eq?.def?.id || '';
       if (!eq || !eq.def) { fNone(true); fUtil(false); setWn(''); }
       else {
         fNone(false);

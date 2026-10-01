@@ -195,7 +195,7 @@ export function createHaze(ctx, W, shared) {
     geo.setAttribute('iA', iA); geo.setAttribute('iB', iB); geo.instanceCount = 0;
     const u = {
       uTex: { value: tex }, uTime: { value: 0 }, uOpacity: { value: 0.96 }, uFade: { value: 1 }, uPad: { value: 1.08 },
-      uSunDir: shared.sunDir, uSunCol: shared.sunCol, uSkyCol: shared.skyCol, uGroundCol: shared.groundCol, uAlbedo: { value: new THREE.Color(0.93, 0.94, 0.96) },
+      uSunDir: shared.sunDir, uSunCol: shared.sunCol, uSkyCol: shared.skyCol, uGroundCol: shared.groundCol, uAlbedo: { value: new THREE.Color(0.80, 0.81, 0.84) },
       uCenter: { value: new THREE.Vector3() }, uCloudR: { value: 3 }, uCamPos: { value: new THREE.Vector3() }, uGlowPos: { value: new THREE.Vector3() }, uGlow: { value: new THREE.Vector4() },
       uWA: { value: [0, 1, 2, 3].map(() => new THREE.Vector4()) }, uWB: { value: [0, 1, 2, 3].map(() => new THREE.Vector4()) }, uWC: { value: [0, 1, 2, 3].map(() => new THREE.Vector2()) },
     };
@@ -219,7 +219,7 @@ export function createHaze(ctx, W, shared) {
           P.px[pi] = _v2.x; P.py[pi] = _v2.y; P.pz[pi] = _v2.z; P.ox[pi] = P.oy[pi] = P.oz[pi] = P.tox[pi] = P.toy[pi] = P.toz[pi] = 0;
         }
         P.cnt[pi]++; P.sx[pi] += p.x; P.sy[pi] += p.y; P.sz[pi] += p.z;
-        const c = P.cnt[pi]; P.tx[pi] = P.sx[pi] / c; P.ty[pi] = P.sy[pi] / c; P.tz[pi] = P.sz[pi] / c; P.rad[pi] = 0.62 + 0.66 * Math.sqrt(c / 8);
+        const c = P.cnt[pi]; P.tx[pi] = P.sx[pi] / c; P.ty[pi] = P.sy[pi] / c; P.tz[pi] = P.sz[pi] / c; P.rad[pi] = 0.62 + 0.6 * Math.sqrt(c / 8);
       },
       finalize(cl) {
         const A = cl.A; const base = P.n;
@@ -238,12 +238,12 @@ export function createHaze(ctx, W, shared) {
           _v.set(P.tx[pi], P.ty[pi], P.tz[pi]); const r = P.rad[pi]; const c = W.closest(_v, r * 0.62);
           if (c) { const d = c.distance; _v2.subVectors(_v, c.point); const l = _v2.length(); if (l > 1e-4) { _v2.multiplyScalar((r * 0.62 - d) / l); P.tox[pi] = _v2.x; P.toy[pi] = _v2.y; P.toz[pi] = _v2.z; } }
           // satellite billows on the shell (skip near walls)
-          if (core < 0.62 && P.n < CAP - 2 && !c) {
-            const gl = Math.hypot(gx, gy, gz); if (gl < 1e-3) continue;
-            const s = P.n++; const jt = hash1(pi * 5.3 + 1.7);
-            P.cnt[s] = 0; P.rad[s] = 0.52 + 0.34 * jt; P.t0[s] = cl.age + jt * 0.25; P.seed[s] = hash1(s * 3.1 + cl.id * 17.7); P.core[s] = core * 0.5; P.sat[s] = 1;
-            const off = 0.38 + 0.25 * hash1(pi * 2.9);
-            P.tx[s] = P.px[s] = P.tx[pi] + gx / gl * off + (hash1(pi + 11) - 0.5) * 0.4; P.ty[s] = P.py[s] = P.ty[pi] + gy / gl * off + (hash1(pi + 23) - 0.5) * 0.3; P.tz[s] = P.pz[s] = P.tz[pi] + gz / gl * off + (hash1(pi + 37) - 0.5) * 0.4;
+          for (let sat = 0; sat < 2; sat++) if (core < 0.85 && P.n < CAP - 2 && !c) {
+            const gl = Math.hypot(gx, gy, gz); if (gl < 1e-3) break;
+            const s = P.n++; const jt = hash1(pi * 5.3 + 1.7 + sat * 9.1);
+            P.cnt[s] = 0; P.rad[s] = 0.5 + 0.4 * jt; P.t0[s] = cl.age + jt * 0.25; P.seed[s] = hash1(s * 3.1 + cl.id * 17.7); P.core[s] = core * 0.5; P.sat[s] = 1;
+            const off = 0.45 + 0.45 * hash1(pi * 2.9 + sat);
+            P.tx[s] = P.px[s] = P.tx[pi] + gx / gl * off + (hash1(pi + 11 + sat * 3) - 0.5) * 0.9; P.ty[s] = P.py[s] = P.ty[pi] + gy / gl * off + (hash1(pi + 23 + sat * 3) - 0.5) * 0.7; P.tz[s] = P.pz[s] = P.tz[pi] + gz / gl * off + (hash1(pi + 37 + sat * 3) - 0.5) * 0.9;
             P.ox[s] = P.oy[s] = P.oz[s] = P.tox[s] = P.toy[s] = P.toz[s] = 0; P.die[s] = P.die[pi] - 0.5 - jt * 0.4;
             _v.set(P.tx[s], P.ty[s], P.tz[s]); const c2 = W.closest(_v, P.rad[s] * 0.7); if (c2) P.rad[s] *= 0.6;
           }
@@ -317,7 +317,7 @@ export function createHaze(ctx, W, shared) {
       if (amt > 0.002) {
         if (!overlayAdded) { ctx.render?.scene?.add(overlay); overlayAdded = true; }
         overlay.visible = true; overlay.material.uniforms.uAlpha.value = amt;
-        overlay.material.uniforms.uCol.value.setRGB(0.70, 0.72, 0.76).multiplyScalar(0.55 + 0.45 * Math.min(1, shared.sunCol.value.g));
+        overlay.material.uniforms.uCol.value.setRGB(0.52, 0.54, 0.58).multiplyScalar(0.55 + 0.45 * Math.min(1, shared.sunCol.value.g));
       } else overlay.visible = false;
       shared.overlayAmount = amt;
     },
@@ -349,7 +349,7 @@ export function createHaze(ctx, W, shared) {
     disturb(pos, radius, strength = 1, life = 3.2) {
       let n = 0; for (const cl of list) { _v.subVectors(cl.seed, pos); if (_v.length() > cl.extent + radius) continue; _d.set(0, 1, 0); cl.addWake(pos, _d, 0.01, radius, strength, life); n++; } return n;
     },
-    clear() { while (list.length) release(list.pop()); },
+    clear() { while (list.length) release(list.pop()); overlay.visible = false; shared.overlayAmount = 0; },
     dispose() { sys.clear(); overlay.parent?.remove(overlay); },
     overlay,
   };

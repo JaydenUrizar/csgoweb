@@ -170,7 +170,7 @@ async function range(ctx, core) {
     const idx = e.shot - sprayStart, dist = e.point.distanceTo(L.pos);
     if (impacts.length < 4000) impacts.push({ x: +e.point.x.toFixed(3), y: +e.point.y.toFixed(3), z: +e.point.z.toFixed(3), shot: idx, surface: e.surface, tagger: e.tagger });
     if (!e.normal) return;
-    const r = Math.min(0.2, 0.03 + dist * 0.0016);
+    const r = Math.min(0.25, 0.05 + dist * 0.002);
     _q.setFromUnitVectors(_z, e.normal); _p.copy(e.point).addScaledVector(e.normal, 0.012); _sc.set(r, r, r);
     _m.compose(_p, _q, _sc); const i = hn % MAXH; holes.setMatrixAt(i, _m); _c.setHSL(Math.max(0, 0.66 - idx * 0.022), 1, 0.55); holes.setColorAt(i, _c);
     hn++; hcount = Math.min(MAXH, hn); holes.count = hcount; holes.instanceMatrix.needsUpdate = true; if (holes.instanceColor) holes.instanceColor.needsUpdate = true;

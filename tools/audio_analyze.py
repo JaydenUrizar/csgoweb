@@ -75,7 +75,7 @@ def main():
         name = os.path.basename(p)[:-4]
         if only and not only.search(name): continue
         sr, x = load(p); m = metrics(x, sr); res[name] = m
-        plot(x, sr, os.path.join(d, name + '.png'), name, m, tmax=min(len(x) / sr, 2.5 if not name.startswith('music') else None))
+        plot(x, sr, os.path.join(d, name + '.png'), name, m, tmax=(len(x) / sr if name.startswith('music') else min(len(x) / sr, 2.5)))
     json.dump(res, open(jp, 'w'), indent=1)
     cols = ['peak_db', 'rms_db', 'lufs_short_max', 'attack_ms', 'decay20_ms', 'dur50_ms', 'centroid_hz', 'rolloff85_hz', 'low_ratio']
     lines = ['%-34s' % 'name' + ''.join('%14s' % c for c in cols)]

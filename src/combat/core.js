@@ -91,6 +91,7 @@ export function createCore(ctx) {
     const old = cur(actor);
     if (old) { cancelReload(actor, old); unscope(actor, cb, old); old.burst = 0; if (isLocal(actor)) vm()?.event?.('holster', { id: old.id }); }
     cb.burstLeft = 0; cb.melee = null;
+    if (cb.throwPrimed) { cb.throwPrimed = false; ctx.combat?.utility?.preview?.hide?.(); }
     if (slot === 1 || slot === 2 || slot === 3) {
       const w = i.slots[slot]; if (!w) return false;
       if (i.current !== slot) i.previous = i.current;

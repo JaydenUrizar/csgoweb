@@ -48,7 +48,7 @@ export function create(H) {
     if (d.noscope || has(th, 'noscope')) html += icon('noscope', 'ns');
     if (d.wallbang || has(th, 'wall')) html += icon('wall', 'wall');
     if (d.smoke || has(th, 'smoke') || has(th, 'haze')) html += icon('smoke', 'smoke');
-    if (d.hitgroup === 'head' || d.hitgroup === 'crown') html += icon('crown', 'crown');
+    if (d.hitgroup === 'head' || d.hitgroup === 'crown' || d.headshot) html += icon('crown', 'crown');
     if (!a || a === v) html += icon('tagout');
     html += nameSpan(v);
     el.innerHTML = html; box.appendChild(el);

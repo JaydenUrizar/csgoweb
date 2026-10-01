@@ -37,7 +37,7 @@ export function create(H) {
   H.bus.on('tag:hit', (d) => {
     const v = H.view;
     if (d.attacker && d.attacker === v && d.victim !== v) {
-      const crown = d.hitgroup === 'head' || d.hitgroup === 'crown';
+      const crown = d.hitgroup === 'head' || d.hitgroup === 'crown' || !!d.headshot;
       if (hits.length >= MAXHIT) hits.shift();
       hits.push({ t0: H.T, kind: crown ? 'crown' : 'body', dur: crown ? 0.42 : 0.3 });
     }
@@ -51,7 +51,7 @@ export function create(H) {
   });
   H.bus.on('tag:out', (d) => {
     if (d.attacker && d.attacker === H.view && d.victim !== H.view) {
-      hits.length = 0; hits.push({ t0: H.T, kind: 'out', dur: 0.75, crown: d.hitgroup === 'head' || d.hitgroup === 'crown' });
+      hits.length = 0; hits.push({ t0: H.T, kind: 'out', dur: 0.75, crown: d.hitgroup === 'head' || d.hitgroup === 'crown' || !!d.headshot });
     }
   });
   H.bus.on('reset', () => { hits.length = 0; dmgs.length = 0; dirty = true; });
@@ -139,7 +139,7 @@ export function create(H) {
     const y = view?.yaw || 0, fx = -Math.sin(y), fz = -Math.cos(y), rx = Math.cos(y), rz = -Math.sin(y);
     const ang = Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz) - Math.PI / 2;
     const dq = dpr * q, rad = 112 * dq + (1 - a0) * 10 * dq;
-    const half = (0.2 + clamp(m.dmg / 100, 0, 1) * 0.18);
+    const half = (0.3 + clamp(m.dmg / 100, 0, 1) * 0.22);
     const al = a0 * clamp(fade, 0, 1);
     c2.lineCap = 'round';
     c2.lineWidth = 9 * dq; c2.strokeStyle = `rgba(0,0,0,${0.28 * al})`;
@@ -205,7 +205,7 @@ export function create(H) {
       st.scopeA = damp(st.scopeA, ta, 40, dt); if (Math.abs(st.scopeA - ta) < 0.01) st.scopeA = ta;
       const so = st.scopeA.toFixed(2); if (st.scopeVis !== so) { st.scopeVis = so; scope.style.opacity = so; }
       // ---- crosshair visibility
-      const hide = !v || v.alive === false || scoped || H.hidden || H.flags.noCrosshair || (H.menuOpen);
+      const hide = !v || v.alive === false || H.spec || scoped || H.hidden || H.flags.noCrosshair || (H.menuOpen);
       let gap = (cfg.gap ?? 3) * 1.15 + (cfg.dynamic === false ? 0 : st.spread * 15);
       const g2 = Math.round(gap * 8);
       const col = cfg.color || '#6dff9a';

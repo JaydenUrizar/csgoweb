@@ -168,8 +168,8 @@ void main(){
   if (uDamage.y > 0.001) {
     vec2 dv = normalize(ca2 + 1e-5); vec2 hd = vec2(sin(uDamage.x), cos(uDamage.x));
     float dirw = 0.35 + 0.65 * pow(max(dot(dv, hd), 0.0), 1.5);
-    float edge = smoothstep(0.05, 0.42, r2 * 1.6);
-    col = mix(col, vec3(0.95, 0.12, 0.10), clamp(edge * dirw * uDamage.y * 0.85, 0.0, 0.85));
+    float edge = smoothstep(0.14, 0.5, r2 * 1.6);
+    col = mix(col, vec3(0.95, 0.12, 0.10), clamp(edge * dirw * uDamage.y * 0.6, 0.0, 0.7));
   }
   col = mix(col, uTint.rgb, uTint.a * 0.5 * (0.6 + 0.4 * smoothstep(0.0, 0.6, r2 * 1.8)) );
   col = mix(col, uFlash.rgb, uFlash.a);

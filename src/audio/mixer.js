@@ -12,12 +12,12 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
   const bq = (type, f, q = 0.7, gain = 0) => { const n = ac.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; n.gain.value = gain; return n; };
 
   // ---- master chain ----
-  const master = g(1), comp = ac.createDynamicsCompressor(), lim = ac.createDynamicsCompressor(), clip = ac.createWaveShaper(), outG = g(0.92);
-  comp.threshold.value = -20; comp.knee.value = 14; comp.ratio.value = 3; comp.attack.value = 0.006; comp.release.value = 0.2;
-  lim.threshold.value = -4; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.09;
+  const master = g(1), makeup = g(5), comp = ac.createDynamicsCompressor(), lim = ac.createDynamicsCompressor(), clip = ac.createWaveShaper(), outG = g(0.92);
+  comp.threshold.value = -12; comp.knee.value = 12; comp.ratio.value = 2.5; comp.attack.value = 0.006; comp.release.value = 0.2;
+  lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.09;
   const cv = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = (i / 2047) * 2 - 1, a = Math.abs(x); cv[i] = a < 0.8 ? x : Math.sign(x) * (0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2)); }
   clip.curve = cv;
-  master.connect(comp); comp.connect(lim); lim.connect(clip); clip.connect(outG); outG.connect(ac.destination);
+  master.connect(makeup); makeup.connect(comp); comp.connect(lim); lim.connect(clip); clip.connect(outG); outG.connect(ac.destination);
   const analyser = ac.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.5; outG.connect(analyser);
 
   // ---- buses ----
@@ -26,12 +26,12 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
   bus.sfx.in.connect(bus.sfx.duck); bus.sfx.duck.connect(bus.sfx.deaf); bus.sfx.deaf.connect(bus.sfx.deafG); bus.sfx.deafG.connect(bus.sfx.vol); bus.sfx.vol.connect(master);
   bus.ui = { in: g(), vol: g(1) }; bus.ui.in.connect(bus.ui.vol); bus.ui.vol.connect(master);
   bus.voice = { in: g(), vol: g(0.95) }; bus.voice.in.connect(bus.voice.vol); bus.voice.vol.connect(master);
-  bus.music = { in: g(), eq: bq('peaking', 2800, 0.8, -6), duck: g(), vol: g(0.5) };
+  bus.music = { in: g(), eq: bq("peaking", 2800, 0.8, -6), duck: g(), vol: g(0.1) };
   bus.music.in.connect(bus.music.eq); bus.music.eq.connect(bus.music.duck); bus.music.duck.connect(bus.music.vol); bus.music.vol.connect(master);
 
   // ---- reverb sends ----
-  const rv = { send: g(1), out: g(0.55), wet: {} };
-  const rvHp = bq('highpass', 140); rv.send.connect(rvHp);
+  const rv = { send: g(1), out: g(0.42), wet: {} };
+  const rvHp = bq('highpass', 220); rv.send.connect(rvHp);
   for (const k of ['open', 'tunnel', 'room']) {
     const c = ac.createConvolver(); c.buffer = makePresetIR(ac, k); c.normalize = true;
     const w = g(k === 'open' ? 1 : 0); rv.wet[k] = w; rvHp.connect(c); c.connect(w); w.connect(rv.out);
@@ -163,7 +163,7 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
     const now = ac.currentTime;
     if (m != null) master.gain.setTargetAtTime(m, now, 0.02);
     if (sfx != null) { bus.sfx.vol.gain.setTargetAtTime(sfx, now, 0.02); bus.ui.vol.gain.setTargetAtTime(Math.min(1, sfx * (ui ?? 1)), now, 0.02); }
-    if (music != null) bus.music.vol.gain.setTargetAtTime(music * 0.55, now, 0.05);
+    if (music != null) bus.music.vol.gain.setTargetAtTime(music * 0.13, now, 0.05);
   }
   return {
     ac, bus, master, analyser, play, duck, deafen, setRoom, setListener, setVolumes, occlusion, listener: L, ctl,

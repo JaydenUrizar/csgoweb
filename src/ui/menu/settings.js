@@ -4,8 +4,8 @@ import { createCrosshairDesigner } from './crosshair.js';
 
 // Values used when core's settings.js doesn't define a key (see docs/pieces/menu.md for the full key list).
 export const SD = {
-  sensitivity: .35, invertY: false, rawInput: true, fov: 100, mouseDpi: 800, quality: 'high', resolutionScale: 100, showFps: false, motionBlur: false, screenShake: 1,
-  colorblind: 'off', volume: .8, sfxVolume: 1, musicVolume: .5, voiceVolume: 1, hudScale: 1, autoBhop: false, playerName: 'You',
+  sensitivity: 1, invertY: false, rawInput: true, fov: 100, mouseDpi: 800, quality: 'high', resolutionScale: 100, showFps: false, motionBlur: false, screenShake: 1,
+  colorblind: 'off', crouchToggle: false, headBob: 1, volume: .8, sfxVolume: 1, musicVolume: .5, voiceVolume: 1, hudScale: 1, autoBhop: false, playerName: 'You',
   viewmodel: { fov: 68, offsetX: 0, offsetY: 0, offsetZ: 0, bob: 1 }, difficulty: 'pro', side: 'random', map: 'crux',
 };
 // Mirror of core/input.js DEFAULT_KEYS as action -> [primary, secondary]. Kept in sync via ctx.input.bindings?.() if core exposes it.
@@ -63,8 +63,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
   function paintKeys() { const b = cur(); for (const [k, btn] of chips) { const a = k.slice(0, -1), s = +k.slice(-1); const c = b[a]?.[s]; btn.textContent = c ? keyLabel(c) : '—'; btn.classList.toggle('empty', !c); btn.classList.remove('cap'); } }
 
   // ---------------- controls tab ----------------
-  const degPer = () => ctx.player?.sensDegPerCount ?? .12605;   // degrees per mouse count at settings.sensitivity == 1
-  const csFactor = () => degPer() / .022;
+  const csFactor = () => 1;   // player module: yaw = 0.022° x settings.sensitivity per count (CS-compatible), so the setting IS the CS sens
   const cs = () => get('sensitivity') * csFactor();
   const readout = h('div', { class: 'fx-ro' });
   const paintRo = () => {
@@ -72,7 +71,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
     readout.replaceChildren(...[['CS2 sensitivity', c.toFixed(2), ''], ['eDPI', Math.round(edpi), ''], ['cm / 360°', cm360.toFixed(1), 'cm'], ['deg / count', (c * .022).toFixed(4), '°']].map(([l, v, u]) => h('div', null, h('small', null, l), h('b', null, v, u ? h('i', null, u) : null))));
   };
   refreshers.push(paintRo);
-  const sens = kit.slider({ min: .1, max: 8, step: .01, def: .35 * csFactor(), get: () => cs(), set: (v) => { put('sensitivity', v / csFactor()); paintRo(); }, fmt: (v) => v.toFixed(2), label: 'Sensitivity' });
+  const sens = kit.slider({ min: .1, max: 8, step: .01, def: 1, get: () => cs(), set: (v) => { put('sensitivity', v / csFactor()); paintRo(); }, fmt: (v) => v.toFixed(2), label: 'Sensitivity' });
   const dpiBox = kit.numberBox({ min: 100, max: 32000, step: 50, get: () => get('mouseDpi'), set: (v) => { put('mouseDpi', v); paintRo(); } });
   const name = h('input', { class: 'fx-txt', maxlength: 16, value: get('playerName'), style: { maxWidth: '16rem' }, 'aria-label': 'Callsign' });
   name.addEventListener('focus', () => { ctx.input.captureKeys = true; }); name.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') name.blur(); });
@@ -86,8 +85,8 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
       h('div', { class: 'fx-row', style: { borderBottom: 0 } }, h('div', { class: 'lb' }, h('b', null, 'Readout')), h('div', { class: 'ct', style: { justifyContent: 'flex-start' } }, readout)),
       row('Invert Y', null, R(kit.toggle({ get: () => get('invertY'), set: (v) => put('invertY', v), label: 'Invert Y' }))),
       row('Raw input', 'Bypass OS pointer acceleration (recommended)', R(kit.toggle({ get: () => get('rawInput'), set: (v) => put('rawInput', v), label: 'Raw input' })))),
-    group('View', row('Field of view', 'Wider sees more, moves the world away', R(kit.slider({ min: 80, max: 120, step: 1, def: 100, ticks: [90, 100, 110], get: () => get('fov'), set: (v) => put('fov', v), fmt: (v) => v, unit: '°', label: 'Field of view' })))),
-    group('Movement', row('Auto bunny-hop', 'Hold jump to keep hopping', R(kit.toggle({ get: () => get('autoBhop'), set: (v) => put('autoBhop', v), label: 'Auto bunny hop' })))),
+    group('View', row('Field of view', 'Horizontal field of view', R(kit.slider({ min: 80, max: 120, step: 1, def: 100, ticks: [90, 100, 110], get: () => get('fov'), set: (v) => put('fov', v), fmt: (v) => v, unit: '°', label: 'Field of view' })))),
+    group('Movement', row('Toggle crouch', 'Press once to crouch, again to stand', R(kit.toggle({ get: () => get('crouchToggle'), set: (v) => put('crouchToggle', v), label: 'Toggle crouch' }))), row('Head bob', 'Camera bob while running', R(kit.slider({ min: 0, max: 1.5, step: .05, def: 1, get: () => get('headBob'), set: (v) => put('headBob', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'Head bob' }))), row('Auto bunny-hop', 'Hold jump to keep hopping', R(kit.toggle({ get: () => get('autoBhop'), set: (v) => put('autoBhop', v), label: 'Auto bunny hop' })))),
     ...BIND_GROUPS.map(([t, l]) => h('section', { class: 'fx-grp' }, h('h3', null, t + ' keys'), h('div', { class: 'fx-keys' }, l.map(keyRow)))),
     h('div', { class: 'fx-note' }, 'Click a key to rebind it. ', h('b', { style: { color: '#fff' } }, 'Backspace'), ' clears, ', h('b', { style: { color: '#fff' } }, 'Esc'), ' cancels. Each action has a primary and secondary key.'));
 
@@ -110,7 +109,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
     group('Effects',
       row('Motion blur', 'Off by default — competitive clarity', R(kit.toggle({ get: () => get('motionBlur'), set: (v) => { put('motionBlur', v); ctx.render?.screen?.setMotionBlur?.(v); }, label: 'Motion blur' }))),
       row('Screen shake', 'Camera shake on impacts and pulses', R(kit.slider({ min: 0, max: 1, step: .05, def: 1, get: () => get('screenShake'), set: (v) => put('screenShake', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'Screen shake' })))),
-    group('Accessibility', row('Colour-blind mode', 'Re-maps team & effect colours', R(kit.pills([['off', 'Off'], ['deuter', 'Deuter.'], ['protan', 'Protan.'], ['tritan', 'Tritan.']], { get: () => get('colorblind'), set: (v) => { put('colorblind', v); ctx.render?.setColorblind?.(v); } })))));
+    group('Accessibility', row('Colour-blind mode', 'Re-maps team & effect colours', R(kit.pills([['off', 'Off'], ['deut', 'Deuter.'], ['prot', 'Protan.'], ['trit', 'Tritan.']], { get: () => get('colorblind'), set: (v) => { put('colorblind', v); ctx.render?.setColorblind?.(v); } })))));
 
   // ---------------- audio tab ----------------
   const busses = [['volume', 'Master volume', 'Everything', 'master'], ['sfxVolume', 'Effects', 'Taggers, footsteps, impacts', 'sfx'], ['musicVolume', 'Music', 'Menu & round themes', 'music'], ['voiceVolume', 'Announcer & callouts', 'Voice lines', 'voice']];
@@ -157,7 +156,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
 
   // ---------------- shell ----------------
   const TABS = [
-    { id: 'controls', label: 'Controls', icon: ICON.keyboard, build: controls, reset: ['sensitivity', 'invertY', 'rawInput', 'fov', 'mouseDpi', 'autoBhop', 'keybinds'] },
+    { id: 'controls', label: 'Controls', icon: ICON.keyboard, build: controls, reset: ['sensitivity', 'invertY', 'rawInput', 'fov', 'mouseDpi', 'autoBhop', 'crouchToggle', 'headBob', 'keybinds'] },
     { id: 'video', label: 'Video', icon: ICON.monitor, build: video, reset: ['quality', 'resolutionScale', 'showFps', 'motionBlur', 'screenShake', 'colorblind'] },
     { id: 'audio', label: 'Audio', icon: ICON.speaker, build: audio, reset: ['volume', 'sfxVolume', 'musicVolume', 'voiceVolume'] },
     { id: 'crosshair', label: 'Crosshair', icon: ICON.cross, build: () => xh.el, reset: ['crosshair'] },
@@ -173,7 +172,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
     if (!armed) { armed = setTimeout(() => { armed = 0; resetBtn.textContent = 'Restore tab defaults'; }, 2600); resetBtn.textContent = 'Click again to confirm'; return; }
     clearTimeout(armed); armed = 0; resetBtn.textContent = 'Restore tab defaults';
     const t = TABS.find((x) => x.id === active);
-    for (const k of t.reset) { if (k === 'keybinds') { S.set('keybinds', {}); ctx.menu_applyBinds?.(); } else if (k === 'crosshair') S.set('crosshair', { ...(ctx.settings.data && {}), ...{ style: 'classic', size: 5, gap: 3, thickness: 1.6, color: '#6dff9a', opacity: 1, dot: false, dotSize: 2, outline: true, outlineThickness: 1, dynamic: true } }); else S.set(k, structuredClone(SD[k])); }
+    for (const k of t.reset) { if (k === 'keybinds') { S.set('keybinds', {}); ctx.menu_applyBinds?.(); } else if (k === 'crosshair') S.set('crosshair', { ...{ style: 'classic', size: 5, gap: 3, thickness: 1.6, color: '#6dff9a', dot: false, outline: true, dynamic: true } }); else S.set(k, structuredClone(SD[k])); }
     ctx.menu_applySettings?.(); refresh(); toast('Defaults restored');
   });
   rail.append(...tabBtns, h('div', { class: 'sp' }), h('div', { style: { padding: '0 1.2rem' } }, resetBtn));

@@ -4,7 +4,7 @@ import { icon } from './icons.js';
 import { emblem } from './topbar.js';
 
 export const css = `
-.spec{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:420px;opacity:0;display:none;pointer-events:none;will-change:opacity,transform}
+.spec{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:420px;opacity:0;pointer-events:none;will-change:opacity,transform}
 .spec .card{position:relative;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:4px;background:linear-gradient(180deg,rgba(20,25,36,.9),rgba(10,13,21,.9));box-shadow:0 0 0 1px rgba(255,255,255,.1) inset,0 8px 24px rgba(0,0,0,.45);border-bottom:3px solid var(--sc,#fff)}
 .spec .av{width:42px;height:42px;border-radius:3px;overflow:hidden;box-shadow:0 0 0 2px var(--sc,#fff);flex:none}.spec .av svg{width:100%;height:100%;display:block}
 .spec .tx{flex:1;min-width:0}
@@ -25,6 +25,7 @@ export function create(H) {
   const av = root.querySelector('.av'), nm = root.querySelector('.nm'), hpn = root.querySelector('.hpn'), hpb = root.querySelector('.hpb b'), out = root.querySelector('.out');
   const setNm = txt(nm), setHp = txt(hpn), tHb = tf(hpb), setOut = txt(out);
   const S = { a: 0, name: '' };
+  H.bus.on('reset', () => { S.a = 0; });
   return {
     update(dt) {
       const show = H.spec && !H.hidden && !!H.view && H.view !== H.local;

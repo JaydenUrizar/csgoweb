@@ -20,6 +20,7 @@ void main() {
   gl_Position = projectionMatrix * vec4(vp, 1.0);
 }`;
 export const HAZE_FRAG = /* glsl */`
+uniform mat4 projectionMatrix;
 uniform sampler2D uTex; uniform float uTime, uOpacity, uFade;
 uniform vec3 uSunDir, uSunCol, uSkyCol, uGroundCol, uAlbedo, uCenter, uCamPos;
 uniform float uCloudR;
@@ -34,14 +35,15 @@ void main() {
   float seed = vB.x, core = vB.y;
   vec2 uv = rot(seed * 6.2831 + uTime * (0.05 + 0.04 * fract(seed * 7.0))) * vP;
   vec2 o = vec2(fract(seed * 13.7), fract(seed * 5.3));
-  vec4 t1 = texture2D(uTex, uv * 0.45 + o + vec2(uTime * 0.012, -uTime * 0.008));
-  vec4 t2 = texture2D(uTex, uv * 0.95 + o * 1.7 - vec2(uTime * 0.02, uTime * 0.015));
+  vec4 t1 = texture2D(uTex, uv * 0.55 + o + vec2(uTime * 0.012, -uTime * 0.008));
+  vec4 t2 = texture2D(uTex, uv * 1.25 + o * 1.7 - vec2(uTime * 0.02, uTime * 0.015));
   float h = t1.r, det = t2.a;
-  // ragged cauliflower edge: radial falloff eroded by noise
-  float body = (1.0 - r) * 1.55 + (h - 0.5) * 0.95 + (det - 0.5) * 0.45;
-  float a = smoothstep(0.0, 0.62, body);
+  // soft translucent billow: Beer-law thickness through the sphere, eroded by noise
+  float z0 = sqrt(1.0 - r2);
+  float dens = 1.0 - exp(-1.7 * z0 * vC.w);
+  float a = smoothstep(0.03, 0.8, dens + ((h - 0.5) * 0.65 + (det - 0.5) * 0.2) * (0.3 + 0.7 * (1.0 - dens)));
   // sphere normal (view space) + noise bump
-  float z = sqrt(1.0 - r2);
+  float z = z0;
   vec3 nv = normalize(vec3(vP * 0.92 + (t1.gb - 0.5) * 0.85 * (1.0 - r * 0.4) + (t2.gb - 0.5) * 0.25, z));
   vec3 nW = normalize((vec4(nv, 0.0) * viewMatrix).xyz);
   // depth: sphere front surface
@@ -73,7 +75,8 @@ void main() {
   float sideShade = 0.78 + 0.22 * smoothstep(-0.8, 0.8, sunSide);
   float hgt = clamp((vCW.y - uCenter.y) / max(uCloudR, 0.5) * 0.5 + 0.5, 0.0, 1.0);   // darker toward the floor
   vec3 amb = mix(uGroundCol, uSkyCol, clamp(nW.y * 0.5 + 0.5, 0.0, 1.0)) * mix(0.72, 1.0, hgt);
-  vec3 col = uAlbedo * (uSunCol * wrap * 1.05 * depthShade * sideShade + amb * mix(0.9, 0.62, core * 0.6));
+  vec3 col = uAlbedo * (uSunCol * wrap * 1.35 * depthShade * sideShade + amb * mix(0.62, 0.42, core * 0.6));
+  col *= 0.5 + 0.5 * smoothstep(0.0, 0.75, z * (0.7 + 0.6 * h));
   // creases between billows darken slightly
   col *= 0.86 + 0.14 * smoothstep(0.2, 0.8, h);
   // forward scatter: bright silvery rim when the sun is behind the cloud

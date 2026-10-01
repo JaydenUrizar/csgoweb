@@ -63,6 +63,7 @@ export function makeModel(id, defFn, { world = false, geomCache = null } = {}) {
   const mkAnchor = (name, p) => { const o = new THREE.Object3D(); o.name = name; o.position.set(p[0] * S, p[1] * S, p[2] * S); root.add(o); anchors[name] = o; return o; };
   mkAnchor('muzzle', meta.muzzle || [0, 5, -20]);
   if (meta.eject) mkAnchor('eject', meta.eject.p);
+  if (meta.anchors) for (const k in meta.anchors) mkAnchor(k, meta.anchors[k]);
   return { id, root, parts, pivots, gauge, mats, meta, anchors, b };
 }
 

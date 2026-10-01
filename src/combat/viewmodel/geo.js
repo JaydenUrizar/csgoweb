@@ -118,7 +118,7 @@ export class Part {
 
   /** Low-poly sphere / ellipsoid (icosahedron). */
   ball(mat, c, r, o = {}) {
-    const g = new THREE.IcosahedronGeometry(1, o.detail ?? 0).toNonIndexed(); const p = g.attributes.position;
+    let g = new THREE.IcosahedronGeometry(1, o.detail ?? 0); if (g.index) g = g.toNonIndexed(); const p = g.attributes.position;
     const verts = [], faces = [];
     for (let i = 0; i < p.count; i++) verts.push([p.getX(i) * r * (o.sx ?? 1), p.getY(i) * r * (o.sy ?? 1), p.getZ(i) * r * (o.sz ?? 1)]);
     for (let i = 0; i < p.count; i += 3) faces.push([i, i + 1, i + 2]);

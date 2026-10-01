@@ -170,7 +170,7 @@ function emitWall(VB, CB, s) {
   quadBetween('wall', lowP + Hh - cH, lowQ + Hh - cH, hiP, hiQ, mulc(capC, 0.98), mulc(capC, 1.04));
   // painted accent stripe on tall walls of themed zones
   if (s.openB && Hh > 5 && P.trimC && s.hA0 === s.hA1 && s.hB0 === s.hB1) {
-    const sy = 3.9; if (lowP + sy + 0.3 < hiP - 1) quadBetween('plain', lowP + sy, lowQ + sy, lowP + sy + 0.3, lowQ + sy + 0.3, mulc(P.trimC, 0.85), mulc(P.trimC, 0.9), { });
+    const sy = 3.9, em = s.zone === 'es' || s.zone === 'ts'; if (lowP + sy + 0.3 < hiP - 1) quadBetween(em ? 'emissive' : 'plain', lowP + sy, lowQ + sy, lowP + sy + 0.3, lowQ + sy + 0.3, mulc(P.trimC, em ? 2.2 : 0.85), mulc(P.trimC, em ? 2.2 : 0.9));
   }
 }
 

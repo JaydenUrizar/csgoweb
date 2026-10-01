@@ -1,0 +1,1 @@
+flow calls (optional): `ctx.characters.spawn(actor)` once per actor at match start; `ctx.characters.revive(actor)` (or `setVisible(actor,true)`) on every round reset for tagged-out actors; `ctx.characters.setTeam(actor,team)` / event `team:change {actor,from,to}` when halves swap (re-tint team emissive). Events: `actor:respawn {actor}` on each round reset.

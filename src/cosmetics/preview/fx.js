@@ -143,7 +143,7 @@ export class TagOutFx {
   constructor(parent, glow, solid) {
     this.group = new THREE.Group(); parent.add(this.group); this.glow = glow; this.solid = solid;
     this.t = 0; this.dur = 0; this.kind = null; this.playing = false; this.N = 0;
-    this._q = new THREE.Quaternion(); this._q2 = new THREE.Quaternion(); this._m = new THREE.Matrix4(); this._v = new THREE.Vector3(); this._s = new THREE.Vector3(); this._p = new THREE.Vector3(); this._c = new THREE.Color();
+    this._q = new THREE.Quaternion(); this._q2 = new THREE.Quaternion(); this._m = new THREE.Matrix4(); this._v = new THREE.Vector3(); this._s = new THREE.Vector3(); this._p = new THREE.Vector3(); this._c = new THREE.Color(); this._w = new THREE.Color(1, 1, 1);
     this.meshes = {};
     this.MAX = 260;
     this.px = new Float32Array(this.MAX * 3); this.pv = new Float32Array(this.MAX * 3); this.pa = new Float32Array(this.MAX * 3); this.ps = new Float32Array(this.MAX * 3); this.pq = new Float32Array(this.MAX * 4); this.pl = new Float32Array(this.MAX); this.pd = new Float32Array(this.MAX);
@@ -152,7 +152,7 @@ export class TagOutFx {
   _mesh(kind) {
     if (this.meshes[kind]) return this.meshes[kind];
     let geo, mat;
-    if (kind === 'shatter') { geo = new THREE.TetrahedronGeometry(0.075, 0); mat = new THREE.MeshStandardMaterial({ color: 0xbfefff, roughness: 0.12, metalness: 0.2, transparent: true, opacity: 0.92, emissive: 0x2a8fb0, emissiveIntensity: 0.9, flatShading: true }); }
+    if (kind === 'shatter') { geo = new THREE.TetrahedronGeometry(0.055, 0); mat = new THREE.MeshStandardMaterial({ color: 0xbfefff, roughness: 0.12, metalness: 0.2, transparent: true, opacity: 0.92, emissive: 0x2a8fb0, emissiveIntensity: 0.9, flatShading: true }); }
     else if (kind === 'confetti') { geo = new THREE.PlaneGeometry(0.06, 0.1); mat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }); }
     else { geo = new THREE.BoxGeometry(0.075, 0.075, 0.075); mat = new THREE.MeshBasicMaterial({ color: 0xffffff }); }
     const m = new THREE.InstancedMesh(geo, mat, this.MAX); m.frustumCulled = false; m.count = 0; m.setColorAt(0, this._c.setHex(0xffffff)); m.visible = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -182,7 +182,7 @@ export class TagOutFx {
         const qn = Math.hypot(this.pq[i * 4], this.pq[i * 4 + 1], this.pq[i * 4 + 2], this.pq[i * 4 + 3]) || 1; for (let k = 0; k < 4; k++) this.pq[i * 4 + k] /= qn;
         this.pd[i] = Math.random(); this.pl[i] = 0;
         if (kind !== 'shatter') { this._c.setHex(pal[i % pal.length]); if (kind === 'pixelate') this._c.multiplyScalar(0.9 + Math.random() * 0.5); m.setColorAt(i, this._c); }
-        else { this._c.setHex(color).lerp(this._v.set(1, 1, 1), Math.random() * 0.5); m.setColorAt(i, this._c); }
+        else { this._c.setHex(color).lerp(this._w, Math.random() * 0.5); m.setColorAt(i, this._c); }
       }
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
     } else if (kind === 'fireworks') {
@@ -192,13 +192,13 @@ export class TagOutFx {
       this.dur = 3.4;
       for (let i = 0; i < 150; i++) {
         const a = Math.random() * 6.28, r = Math.random() * 0.3;
-        this.solid.emit(ox + Math.cos(a) * r, 0.2 + Math.random() * 1.6, oz + Math.sin(a) * r, Math.cos(a) * (0.8 + Math.random() * 1.6), 1.4 + Math.random() * 2.6, Math.sin(a) * (0.8 + Math.random() * 1.6), 2.0 + Math.random() * 1.4, 0.13 + Math.random() * 0.07, 0.11, pal[i % pal.length], pal[(i + 1) % pal.length], SHAPE.petal, 0.9, 0.9, 1, (Math.random() - 0.5) * 6, 3.2);
+        this.solid.emit(ox + Math.cos(a) * r, 0.2 + Math.random() * 1.6, oz + Math.sin(a) * r, Math.cos(a) * (0.8 + Math.random() * 1.6), 1.4 + Math.random() * 2.6, Math.sin(a) * (0.8 + Math.random() * 1.6), 2.0 + Math.random() * 1.4, 0.06 + Math.random() * 0.04, 0.05, pal[i % pal.length], pal[(i + 1) % pal.length], SHAPE.petal, 0.9, 0.9, 1, (Math.random() - 0.5) * 6, 3.2);
       }
     } else if (kind === 'stars') {
       this.dur = 3.0;
       for (let i = 0; i < 90; i++) {
         const a = Math.random() * 6.28, r = Math.random() * 0.3;
-        this.glow.emit(ox + Math.cos(a) * r, 0.2 + Math.random() * 1.6, oz + Math.sin(a) * r, Math.cos(a) * (0.4 + Math.random() * 1.8), 0.6 + Math.random() * 2.6, Math.sin(a) * (0.4 + Math.random() * 1.8), 1.6 + Math.random() * 1.2, 0.2 + Math.random() * 0.16, 0.06, pal[i % 3 === 0 ? 0 : 1], 0xffffff, SHAPE.star, -0.4, 0.8, 1, (Math.random() - 0.5) * 5);
+        this.glow.emit(ox + Math.cos(a) * r, 0.2 + Math.random() * 1.6, oz + Math.sin(a) * r, Math.cos(a) * (0.4 + Math.random() * 1.8), 0.6 + Math.random() * 2.6, Math.sin(a) * (0.4 + Math.random() * 1.8), 1.6 + Math.random() * 1.2, 0.08 + Math.random() * 0.07, 0.03, pal[i % 3 === 0 ? 0 : 1], 0xffe9a8, SHAPE.star, -0.4, 0.8, 1, (Math.random() - 0.5) * 5);
       }
     }
     // flash

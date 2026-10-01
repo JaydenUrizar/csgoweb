@@ -99,10 +99,11 @@ export function create(ctx) {
     persistentStars: () => store.stars, award,
     renderPreview,
     openLocker: (o) => lockerApi().open(o), closeLocker: () => locker?.close(), toggleLocker() { const l = lockerApi(); l.isOpen() ? l.close() : l.open(); }, get lockerOpen() { return !!locker?.isOpen(); },
-    update(dt) { locker?.tick(dt); for (const h of [...(managed)]) if (h.manual) { h.stage.tick(dt); h.stage.render(); } },
+    update(dt) { scanT -= dt; if (scanT <= 0) { scanT = 0.5; for (const a of ctx.actors ?? []) if (!a.cosmetics || a.cosmetics.team !== a.team) apply(a); } locker?.tick(dt); for (const h of [...(managed)]) if (h.manual) { h.stage.tick(dt); h.stage.render(); } },
     dispose() { locker?.dispose(); },
   };
   const managed = new Set();
+  let scanT = 0;
   api.debug = {
     get locker() { return lockerApi().debug; }, lockerApi: () => lockerApi(), store,
     /** all catalog items, ids only */

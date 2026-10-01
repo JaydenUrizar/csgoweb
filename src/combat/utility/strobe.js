@@ -49,11 +49,9 @@ export function createStrobe(ctx, W, deps) {
         ctx.events.emit('util:blind', { actor: a, amount: r.amount, duration: r.dur, hold: r.hold, thrower, dist: r.dist });
         if (a === ctx.localActor) {
           screen.trigger(r.amount, r.dur, r.hold);
-          ctx.audio?.play?.('util.strobe.ring', { gain: 0.4 + 0.6 * r.amount, duration: r.dur, amount: r.amount });
           ctx.render?.shake?.(0.25 * r.amount, 6);
         }
       }
-      ctx.audio?.play?.('util.strobe.bang', { pos: pos.clone(), gain: 1 });
       // --- visuals ---
       const rnd = mulberry32(1000 + (n++) * 7919 + Math.round(pos.x * 31 + pos.z * 17));
       const b = pool.pop() || mk(); b.busy = true; b.t = 0; b.pos.copy(pos);
@@ -73,8 +71,8 @@ export function createStrobe(ctx, W, deps) {
         const b = bursts[i]; b.t += dt; const t = b.t;
         // core flare: instant pop, hot hold, soft decay
         const fl = b.flare.material.uniforms, hl = b.halo.material.uniforms, r1 = b.ring.material.uniforms, r2 = b.ring2.material.uniforms;
-        const fsz = 0.5 + 5.5 * (1 - Math.exp(-t * 26)); fl.uPosSize.value.set(b.pos.x, b.pos.y, b.pos.z, fsz); fl.uAlpha.value = 5 * Math.exp(-Math.max(0, t - 0.06) * 5.5) * (1 - sstep(0.5, 0.75, t));
-        hl.uPosSize.value.set(b.pos.x, b.pos.y, b.pos.z, 2.2 + 7 * (1 - Math.exp(-t * 8))); hl.uAlpha.value = 2.4 * Math.exp(-t * 3.2) * (1 - sstep(1.2, 1.6, t)); hl.uColor.value.setRGB(1, 0.95, 0.82);
+        const fsz = 0.4 + 3.6 * (1 - Math.exp(-t * 26)); fl.uPosSize.value.set(b.pos.x, b.pos.y, b.pos.z, fsz); fl.uAlpha.value = 2.6 * Math.exp(-Math.max(0, t - 0.06) * 5.5) * (1 - sstep(0.5, 0.75, t));
+        hl.uPosSize.value.set(b.pos.x, b.pos.y, b.pos.z, 2.2 + 7 * (1 - Math.exp(-t * 8))); hl.uAlpha.value = 1.1 * Math.exp(-t * 3.2) * (1 - sstep(1.2, 1.6, t)); hl.uColor.value.setRGB(1, 0.95, 0.82);
         const u1 = Math.min(1, t / 0.32), u2 = Math.min(1, Math.max(0, (t - 0.06) / 0.5));
         r1.uPosSize.value.set(b.pos.x, b.pos.y, b.pos.z, 0.4 + 6.5 * (1 - Math.pow(1 - u1, 3))); r1.uT.value = u1; r1.uAlpha.value = 3.2 * (1 - u1) * (t < 0.32 ? 1 : 0); r1.uColor.value.setRGB(1, 0.97, 0.9);
         r2.uPosSize.value.set(b.pos.x, b.pos.y, b.pos.z, 0.4 + 11 * (1 - Math.pow(1 - u2, 3))); r2.uT.value = u2; r2.uAlpha.value = 1.6 * (1 - u2) * (t > 0.06 && t < 0.56 ? 1 : 0); r2.uColor.value.setRGB(0.75, 0.9, 1.0);

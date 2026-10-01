@@ -8,7 +8,7 @@ export const SKY_DEFAULTS = {
   sunColor: 0xffe7c2, sunIntensity: 5.0,
   skyTop: 0x1d5fcf, skyMid: 0x4c93e8, skyHorizon: 0xc6dcef, ground: 0xb79f7c,
   fogColor: null,                                  // null = derived from skyHorizon
-  fogDensity: 0.0042,
+  fogDensity: 0.0032,
   cloudAmount: 1,
 };
 

@@ -18,19 +18,19 @@ export const css = `
 .pip.dead .x{display:flex}.pip .x svg{width:18px;height:18px;filter:drop-shadow(0 1px 1px #000)}
 .pip .bc{position:absolute;right:-3px;top:-4px;width:15px;height:15px;border-radius:50%;background:#101522;color:#ffd25a;display:none;align-items:center;justify-content:center;box-shadow:0 0 0 1px rgba(255,210,90,.7)}
 .pip .bc svg{width:11px;height:11px}.pip.carrier .bc{display:flex}
-.mid{position:relative;width:98px;height:52px;border-radius:3px;overflow:hidden;background:linear-gradient(180deg,rgba(24,29,42,.86),rgba(12,15,24,.86));box-shadow:0 0 0 1px rgba(255,255,255,.09) inset,0 1px 0 rgba(0,0,0,.5)}
+.mid{position:relative;width:104px;height:58px;border-radius:3px;overflow:hidden;background:linear-gradient(180deg,rgba(24,29,42,.86),rgba(12,15,24,.86));box-shadow:0 0 0 1px rgba(255,255,255,.09) inset,0 1px 0 rgba(0,0,0,.5)}
 .mid .glow{position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 45%,rgba(255,90,50,.65),rgba(255,90,50,0) 75%);opacity:0;will-change:opacity}
 .mid .lbl{position:absolute;left:0;right:0;top:3px;text-align:center;font:600 10px/10px var(--font);letter-spacing:.2em;color:rgba(255,255,255,.55);text-transform:uppercase;white-space:nowrap}
-.mid .time{position:absolute;left:0;right:0;top:11px;text-align:center;font:700 27px/28px var(--font);letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+.mid .time{position:absolute;left:0;right:0;top:12px;text-align:center;font:700 27px/28px var(--font);letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.7)}
 .mid.armed .time{color:#ffd25a}.mid.warn .time{color:#ff6b57}
 .mid .time svg{display:none;width:20px;height:11px;vertical-align:-1px;margin-right:4px}
 .mid.armed .time svg{display:inline-block}
-.mid .sc{position:absolute;left:0;right:0;bottom:2px;display:flex;justify-content:center;align-items:baseline;gap:0;font:700 17px/17px var(--font)}
+.mid .sc{position:absolute;left:0;right:0;bottom:5px;display:flex;justify-content:center;align-items:baseline;gap:0;font:700 17px/17px var(--font)}
 .mid .sc b{width:44px;text-align:center;font-variant-numeric:tabular-nums;text-shadow:0 1px 1px rgba(0,0,0,.6)}
 .mid .sc i{width:1px;height:12px;background:rgba(255,255,255,.22);align-self:center}
 .mid .bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.08)}
 .mid .bar b{position:absolute;inset:0;background:var(--barc,#fff);transform-origin:0 0;will-change:transform}
-.topsub{position:absolute;left:50%;top:62px;transform:translateX(-50%);display:flex;gap:10px;align-items:center;white-space:nowrap;font:600 13px/14px var(--font);letter-spacing:.06em;color:rgba(255,255,255,.82);text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.6)}
+.topsub{position:absolute;left:50%;top:68px;transform:translateX(-50%);display:flex;gap:10px;align-items:center;white-space:nowrap;font:600 13px/14px var(--font);letter-spacing:.06em;color:rgba(255,255,255,.82);text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.6)}
 .topsub .vs{font-style:italic;font-weight:600;opacity:.95}
 .topsub .rt{padding:1px 7px;border-radius:2px;background:rgba(10,13,22,.6);box-shadow:0 0 0 1px rgba(255,255,255,.12) inset;font-size:11px;letter-spacing:.16em;text-transform:uppercase}
 .topsub .rt.mp{background:rgba(255,90,60,.22);box-shadow:0 0 0 1px rgba(255,120,80,.6) inset;color:#ffd6c8}
@@ -47,7 +47,7 @@ const EMBL = [
   (c) => `<circle cx="14" cy="15" r="6.5" fill="${c}"/><circle cx="26" cy="15" r="6.5" fill="${c}" opacity=".75"/><circle cx="20" cy="26" r="6.5" fill="${c}" opacity=".9"/>`,
 ];
 export function emblem(name) {
-  const hs = hashStr(name), hue = hs % 360, k = (hs >> 9) % EMBL.length;
+  const hs = hashStr(name), hue = hs % 360, k = (hs >>> 9) % EMBL.length;
   const c1 = `hsl(${hue} 70% 62%)`, c2 = `hsl(${(hue + 40) % 360} 65% 32%)`, sym = `hsl(${(hue + 180) % 360} 85% 82%)`;
   const id = 'e' + (hs & 0xfffff).toString(36);
   return `<svg viewBox="0 0 40 40"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="40" height="40" fill="url(#${id})"/>${EMBL[k](sym)}</svg>`;

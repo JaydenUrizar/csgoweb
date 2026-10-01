@@ -35,7 +35,7 @@ export function createTutorial(ctx, A) {
     el.classList.remove('done', 'ok'); el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
     stepName.textContent = `· ${S.i + 1}/${steps.length} ${s.name}`; stepName.style.marginLeft = '.3rem'; stepName.style.color = 'var(--mute)';
     title.textContent = s.title; text.textContent = s.text; hint.textContent = s.hint; fill.style.width = '0%';
-    keys.replaceChildren(...s.keys().flatMap((grp, i) => [i ? h('span', { style: { margin: '0 .3rem' } }, '·') : null, ...grp.map((k) => h('span', { class: 'fx-key' }, k))]));
+    keys.replaceChildren(...s.keys().flatMap((grp, i) => [...(i ? [h('span', { style: { margin: '0 .3rem' } }, '·')] : []), ...grp.map((k) => h('span', { class: 'fx-key' }, k))]));
     [...stepDots.children].forEach((d, i) => { d.className = i < S.i ? 'd' : i === S.i ? 'c' : ''; });
     next.textContent = S.i === steps.length - 1 ? 'Finish' : 'Next step (N)';
   }

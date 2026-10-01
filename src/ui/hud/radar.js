@@ -102,6 +102,7 @@ export function create(H) {
 
   // ------------------------------------------------------------ callouts
   function calloutAt(map, p) {
+    try { const c = map?.calloutAt?.(p); if (c?.name) return c.name; if (map?.calloutAt) return ''; } catch {}
     const list = map?.callouts; if (!list || !list.length) return '';
     let best = '', bd = 1e9;
     for (let i = 0; i < list.length; i++) {
@@ -271,10 +272,11 @@ export function create(H) {
       if (!vis) return;
       const map = R.map;
       const key = map?.radar || map?.bounds || (H.mock ? 'mock' : null);
+      const lvl = map?.radar?.canvasFor?.(view.pos.y); if (lvl && st.img !== lvl && st.lvlSrc) { st.img = lvl; }
       if (key !== st.lastMapKey) { st.lastMapKey = key; st.img = null; st.rect = null; st.bake = null; st.baked = false; }
       if (!st.img) {
         const src = imgSource(map);
-        if (src) { st.img = src; st.rect = mapRect(map, src); }
+        if (src) { st.img = src; st.rect = mapRect(map, src); st.lvlSrc = !!map.radar?.canvasFor; }
         else if (!st.bake && !st.baked && map && !map.__stub && map.raycast && map.bounds) st.bake = startBake(map);
       }
       if (st.bake) stepBake(st.bake, 10);

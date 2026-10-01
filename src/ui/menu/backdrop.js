@@ -6,6 +6,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { createActor } from '../../core/actor.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
 const EMBER = 0xff7a2f, TIDE = 0x2fd0ff;
@@ -287,37 +288,40 @@ export function createBackdrop(ctx) {
   // athletes
   const heroes = [];
   const layout = [
-    { team: 'tide', x: -1.75, z: .35, yaw: .95, h: 1.86, variant: 0 },
-    { team: 'tide', x: -.62, z: 1.0, yaw: .8, h: 1.76, variant: 1 },
-    { team: 'ember', x: .68, z: 1.0, yaw: -.8, h: 1.8, variant: 2 },
-    { team: 'ember', x: 1.85, z: .35, yaw: -.95, h: 1.9, variant: 1 },
+    { team: 'tide', x: -1.4, z: .35, yaw: .95, h: 1.86, variant: 0 },
+    { team: 'tide', x: -.48, z: .9, yaw: .8, h: 1.76, variant: 1 },
+    { team: 'ember', x: .48, z: .9, yaw: -.8, h: 1.8, variant: 2 },
+    { team: 'ember', x: 1.4, z: .35, yaw: -.95, h: 1.9, variant: 1 },
     { team: 'tide', x: -3.4, z: -2.4, yaw: .6, h: 1.82, variant: 2, back: true },
     { team: 'ember', x: 3.4, z: -2.4, yaw: -.6, h: 1.82, variant: 0, back: true },
     { team: 'tide', x: -5.2, z: -5, yaw: .3, h: 1.8, variant: 1, back: true },
     { team: 'ember', x: 5.2, z: -5, yaw: -.3, h: 1.8, variant: 1, back: true },
   ];
   let usingReal = false;
+  // Real in-game athletes: spawn detached dummy actors through ctx.characters and re-parent their model roots into this scene.
+  const realActors = [];
   function tryRealPreview(spec, idx) {
-    const C = ctx.characters; if (!C || C.__stub) return null;
+    const C = ctx.characters; if (!C || C.__stub || typeof C.spawn !== 'function') return null;
     try {
-      const fn = C.createPreview || null; if (!fn) return null;
-      const res = fn.call(C, { team: spec.team, seed: idx + 1, pose: 'idle', index: idx });
-      const obj = res?.isObject3D ? res : (res?.group || res?.object || res?.root || res?.model);
-      if (!obj?.isObject3D) return null;
-      const box = new THREE.Box3().setFromObject(obj); const hgt = box.max.y - box.min.y;
-      if (!isFinite(hgt) || hgt < .8 || hgt > 3.5) return null;
-      return { group: obj, update(t, dt) { try { res.update?.(dt, t); res.pose?.('idle'); } catch {} }, dispose() { res.dispose?.(); } };
+      const a = createActor({ name: 'Showcase' + idx, team: spec.team }); a.pos.set(spec.x, 0, spec.z); a.yaw = Math.PI + spec.yaw; a.alive = true; a.isBot = true; a.cosmetics = { team: spec.team };
+      const m = C.spawn(a, { materialise: false }); const root = m?.root; if (!root?.isObject3D) { C.remove?.(a); return null; }
+      m.dbg = { ...(m.dbg || {}), weapon: spec.team === 'ember' ? 'arc' : 'rail' };
+      scene.add(root); root.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(root), hgt = box.max.y - box.min.y;
+      if (!isFinite(hgt) || hgt < 1.2 || hgt > 3) { C.remove?.(a); return null; }
+      realActors.push(a);
+      return { group: null, real: true, actor: a, update() { a.pos.set(spec.x, 0, spec.z); a.vel.set(0, 0, 0); a.yaw = Math.PI + spec.yaw; a.onGround = true; }, dispose() { try { C.remove(a); } catch {} root.removeFromParent(); } };
     } catch { return null; }
   }
   function buildHeroes() {
-    for (const h of heroes) { scene.remove(h.wrap); h.hero.dispose?.(); h.blob.geometry.dispose(); }
+    for (const h of heroes) { scene.remove(h.wrap); h.hero.dispose?.(); h.blob.geometry.dispose(); } realActors.length = 0;
     heroes.length = 0; usingReal = false;
     layout.forEach((sp, i) => {
       let hero = tryRealPreview(sp, i); if (hero) usingReal = true;
       if (!hero) hero = buildAthlete({ team: sp.team, height: sp.h, variant: sp.variant, seed: i * 1.7 });
-      const wrap = new THREE.Group(); wrap.position.set(sp.x, 0, sp.z); wrap.rotation.y = Math.PI + sp.yaw + (sp.team === 'tide' ? 0 : 0);
+      const wrap = new THREE.Group(); wrap.position.set(sp.x, 0, sp.z); wrap.rotation.y = Math.PI + sp.yaw;
       // athletes face -Z in their own space; rotating by PI+yaw makes them face +Z (camera) turned inward
-      wrap.add(hero.group); scene.add(wrap);
+      if (hero.group) { wrap.add(hero.group); } scene.add(wrap);
       const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7), blobMat); blob.rotation.x = -Math.PI / 2; blob.position.set(sp.x, .014, sp.z); scene.add(blob);
       if (!sp.back) {
         const col = sp.team === 'ember' ? EMBER : TIDE;
@@ -330,7 +334,7 @@ export function createBackdrop(ctx) {
   }
   buildHeroes();
   // if characters piece finishes after us, rebuild lazily on first enter
-  let triedRealAt = 0;
+  let triedRealAt = 0, dirty = false;
 
   // ---------- rendering ----------
   let composer = null, bloom = null, W = 0, H = 0, pr = 1;
@@ -363,9 +367,9 @@ export function createBackdrop(ctx) {
     mood.x += (mood.tx - mood.x) * k; mood.dim += (mood.tdim - mood.dim) * k; mood.push += (mood.tpush - mood.push) * k;
     // camera: slow orbit sway + mouse parallax
     const az = Math.sin(T * .09) * .06 + -mouse.sx * .07, el = mouse.sy * .022;
-    const dist = 10.6 - mood.push;
+    const dist = 14.6 - mood.push;
     camera.position.set(Math.sin(az) * dist + mood.x, 1.2 + el * 3 + Math.sin(T * .13) * .05, Math.cos(az) * dist);
-    look.set(-.1 + mood.x * .6 + mouse.sx * .18, 1.4 - el * 2, 0); camera.lookAt(look);
+    look.set(-.05 + mood.x * .6 + mouse.sx * .18, 1.3 - el * 2, 0); camera.lookAt(look);
     camera.fov = 30;
     if (api.free) { camera.position.copy(api.free.pos); camera.lookAt(api.free.look); }
     // animate
@@ -402,13 +406,14 @@ export function createBackdrop(ctx) {
     enter() {
       if (active) return; active = true;
       saved = { ex: R.toneMappingExposure };
-      if (!usingReal && ctx.characters && !ctx.characters.__stub && performance.now() - triedRealAt > 1000) { triedRealAt = performance.now(); buildHeroes(); }
+      if (dirty || (!usingReal && ctx.characters && !ctx.characters.__stub && performance.now() - triedRealAt > 1000)) { triedRealAt = performance.now(); dirty = false; buildHeroes(); }
       origRender = ctx.render.render; ctx.render.render = render;
       R.toneMappingExposure = 1.05; ensureComposer();
     },
     leave() {
       if (!active) return; active = false;
       if (origRender) ctx.render.render = origRender; origRender = null;
+      if (usingReal) { for (const h of heroes) h.hero.dispose?.(); realActors.length = 0; dirty = true; for (const h of heroes) { scene.remove(h.wrap); } heroes.length = 0; usingReal = false; }
       if (saved) R.toneMappingExposure = saved.ex;
     },
     warm() { const was = active; active = true; try { ensureComposer(); composer.render(); } catch (e) { console.warn('[menu] backdrop warm failed', e); } active = was; },

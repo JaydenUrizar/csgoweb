@@ -121,11 +121,11 @@ function tileTex(seed) {
 function roofTex(seed) {
   const w = 256, [c, ctx] = mk(w); const r = rngf(seed);
   ctx.fillStyle = grey(210); ctx.fillRect(0, 0, w, w);
-  const tw = 32, th = 44;
+  const tw = 64, th = 70;
   for (let row = -1; row < w / th + 1; row++) for (let col = 0; col < w / tw; col++) {
     const x = col * tw, y = row * th * 0.55; const tone = 200 + r() * 40 - 12;
-    const g = ctx.createLinearGradient(x, y, x + tw, y); g.addColorStop(0, grey(tone - 30)); g.addColorStop(0.4, grey(tone + 14)); g.addColorStop(1, grey(tone - 34)); ctx.fillStyle = g; ctx.fillRect(x, y, tw - 1, th);
-    ctx.fillStyle = 'rgba(40,20,10,0.35)'; ctx.fillRect(x, y + th - 5, tw, 5);
+    const g = ctx.createLinearGradient(x, y, x + tw, y); g.addColorStop(0, grey(tone - 12)); g.addColorStop(0.4, grey(tone + 8)); g.addColorStop(1, grey(tone - 14)); ctx.fillStyle = g; ctx.fillRect(x, y, tw - 1, th);
+    ctx.fillStyle = 'rgba(40,20,10,0.18)'; ctx.fillRect(x, y + th - 4, tw, 3);
   }
   speckle(ctx, w, w, r, 1800, 0.1);
   return c;

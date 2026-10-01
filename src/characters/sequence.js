@@ -36,7 +36,7 @@ export function tickTag(ctx, m, dt, fx, tick) {
   tg.t += dt; const t = tg.t, u = m.u;
   if (tg.phase === 0) {
     const f = sstep(t / tg.freezeT);
-    u.uFreeze.value = f; u.uFlash.value = t < tg.freezeT ? 1.3 * (1 - f) + 0.25 : 0.12 + 0.14 * Math.sin(t * 40) * Math.exp(-(t - tg.freezeT) * 2);
+    u.uFreeze.value = f; u.uFlash.value = t < tg.freezeT ? 1.1 * (1 - f) : 0.05 + 0.05 * Math.sin(t * 40);
     const k = sstep(t / tg.shatterT), sh = (1 - k);
     m.root.position.y = m.gy + 0.05 * k; m.root.rotation.x = tg.tiltX * f; m.root.rotation.z = tg.tiltZ * f + Math.sin(t * 90) * 0.012 * sh * f;
     m.root.updateMatrixWorld(true);

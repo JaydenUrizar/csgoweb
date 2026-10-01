@@ -24,13 +24,13 @@ const BASE_CSS = `
 .fxh{position:fixed;inset:0;pointer-events:none;overflow:hidden;--font:"Barlow Condensed","Rajdhani","Bahnschrift","Roboto Condensed","Arial Narrow","DejaVu Sans Condensed",system-ui,sans-serif;font-family:var(--font);color:#fff;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;user-select:none;z-index:5}
 .fxh *{box-sizing:border-box}
 .fxh .abs{position:absolute;inset:0;pointer-events:none}
-.fxh .rt{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none}
-.fxh .rt>*{pointer-events:none}
-.fxh .rt>.buy,.fxh .rt>.buy *{pointer-events:auto}
+.fxh .hroot{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none}
+.fxh .hroot>*{pointer-events:none}
+.fxh .hroot>.buy,.fxh .hroot>.buy *{pointer-events:auto}
 .fxh .ic{display:inline-block;overflow:visible;vertical-align:middle}
 .fxh .ic-w{aspect-ratio:120/48;height:1em}.fxh .ic-g{width:1em;height:1em}
 .fxh .bgd{position:absolute;inset:0;display:none}
-.fxh.hidden .rt,.fxh.hidden .abs>*:not(.bgd){display:none!important}
+.fxh.hidden .hroot,.fxh.hidden .abs>*:not(.bgd){display:none!important}
 `;
 
 export function create(ctx) {
@@ -42,7 +42,7 @@ export function create(ctx) {
   document.head.appendChild(st);
   const bgd = h('div', 'bgd', wrap);
   const abs = h('div', 'abs', wrap);
-  const rt = h('div', 'rt', wrap);
+  const rt = h('div', 'hroot', wrap);
   const spr = h('div', '', rt, sprite()); spr.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
 
   const H = {
@@ -97,6 +97,7 @@ export function create(ctx) {
     let view = local;
     if (H.spec) {
       let t = H.specForce || H.specTarget;
+      if (!H.mock && R.match?.spectating?.alive) t = R.match.spectating;
       if (!t || t.alive === false) { t = (R.actors || []).find((a) => a !== local && a.alive !== false && a.team === local.team) || (R.actors || []).find((a) => a.alive !== false && a !== local) || null; H.specTarget = t; }
       view = t || local;
     }
@@ -110,6 +111,7 @@ export function create(ctx) {
   H.refreshActors = refreshActors;
 
   function cycleSpec(dir) {
+    if (!H.mock && ctx.match?.cycleSpectate) { ctx.match.cycleSpectate(dir); return; }
     const R = H.R; const cand = (R.actors || []).filter((a) => a.alive !== false && a !== H.local);
     if (!cand.length) return; cand.sort((a, b) => (a.team === H.local.team ? 0 : 1) - (b.team === H.local.team ? 0 : 1) || a.id - b.id);
     const i = Math.max(0, cand.indexOf(H.specTarget)); const n = cand[(i + dir + cand.length) % cand.length];

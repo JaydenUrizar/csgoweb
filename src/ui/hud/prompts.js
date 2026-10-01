@@ -1,5 +1,5 @@
 // Centre prompts (+ progress ring), round banners, objective notices, toasts, flash-blind coordination.
-import { clamp, easeOut, easeOutBack, h, teamName, txt, fmtMoney } from './core.js';
+import { clamp, easeOut, easeOutBack, h, teamName, txt, fmtMoney, reasonLabel } from './core.js';
 import { icon } from './icons.js';
 
 export const css = `
@@ -67,11 +67,12 @@ export function create(H) {
   H.bus.on('round:end', (d) => {
     const R = H.R, m = R.match; if (!d) return;
     const w = d.winner; const col = H.pal[w] || '#fff', mine = w === H.playerTeam;
-    const mvp = m?.mvp;
+    const mvp = d.mvp || m?.mvp;
     banner({ title: `<em>${teamName(w)}</em> WIN`, sub: REASON(d.reason) || (mine ? 'Round won' : 'Round lost'), meta: mvp ? `★ MVP  ${mvp.name}` : '', color: col, hold: 4.2, kind: 'win' });
     if (H.local && m) { const lose = w !== H.playerTeam; }
   });
-  H.bus.on('halftime', () => {
+  H.bus.on('halftime', (hd) => {
+    if (hd?.kind === 'ot' || hd?.kind === 'otHalf') { banner({ title: 'OVERTIME', sub: hd.kind === 'otHalf' ? 'Switching sides' : 'Sudden death — first to 4', color: '#ffd25a', hold: 4, kind: 'half' }); return; }
     const t = H.playerTeam; const side = H.R.match?.sideOf?.(t);
     banner({ title: 'HALFTIME', sub: side ? `Switching sides — you are now ${side === 'attack' ? 'attacking' : 'defending'}` : 'Switching sides', color: '#ffd25a', hold: 4, kind: 'half' });
   });
@@ -85,14 +86,14 @@ export function create(H) {
   H.bus.on('beacon:disarm', () => notice('Beacon disarmed', H.pal.tide, 'kit'));
   H.bus.on('beacon:complete', () => notice('Beacon charged', '#ff7a4a', 'beacon'));
   H.bus.on('buy', (d) => { if (d?.actor === H.view && d.cost) toast(`Purchased <b>${d.name || d.item}</b> <span style="opacity:.7">−${fmtMoney(d.cost)}</span>`, 'info'); });
-  H.bus.on('credits', (d) => { if (d?.actor === H.view && d.reason && d.delta > 0 && !/buy|refund/i.test(d.reason)) toast(`<b>+${fmtMoney(d.delta)}</b> ${d.reason}`, ''); });
+  H.bus.on('credits', (d) => { const rl = reasonLabel(d?.reason); if (d?.actor === H.view && rl && d.delta > 0 && d.reason !== 'tag') toast(`<b>+${fmtMoney(d.delta)}</b> ${rl}`, ''); });
   H.bus.on('util:blind', (d) => {
     if (d?.actor !== H.view) return;
     const amt = clamp(d.amount ?? 1, 0, 1), dur = 0.6 + amt * 3.2;
     S.flash = { t0: H.T, amt, dur };
     const sc = H.R.render?.screen; if (sc?.whiteout) { try { sc.whiteout(dur); S.flash.external = true; } catch {} }
   });
-  H.bus.on('reset', () => { S.ban = null; S.nt = null; S.flash = null; for (const t of S.ts) t.el.remove(); S.ts.length = 0; S.lastPhase = ''; ban.style.opacity = 0; nt.style.opacity = 0; });
+  H.bus.on('reset', () => { S.ban = null; S.nt = null; S.flash = null; for (const t of S.ts) t.el.remove(); S.ts.length = 0; S.lastPhase = ''; ban.style.opacity = 0; nt.style.opacity = 0; flashfx.style.opacity = 0; blindchip.style.opacity = 0; });
 
   function roundIntro(n) {
     const R = H.R, m = R.match; if (!m) return; n = n ?? m.round ?? 1; if (S.shownRound === n) return; S.shownRound = n;
@@ -121,15 +122,15 @@ export function create(H) {
     if (bc) {
       const near = site(R, v);
       const mine = bc.carrier === v || v.hasBeacon;
-      if (bc.state === 'arming' && (mine || near || H.mock)) return { text: 'Arming Beacon', progress: bc.progress, col: H.pal.ember, key: 'E' };
-      if (bc.state === 'disarming' && (near || H.mock) && H.playerTeam === 'tide') return { text: 'Disarming Beacon', progress: bc.progress, col: H.pal.tide, key: 'E', hint: v.inventory?.kit || v.hasKit ? 'Kit: fast disarm' : '' };
+      if (bc.state === 'arming' && (mine || bc.actor === v || near || H.mock)) return { text: 'Arming Beacon', progress: bc.progress, col: H.pal.ember, key: 'E' };
+      if (bc.state === 'disarming' && (bc.actor === v || near || H.mock) && H.playerTeam === 'tide') return { text: 'Disarming Beacon', progress: bc.progress, col: H.pal.tide, key: 'E', hint: v.inventory?.kit || v.hasKit ? 'Kit: fast disarm' : '' };
       if (bc.state === 'disarming' && near) return { text: 'Disarming Beacon', progress: bc.progress, col: H.pal.tide, key: 'E' };
       if (mine && near && (ph === 'live') && (bc.state === 'carried' || !bc.state)) return { text: `Hold to arm Beacon`, hint: `Site ${near}`, key: 'E' };
       if (bc.state === 'armed' && H.playerTeam === 'tide' && bc.pos && Math.hypot(v.pos.x - bc.pos.x, v.pos.z - bc.pos.z) < 2.6) return { text: 'Hold to disarm Beacon', hint: v.hasKit ? 'Kit equipped' : '', key: 'E' };
       if (bc.state === 'dropped' && bc.pos && H.playerTeam === 'ember' && Math.hypot(v.pos.x - bc.pos.x, v.pos.z - bc.pos.z) < 2.2) return { text: 'Pick up Beacon', key: 'E' };
     }
     const eq = R.combat?.equipped?.(v);
-    if (eq && eq.def && eq.mag === 0 && (eq.reserve ?? 0) > 0 && eq.state !== 'reload' && !NOAM.has(eq.def.id)) return { text: 'Reload', key: 'R', sm: true };
+    if (eq && (eq.def || eq.id) && eq.mag === 0 && (eq.reserve ?? 0) > 0 && eq.state !== 'reload' && !NOAM.has(eq.id || eq.def?.id)) return { text: 'Reload', key: 'R', sm: true };
     if ((ph === 'buy' || ph === 'freeze') && !H.keys.noBuyTip) return { text: 'Buy time', hint: 'Press B to open the buy menu', key: 'B', sm: true, low: true };
     return null;
   }
@@ -143,7 +144,7 @@ export function create(H) {
       const sig = p ? p.text + p.key + (p.hint || '') : '';
       if (sig !== S.prev) { S.prev = sig; if (p) { setKey(p.key || 'E'); setTx(p.text); setHint(p.hint || ''); prm.classList.toggle('sm', !!p.sm); } }
       const ta = p ? 1 : 0; S.prmA = ta ? Math.min(1, S.prmA + dt * 9) : Math.max(0, S.prmA - dt * 9);
-      const pa = S.prmA.toFixed(2); if (S.pa !== pa) { S.pa = pa; prm.style.opacity = pa; prm.style.visibility = S.prmA > 0 ? '' : 'hidden'; }
+      const pa = (p && p.progress != null ? 0 : S.prmA).toFixed(2); if (S.pa !== pa) { S.pa = pa; prm.style.opacity = pa; prm.style.visibility = S.prmA > 0 ? '' : 'hidden'; }
       const showRing = p && p.progress != null; const tr = showRing ? 1 : 0;
       S.ringA = tr ? Math.min(1, S.ringA + dt * 10) : Math.max(0, S.ringA - dt * 10);
       const ra = S.ringA.toFixed(2); if (S.ra !== ra) { S.ra = ra; ring.style.opacity = ra; ring.style.transform = `scale(${(0.85 + 0.15 * S.ringA).toFixed(3)})`; }

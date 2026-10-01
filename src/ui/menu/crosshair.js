@@ -1,29 +1,26 @@
 // Crosshair designer: shared drawing routine, share-code import/export, and the big live-preview editor.
 import { h } from './ui.js';
 
+// Mirrors src/ui/hud/fx.js drawCrosshair (styles classic|t|dot|circle; size*1.6 arm length; units = 720p px).
 export const XH_DEFAULT = { style: 'classic', size: 5, gap: 3, thickness: 1.6, color: '#6dff9a', opacity: 1, dot: false, dotSize: 2, outline: true, outlineThickness: 1, dynamic: true };
-export const XH_STYLES = [['classic', 'Classic'], ['tstyle', 'T-Style'], ['dot', 'Dot'], ['circle', 'Ring']];
+export const XH_STYLES = [['classic', 'Classic'], ['t', 'T-Style'], ['dot', 'Dot'], ['circle', 'Ring']];
 
-/** Draw a crosshair centred at (cx,cy). `s` = pixels per crosshair unit, `spread` = extra gap in units (dynamic). */
+/** Draw a crosshair centred at (cx,cy). `s` = pixels per unit, `spread` = extra gap in units (dynamic). Matches the in-game HUD. */
 export function drawCrosshair(g, c, cx, cy, s = 1, spread = 0) {
-  const gap = c.gap + (c.dynamic ? spread : 0), len = c.size, th = c.thickness, o = c.outline ? c.outlineThickness : 0;
-  g.save(); g.globalAlpha = c.opacity ?? 1; g.translate(cx, cy);
-  const rect = (x0, y0, w, hh, col) => { g.fillStyle = col; g.fillRect(Math.round(x0 * s * 2) / 2, Math.round(y0 * s * 2) / 2, w * s, hh * s); };
-  const bar = (x0, y0, w, hh) => { if (o) rect(x0 - o, y0 - o, w + o * 2, hh + o * 2, 'rgba(0,0,0,.88)'); };
-  const fill = (x0, y0, w, hh) => rect(x0, y0, w, hh, c.color);
+  const gap = c.gap + (c.dynamic ? spread : 0), len = Math.max(2 / s, c.size * 1.6), th = Math.max(1 / s, c.thickness), o = c.outline === false ? 0 : .85;
+  g.save(); g.translate(cx, cy);
+  const R = (x0, y0, w, hh, col) => { g.fillStyle = col; g.fillRect(Math.round(x0 * s), Math.round(y0 * s), Math.max(1, Math.round(w * s)), Math.max(1, Math.round(hh * s))); };
   const parts = [];
-  if (c.style === 'classic' || c.style === 'tstyle') {
-    parts.push([-gap - len, -th / 2, len, th], [gap, -th / 2, len, th], [-th / 2, gap, th, len]);
-    if (c.style === 'classic') parts.push([-th / 2, -gap - len, th, len]);
-  }
-  if (c.style === 'dot') parts.push([-c.dotSize / 2 - th / 2, -c.dotSize / 2 - th / 2, c.dotSize + th, c.dotSize + th]);
-  if (c.dot && c.style !== 'dot') parts.push([-c.dotSize / 2, -c.dotSize / 2, c.dotSize, c.dotSize]);
-  for (const p of parts) bar(...p);
+  if (c.style === 'classic' || c.style === 't') { parts.push([gap, -th / 2, len, th], [-gap - len, -th / 2, len, th], [-th / 2, gap, th, len]); if (c.style === 'classic') parts.push([-th / 2, -gap - len, th, len]); if (c.dot) parts.push([-th / 2, -th / 2, th, th]); }
+  else if (c.style === 'dot') { const d = th * 2.2; parts.push([-d / 2, -d / 2, d, d]); }
+  for (const p of parts) if (o) R(p[0] - o, p[1] - o, p[2] + o * 2, p[3] + o * 2, 'rgba(0,0,0,.85)');
+  for (const p of parts) R(p[0], p[1], p[2], p[3], c.color);
   if (c.style === 'circle') {
-    const r = (gap + len) * s; g.lineWidth = (th + o * 2) * s; g.strokeStyle = 'rgba(0,0,0,.88)'; if (o) { g.beginPath(); g.arc(0, 0, r, 0, 6.2832); g.stroke(); }
-    g.lineWidth = th * s; g.strokeStyle = c.color; g.beginPath(); g.arc(0, 0, r, 0, 6.2832); g.stroke();
+    const r = (gap + len * .9 + th) * s; g.lineCap = 'butt';
+    if (o) { g.strokeStyle = 'rgba(0,0,0,.85)'; g.lineWidth = (th + o * 2) * s; g.beginPath(); g.arc(0, 0, r, 0, 7); g.stroke(); }
+    g.strokeStyle = c.color; g.lineWidth = th * s; g.beginPath(); g.arc(0, 0, r, 0, 7); g.stroke();
+    R(-th / 2 - o, -th / 2 - o, th + o * 2, th + o * 2, 'rgba(0,0,0,.85)'); R(-th / 2, -th / 2, th, th, c.color);
   }
-  for (const p of parts) fill(...p);
   g.restore();
 }
 
@@ -100,7 +97,7 @@ export function createCrosshairDesigner(ctx, kit, toast = () => {}) {
     state.t += 1 / 60; state.fireT += 1 / 60; if ((state.mode === 'firing' || state.mode === 'both') && state.fireT > .55) state.fireT = 0;
     const mv = state.mode === 'moving' || state.mode === 'both' ? 1 : 0; const fr = state.mode === 'firing' || state.mode === 'both' ? Math.max(0, 1 - state.fireT * 2.4) : 0;
     const spread = mv * 4.5 + fr * 5 + (state.mode === 'moving' || state.mode === 'both' ? Math.sin(state.t * 6) * .4 : 0);
-    const s = state.zoom * (w / 960) * 1.6; // preview px per unit
+    const s = state.zoom * (w / 960) * 1.4; // preview px per unit
     drawCrosshair(g, get(), w / 2, hh / 2, s, spread);
   };
   const view = h('div', { class: 'fx-xh-view' }, canvas, h('span', { class: 'cap' }, 'Live preview'));
@@ -137,15 +134,15 @@ export function createCrosshairDesigner(ctx, kit, toast = () => {}) {
   const pasteBtn = h('button', { class: 'fx-btn sm', onClick: async () => { try { doImport(await navigator.clipboard.readText()); } catch { codeIn.focus(); say('Paste the code, then press Enter'); } } }, 'Paste');
   const R = (l, d, ctl, o) => C.row(l, d, ctl, o);
   const left = h('div', null,
-    C.group('Style', R('Shape', null, reg(styleP)), R('Colour', null, h('div', { style: { display: 'flex', flexDirection: 'column', gap: '.6rem', alignItems: 'stretch', flex: 1 } }, swWrap, h('div', { style: { display: 'flex', gap: '.8rem', alignItems: 'center' } }, hue, hex)), { tall: true }), R('Opacity', null, reg(opac))),
+    C.group('Style', R('Shape', null, reg(styleP)), R('Colour', null, h('div', { style: { display: 'flex', flexDirection: 'column', gap: '.6rem', alignItems: 'stretch', flex: 1 } }, swWrap, h('div', { style: { display: 'flex', gap: '.8rem', alignItems: 'center' } }, hue, hex)), { tall: true })),
     C.group('Geometry', R('Length', null, reg(size)), R('Gap', 'Distance from centre', reg(gap)), R('Thickness', null, reg(thick))),
-    C.group('Extras', R('Centre dot', null, reg(dot)), R('Dot size', null, reg(dotSize)), R('Outline', 'Improves contrast on bright maps', reg(outl)), R('Outline width', null, reg(outlT)), R('Dynamic spread', 'Widens when moving & firing', reg(dyn))));
+    C.group('Extras', R('Centre dot', null, reg(dot)), R('Outline', 'Improves contrast on bright maps', reg(outl)), R('Dynamic spread', 'Widens when moving & firing', reg(dyn))));
   const right = h('div', { class: 'fx-xh-prev' }, view,
     h('div', { class: 'fx-xh-bg' }, ...bgBtns, h('span', { style: { flex: 1 } }), ...zoomBtns),
     h('div', { class: 'fx-xh-bg' }, ...modeBtns),
     h('div', { class: 'fx-lab', style: { marginTop: '1.3rem' } }, 'Share code', h('em', null, 'Import / export')),
     h('div', { class: 'fx-code' }, codeIn, copyBtn, pasteBtn),
-    h('div', { style: { marginTop: '.9rem', display: 'flex', gap: '.5rem' } }, h('button', { class: 'fx-btn sm ghost', onClick: () => put({ ...XH_DEFAULT }) }, 'Reset crosshair'), h('button', { class: 'fx-btn sm ghost', onClick: () => put({ style: 'classic', size: 4, gap: 2, thickness: 1, color: '#ffffff', dot: false, outline: true, dynamic: false, opacity: 1 }) }, 'Preset: Pro white')));
+    h('div', { style: { marginTop: '.9rem', display: 'flex', gap: '.5rem' } }, h('button', { class: 'fx-btn sm ghost', onClick: () => put({ ...XH_DEFAULT }) }, 'Reset crosshair'), h('button', { class: 'fx-btn sm ghost', onClick: () => put({ style: 'classic', size: 3, gap: 2, thickness: 1, color: '#ffffff', dot: false, outline: true, dynamic: false }) }, 'Preset: Pro white')));
   const el = h('div', { class: 'fx-xh' }, left, right);
   refreshAll();
   return { el, refresh: refreshAll, start() { if (running) return; running = true; state.t = 0; frame(); }, stop() { running = false; cancelAnimationFrame(raf); } };

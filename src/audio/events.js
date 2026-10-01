@@ -32,6 +32,7 @@ export function wireEvents(ctx, audio) {
     if (id === 'lance') audio.play('tagger.lance.bolt', { actor: a, delay: isL ? 0.62 : 0.66, pos: isL ? null : org });
     else if (id === 'scatter') audio.play('tagger.scatter.pump', { actor: a, delay: isL ? 0.42 : 0.46, pos: isL ? null : org });
     if (e.hitscan === false || !e.dir) return;
+    const haveHits = Array.isArray(e.hit);   // combat reports hits; world impacts arrive via the 'impact' event
     // near-miss zip for shots passing the listener
     const L = audio.mixer?.listener; if (!L) return;
     const rx = L.x - org.x, ry = L.y - org.y, rz = L.z - org.z, t = rx * e.dir.x + ry * e.dir.y + rz * e.dir.z;
@@ -40,7 +41,7 @@ export function wireEvents(ctx, audio) {
       if (d < 2.4) { _rd.x = px; _rd.y = py; _rd.z = pz; audio.play('tag.whiz', { pos: { x: px, y: py, z: pz }, gain: 1.4 - d * 0.4, delay: t / 900 }); }
     }
     // predicted world impact (one ray; a few for shotgun)
-    const map = ctx.map; if (!map?.raycast || ctx.events.__impactEvents) return;
+    const map = ctx.map; if (haveHits || !map?.raycast || ctx.events.__impactEvents) return;
     const dd = Math.hypot(org.x - L.x, org.z - L.z); if (dd > 95) return;
     const n = id === 'scatter' ? 3 : 1;
     for (let i = 0; i < n; i++) {
@@ -64,7 +65,7 @@ export function wireEvents(ctx, audio) {
   bind('impact', (e) => {   // if any piece emits explicit impacts, prefer those
     ctx.events.__impactEvents = true; if (!e.point) return; audio.play(`impact.${e.surface || surfaceAtPos(e.point)}`, { pos: e.point, intensity: e.intensity ?? 1 });
   });
-  const stageName = (s) => { if (s === 1 || s === 'out' || s === 'start' || s === 'reload1' || s === 'begin') return 'reload1'; if (s === 2 || s === 'in' || s === 'mid' || s === 'reload2') return 'reload2'; if (s === 3 || s === 'end' || s === 'chamber' || s === 'done' || s === 'reload3') return 'reload3'; return null; };
+  const stageName = (s) => { if (s === 1 || s === 'out' || s === 'start' || s === 'reload1' || s === 'begin') return 'reload1'; if (s === 2 || s === 'in' || s === 'mid' || s === 'reload2') return 'reload2'; if (s === 3 || s === 'end' || s === 'chamber' || s === 'done' || s === 'reload3') return 'reload3'; return null; };   // 'commit' / 'cancel' are silent
   bind('weapon:reload', (e) => { const id = tagId(e.tagger), n = stageName(e.stage); if (id && n) audio.play(`tagger.${id}.${n}`, { actor: e.actor }); });
   bind('weapon:switch', (e) => { const id = tagId(e.tagger); if (id && audio.sounds[`tagger.${id}.draw`]) audio.play(`tagger.${id}.draw`, { actor: e.actor }); });
   bind('weapon:empty', (e) => { const id = tagId(e.tagger) || ctx.combat?.equipped?.(e.actor || local())?.def?.id; if (id) audio.play(`tagger.${id}.empty`, { actor: e.actor || local() }); });
@@ -119,7 +120,7 @@ export function wireEvents(ctx, audio) {
     else if (e.type === 'strobe') audio.play('util.strobe.pop', { pos: p });
     else if (e.type === 'pulse') { audio.play('util.pulse.boom', { pos: p }); if (d < 14) { audio.deafen(0.3 * (1 - d / 14), 1.6); } audio.duck('music', 0.5, 0.01, 0.4, 1.0); }
   });
-  bind('util:blind', (e) => { if (!isLocal(e.actor)) return; const a = clamp(e.amount ?? 1, 0, 1); if (a < 0.1) return; audio.play('util.strobe.ring', { amount: a, fp: true }); audio.deafen(a * 0.95, 1.5 + 3.5 * a); });
+  bind('util:blind', (e) => { if (!isLocal(e.actor)) return; const a = clamp(e.amount ?? 1, 0, 1); if (a < 0.1) return; audio.play('util.strobe.ring', { amount: a, fp: true }); audio.deafen(a * 0.95, Math.min(6, e.duration ? 1 + e.duration * 0.8 : 1.5 + 3.5 * a)); });
 
   // ---------------- UI / economy ----------------
   const uiMap = { 'ui:click': 'ui.click', 'ui:hover': 'ui.hover', 'ui:open': 'ui.open', 'ui:close': 'ui.close', 'ui:back': 'ui.back', 'ui:error': 'ui.error', 'ui:tab': 'ui.tab', 'ui:toggle': 'ui.toggle', 'ui:notify': 'ui.notify', 'buy:fail': 'ui.error' };
@@ -158,7 +159,7 @@ export function wireEvents(ctx, audio) {
     audio.play(win ? 'ui.round.win' : 'ui.round.lose', { fp: true }); audio.music.set(win ? 'win' : 'lose');
     audio.announce(w === 'ember' ? 'emberWin' : 'tideWin', { delay: 0.8 });
   });
-  bind('match:end', (e) => { const win = e.winner === myTeam(); audio.play(win ? 'ui.match.win' : 'ui.match.lose', { fp: true }); audio.announce(win ? 'victory' : 'defeat', { delay: 1.0 }); audio.music.set(win ? 'win' : 'lose'); });
+  bind('match:end', (e) => { const win = e.playerWon ?? (e.winner === myTeam()); audio.play(win ? 'ui.match.win' : 'ui.match.lose', { fp: true }); audio.announce(win ? 'victory' : 'defeat', { delay: 1.0 }); audio.music.set(win ? 'win' : 'lose'); });
   bind('halftime', () => { audio.announce('halftime'); });
 
   // ---------------- beacon ----------------

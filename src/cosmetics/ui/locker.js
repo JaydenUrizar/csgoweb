@@ -127,7 +127,7 @@ export function createLocker(ctx, api) {
     return `<button class="card r-${it.rarity} ${eq ? 'eq' : ''}" data-id="${it.id}" style="--rc:${rc(it.rarity)};--i:${Math.min(i, 30)}" aria-pressed="${eq}"><span class="ic"><img alt="" loading="lazy" src="${iconFor(it)}"><span class="glowf"></span></span><i class="bar"></i><span class="tick"></span>${stars ? `<span class="st">&#9733; ${stars}</span>` : ''}${tag}<span class="txt"><span class="nm">${esc(it.name)}</span><span class="sb">${esc(set.name)} &middot; ${RARITY[it.rarity].name}</span></span></button>`;
   }
   function renderGrid() {
-    const grid = $('.lk-grid'); const wrap = $('.lk-gridw');
+    const wrap = $('.lk-gridw'); const grid = wrap.firstElementChild;
     if (L.cat === 'sets') {
       grid.className = 'sets';
       grid.innerHTML = SETS.filter((s) => s.id !== 'issue').map((s, i) => {

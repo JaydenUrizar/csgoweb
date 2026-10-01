@@ -21,6 +21,10 @@ export function flag(node, name) { let l; return (v) => { v = !!v; if (v !== l) 
 export function style(node, prop) { let l; return (v) => { if (v !== l) { l = v; node.style[prop] = v; } }; }
 export function tf(node) { let l; return (v) => { if (v !== l) { l = v; node.style.transform = v; } }; }
 
+export function reasonLabel(r) {
+  r = String(r || ''); if (/^(buy|refund)/.test(r)) return '';
+  return ({ win: 'Round win', loss: 'Round loss', tag: 'Tag', teamtag: 'Team tag', plant: 'Beacon armed', disarm: 'Beacon disarmed' })[r] || r;
+}
 export const fmtTime = (s) => { s = Math.max(0, Math.ceil(s - 1e-6)); return `${(s / 60) | 0}:${String(s % 60).padStart(2, '0')}`; };
 export const fmtMoney = (n) => '$' + Math.round(n).toLocaleString('en-US');
 
@@ -68,7 +72,7 @@ export function readLoadout(R, actor, out = []) {
   out.length = 0; if (!actor) return out;
   let inv = null; try { inv = R.combat?.inventory?.(actor); } catch {}
   inv = inv || actor.inventory; if (!inv) return out;
-  const cur = idOf(inv.current) || idOf(R.combat?.equipped?.(actor)?.def);
+  const eqp = R.combat?.equipped?.(actor); const cur = (typeof inv.current === 'string' ? inv.current : null) || eqp?.id || idOf(eqp?.def) || idOf(inv.current);
   const seen = new Set();
   const push = (slot, v, count) => {
     const id = idOf(v); if (!id || seen.has(id + slot)) return; seen.add(id + slot);

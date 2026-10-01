@@ -19,9 +19,10 @@ export async function run(ctx, vm) {
   const P = new URLSearchParams(location.search), R = ctx.render;
   if (ctx.__vmGallery) return ctx.__vmGallery;
   // neutral backdrop
-  try { if (ctx.map?.group) ctx.map.group.visible = false; } catch (e) { /* ignore */ }
+  try { if (ctx.map?.group) ctx.map.group.visible = false; if (R.sky) R.sky.visible = false; R.skyModule?.clouds && (R.skyModule.clouds.visible = false); } catch (e) { /* ignore */ }
   const bgKey = P.get('bg') || 'mid';
   R.scene.background = new THREE.Color(BG[bgKey] ?? BG.mid); if (R.scene.fog) R.scene.fog = null;
+  for (const el of document.body.children) if (el.id !== 'app' && el.tagName !== 'SCRIPT') el.style.display = 'none';
   const tag = document.createElement('div');
   tag.style.cssText = 'position:fixed;left:14px;top:12px;font:600 15px/1.3 system-ui,sans-serif;color:#fff;text-shadow:0 1px 3px #000;pointer-events:none;z-index:50;white-space:pre';
   document.body.appendChild(tag);
@@ -34,7 +35,7 @@ export async function run(ctx, vm) {
   function show(id, skinIdx = G.skinIdx) {
     G.id = id; G.skinIdx = skinIdx; G.skin = SKINS[skinIdx % SKINS.length];
     G.tasks.length = 0; vm.debug.reset?.();
-    vm.setTagger(id, G.skin, { instant: true });
+    vm.debug.setTagger(id, G.skin, { instant: true });
     if (G.mode === 'world') showWorld(id); else hideWorld();
     setLabel();
   }
@@ -53,16 +54,16 @@ export async function run(ctx, vm) {
     const cls = vm.debug.model()?.meta?.cls, id = G.id;
     switch (anim) {
       case 'idle': break;
-      case 'draw': vm.event('draw'); break;
-      case 'holster': vm.event('holster'); break;
-      case 'fire': case 'burst': { const n = o.n ?? (anim === 'burst' ? 6 : 1), rate = o.rate ?? (cls === 'sniper' ? 0.6 : 0.09); for (let i = 0; i < n; i++) at(i * rate, () => vm.event('fire', { mag: Math.max(0, (vm.debug.S.ammo || 30) - 1) })); break; }
-      case 'reload': vm.debug.setAmmo(Math.max(1, Math.round((vm.debug.S.ammoMax || 30) * 0.12)), vm.debug.S.ammoMax); vm.event('reloadStart'); break;
-      case 'inspect': vm.event('inspect'); break;
-      case 'empty': vm.debug.setAmmo(0); vm.event('empty'); break;
-      case 'melee': vm.event('melee'); at(0.7, () => vm.event('melee')); break;
-      case 'throw': vm.event('throw', { stage: 'windup' }); at(0.75, () => vm.event('throw', { stage: 'release', power: 1 })); at(2.2, () => { vm.event('draw'); }); break;
-      case 'plant': vm.event('plant', { on: true, progress: 0 }); { const T = 2.4; for (let i = 1; i <= 8; i++) at(i * T / 8, () => vm.event('progress', { value: i / 8 })); at(T + 0.2, () => vm.event('plant', { on: false })); } break;
-      case 'scope': vm.event('scopeIn'); at(1.6, () => vm.event('scopeOut')); break;
+      case 'draw': vm.debug.event('draw'); break;
+      case 'holster': vm.debug.event('holster'); break;
+      case 'fire': case 'burst': { const n = o.n ?? (anim === 'burst' ? 6 : 1), rate = o.rate ?? (cls === 'sniper' ? 0.6 : 0.09); for (let i = 0; i < n; i++) at(i * rate, () => vm.debug.event('fire', { mag: Math.max(0, (vm.debug.S.ammo || 30) - 1) })); break; }
+      case 'reload': vm.debug.setAmmo(Math.max(1, Math.round((vm.debug.S.ammoMax || 30) * 0.12)), vm.debug.S.ammoMax); vm.debug.event('reloadStart'); break;
+      case 'inspect': vm.debug.event('inspect'); break;
+      case 'empty': vm.debug.setAmmo(0); vm.debug.event('empty'); break;
+      case 'melee': vm.debug.event('melee'); at(0.7, () => vm.debug.event('melee')); break;
+      case 'throw': vm.debug.event('throw', { stage: 'windup' }); at(0.75, () => vm.debug.event('throw', { stage: 'release', power: 1 })); at(2.2, () => { vm.debug.event('draw'); }); break;
+      case 'plant': vm.debug.event('plant', { on: true, progress: 0 }); { const T = 2.4; for (let i = 1; i <= 8; i++) at(i * T / 8, () => vm.debug.event('progress', { value: i / 8 })); at(T + 0.2, () => vm.debug.event('plant', { on: false })); } break;
+      case 'scope': vm.debug.event('scopeIn'); at(1.6, () => vm.debug.event('scopeOut')); break;
       case 'walk': gs.speed = 3.2; gs.walking = true; break;
       case 'run': gs.speed = 6.4; break;
       case 'sprint': gs.speed = 9.5; gs.sprinting = true; break;
@@ -79,6 +80,16 @@ export async function run(ctx, vm) {
   G.setBg = (k) => { R.scene.background = new THREE.Color(BG[k] ?? BG.mid); };
   G.cycle = 0;
 
+  // orbit: inspect the rig from any angle (yaw/pitch deg, distance m). null = true first-person view.
+  const _eo = new THREE.Euler(), _qo = new THREE.Quaternion(), _vo = new THREE.Vector3();
+  function applyOrbit() {
+    const root = vm.debug.root, o = G.orbitCfg;
+    if (!o) { root.position.set(0, 0, 0); root.quaternion.identity(); return; }
+    const rp = vm.debug.S.prof.rest.p; _vo.set(rp[0] * 0.01, rp[1] * 0.01, rp[2] * 0.01);
+    _eo.set(o.pitch * Math.PI / 180, o.yaw * Math.PI / 180, 0, 'YXZ'); _qo.setFromEuler(_eo); root.quaternion.copy(_qo);
+    _vo.applyQuaternion(_qo).negate(); root.position.set(_vo.x + (o.x ?? 0), _vo.y + (o.y ?? 0), _vo.z - o.dist);
+  }
+  G.orbit = (yaw, pitch = 0, dist = 0.6, x = 0, y = 0) => { G.orbitCfg = yaw == null ? null : { yaw, pitch, dist, x, y }; };
   // driver
   const sys = {
     update(dt) {
@@ -86,7 +97,8 @@ export async function run(ctx, vm) {
       G.t += dt;
       for (let i = 0; i < G.tasks.length; i++) if (G.tasks[i].t <= G.t) { const f = G.tasks[i].fn; G.tasks.splice(i, 1); i--; f(); }
       if (G.lookSweep) { const s = G.lookSweep, ph = (G.t - s.t0) * s.f * Math.PI * 2; gs.lookDelta.x = Math.cos(ph) * s.amp * dt * 8 * (Math.PI * 2 * s.f) * 0.125; gs.lookDelta.y = Math.sin(ph * 0.5) * 0.004; }
-      vm.update(dt, gs); gs.lookDelta.x = gs.lookDelta.y = 0; gs.jumped = false;
+      applyOrbit();
+      gs.__g = true; vm.debug.update(dt, gs); gs.lookDelta.x = gs.lookDelta.y = 0; gs.jumped = false;
       if (G.world) { G.world.rotation.y += dt * 0.7; }
     },
   };
@@ -95,6 +107,7 @@ export async function run(ctx, vm) {
     R.camera.position.set(0, 0.25, 1.4); R.camera.rotation.set(-0.1, 0, 0);
   }
   ctx.__vmGallery = G; window.__vmGallery = G;
+  if (P.get('orbit')) { const [a, b2, d] = P.get('orbit').split(',').map(Number); G.orbit(a, b2 || 0, d || 0.6); }
   const id0 = P.get('tagger') || 'pip'; show(id0, +(P.get('skin') || 0));
   const an = P.get('anim'); if (an) at(0.2, () => play(an));
   if (G.auto) { // auto playlist

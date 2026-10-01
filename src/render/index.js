@@ -57,7 +57,7 @@ export function create(ctx) {
     blur: { value: 0, hold: 0 }, tint: { color: new THREE.Color(1, 0, 0), amount: 0, hold: 0 },
     damage: { dir: 0, amount: 0 }, white: { hold: 0, level: 0 },
     shake: { trauma: 0, decay: 6, t: 0 },
-    exposure: 0.85, bloom: 0.16, ao: 0.85, vignette: 0.2, grain: 1, ca: 1, contrast: 1.07, saturation: 1.10,
+    exposure: 0.85, bloom: 0.16, ao: 0.85, vignette: 0.2, grain: 1, ca: 1, contrast: 1.13, saturation: 1.16,
     toggles: { bloom: true, ssao: true, grain: true, vignette: true, shadows: true, fxaa: true, shafts: true },
   };
   const stats = { sceneCalls: 0, sceneTris: 0, calls: 0, tris: 0, sunVis: 0, sunUV: new THREE.Vector2(0.5, 0.5), shaftI: 0.22 };

@@ -16,15 +16,15 @@ export const CSS = /* css */`
 #fx-locker[data-side=ember] .lk-bg i.e,#fx-locker[data-side=tide] .lk-bg i.t{opacity:1}
 #fx-locker .lk-bg::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.018) 0 2px,transparent 2px 46px);pointer-events:none}
 /* top bar */
-#fx-locker .lk-top{position:absolute;left:0;right:0;top:0;height:64px;display:flex;align-items:center;padding:0 22px;gap:18px;z-index:5;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0));animation:lk-drop .5s cubic-bezier(.2,.8,.2,1) both}
+#fx-locker .lk-top{position:absolute;left:0;right:0;top:0;height:64px;display:flex;align-items:center;padding:0 22px;gap:18px;z-index:5;background:linear-gradient(180deg,rgba(6,7,10,.96),rgba(6,7,10,.7));border-bottom:1px solid var(--line);animation:lk-drop .5s cubic-bezier(.2,.8,.2,1) both}
 #fx-locker .lk-back{display:flex;align-items:center;gap:8px;height:38px;padding:0 14px 0 10px;border-radius:3px;font:600 18px var(--f-cond);letter-spacing:.09em;text-transform:uppercase;color:var(--dim);transition:.15s}
 #fx-locker .lk-back:hover{color:#fff;background:rgba(255,255,255,.07)}
 #fx-locker .lk-back svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.4}
 #fx-locker .lk-title{font:700 28px var(--f-cond);letter-spacing:.14em;text-transform:uppercase;color:#fff;display:flex;align-items:baseline;gap:10px;white-space:nowrap}
 #fx-locker .lk-title small{font:500 14px var(--f-cond);letter-spacing:.2em;color:var(--dim)}
-#fx-locker .lk-tabs{flex:1;display:flex;gap:2px;justify-content:center;overflow-x:auto;scrollbar-width:none;min-width:0}
+#fx-locker .lk-tabs{flex:1;display:flex;gap:0;justify-content:safe center;overflow-x:auto;scrollbar-width:none;min-width:0}
 #fx-locker .lk-tabs::-webkit-scrollbar{display:none}
-#fx-locker .lk-tab{position:relative;height:44px;padding:0 15px;font:500 21px var(--f-cond);letter-spacing:.06em;text-transform:uppercase;color:#98a2b6;white-space:nowrap;transition:color .15s;display:flex;align-items:center}
+#fx-locker .lk-tab{position:relative;height:44px;padding:0 11px;font:500 20px var(--f-cond);letter-spacing:.06em;text-transform:uppercase;color:#98a2b6;white-space:nowrap;transition:color .15s;display:flex;align-items:center}
 #fx-locker .lk-tab:hover{color:#fff}
 #fx-locker .lk-tab.on{color:#fff;text-shadow:0 0 18px var(--ac)}
 #fx-locker .lk-tab.on::after{content:"";position:absolute;left:14px;right:14px;bottom:2px;height:3px;background:var(--ac);box-shadow:0 0 12px var(--ac);border-radius:2px;animation:lk-under .25s ease both}
@@ -37,11 +37,11 @@ export const CSS = /* css */`
 #fx-locker .lk-x{width:38px;height:38px;border-radius:3px;display:grid;place-items:center;color:var(--dim);transition:.15s}
 #fx-locker .lk-x:hover{color:#fff;background:rgba(255,80,80,.25)}
 /* stage */
-#fx-locker .lk-main{position:absolute;left:0;right:0;top:0;bottom:var(--inv-h,336px);}
+#fx-locker .lk-main{position:absolute;left:0;right:0;top:60px;bottom:var(--inv-h,320px);}
 #fx-locker .lk-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;outline:none}
 #fx-locker .lk-canvas.drag{cursor:grabbing}
 #fx-locker .lk-vig{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.35) 0,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 78%,rgba(0,0,0,.55) 100%),linear-gradient(90deg,rgba(0,0,0,.45),transparent 22%,transparent 78%,rgba(0,0,0,.45))}
-#fx-locker .lk-side{position:absolute;top:76px;bottom:16px;width:min(292px,24vw);display:flex;flex-direction:column;gap:6px;z-index:3;animation:lk-in-l .55s cubic-bezier(.2,.8,.2,1) both}
+#fx-locker .lk-side{position:absolute;top:14px;bottom:14px;width:min(292px,24vw);display:flex;flex-direction:column;gap:6px;z-index:3;animation:lk-in-l .55s cubic-bezier(.2,.8,.2,1) both}
 #fx-locker .lk-side.r{right:22px;animation-name:lk-in-r}
 #fx-locker .lk-side.l{left:22px}
 #fx-locker .lk-sideh{font:600 14px var(--f-cond);letter-spacing:.24em;color:var(--dim);text-transform:uppercase;padding:0 4px 2px;display:flex;justify-content:space-between}
@@ -57,14 +57,14 @@ export const CSS = /* css */`
 #fx-locker .lk-slot .v{font:600 20px var(--f-cond);letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f2f5fa}
 #fx-locker .lk-slot .rt{font:500 12px var(--f-cond);letter-spacing:.14em;color:var(--rc);text-transform:uppercase}
 /* overlays over the stage */
-#fx-locker .lk-sidetog{position:absolute;left:50%;top:76px;transform:translateX(-50%);display:flex;gap:0;z-index:4;animation:lk-drop .55s .1s cubic-bezier(.2,.8,.2,1) both}
+#fx-locker .lk-sidetog{position:absolute;left:50%;top:14px;transform:translateX(-50%);display:flex;gap:0;z-index:4;animation:lk-drop .55s .1s cubic-bezier(.2,.8,.2,1) both}
 #fx-locker .lk-sidetog button{position:relative;height:42px;min-width:132px;padding:0 20px;text-align:center;font:700 22px var(--f-cond);letter-spacing:.16em;text-transform:uppercase;background:rgba(0,0,0,.45);border:1px solid var(--line);color:var(--dim);transition:.18s;backdrop-filter:blur(8px)}
 #fx-locker .lk-sidetog button:first-child{border-radius:3px 0 0 3px}#fx-locker .lk-sidetog button:last-child{border-radius:0 3px 3px 0;margin-left:-1px}
 #fx-locker .lk-sidetog button:hover{color:#fff}
 #fx-locker .lk-sidetog button.on{color:#0b0d12;border-color:transparent}
 #fx-locker .lk-sidetog button[data-s=ember].on{background:#ff7a2f;box-shadow:0 0 24px rgba(255,122,47,.55)}
 #fx-locker .lk-sidetog button[data-s=tide].on{background:#2fd0ff;box-shadow:0 0 24px rgba(47,208,255,.55)}
-#fx-locker .lk-hint{position:absolute;left:50%;top:126px;transform:translateX(-50%);font:500 13px var(--f-cond);letter-spacing:.2em;color:var(--dim);text-transform:uppercase;z-index:3;white-space:nowrap;pointer-events:none;display:flex;gap:14px;align-items:center}
+#fx-locker .lk-hint{position:absolute;left:50%;top:64px;opacity:.0;transform:translateX(-50%);font:500 13px var(--f-cond);letter-spacing:.2em;color:var(--dim);text-transform:uppercase;z-index:3;white-space:nowrap;pointer-events:none;display:flex;gap:14px;align-items:center}
 #fx-locker .lk-hint b{color:#cbd3e2;font-weight:600}
 #fx-locker .lk-info{position:absolute;left:50%;bottom:66px;transform:translateX(-50%) translateY(6px);z-index:4;min-width:290px;max-width:400px;padding:12px 18px 12px;text-align:center;background:rgba(10,12,17,.78);border:1px solid var(--line);border-bottom:3px solid var(--rc,#888);border-radius:3px;backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .16s,transform .16s;box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 40px -12px var(--rc,#000)}
 #fx-locker .lk-info.on{opacity:1;transform:translateX(-50%) translateY(0)}

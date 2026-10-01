@@ -25,8 +25,9 @@ export function validatePaths(sys, opts = {}) {
   for (let i = 0; i < pairs; i++) {
     const n1 = Math.floor(rnd() * g.N), n2 = Math.floor(rnd() * g.N);
     const j = rnd() < 0.5 ? jitter : 0;
-    const from = new THREE.Vector3(g.px[n1] + (rnd() - 0.5) * 2 * j, g.py[n1], g.pz[n1] + (rnd() - 0.5) * 2 * j);
-    const to = new THREE.Vector3(g.px[n2] + (rnd() - 0.5) * 2 * j, g.py[n2], g.pz[n2] + (rnd() - 0.5) * 2 * j);
+    // jittered endpoints (off-node queries) are only used where the capsule itself fits there
+    const pick = (n) => { const q = new THREE.Vector3(g.px[n] + (rnd() - 0.5) * 2 * j, g.py[n], g.pz[n] + (rnd() - 0.5) * 2 * j); const fl = floorAt(q.x, q.y, q.z); return j && !hits(q.x, q.y, q.z) && fl === fl && Math.abs(fl - q.y) < 0.1 ? q : new THREE.Vector3(g.px[n], g.py[n], g.pz[n]); };
+    const from = pick(n1), to = pick(n2);
     const p = sys.path(from, to, { noCache: true });
     if (!p) { rep.fail++; if (rep.nullPaths.length < 5) rep.nullPaths.push([from.toArray().map((v) => +v.toFixed(1)), to.toArray().map((v) => +v.toFixed(1))]); continue; }
     rep.ok++; rep.points += p.length; rep.dist += p.dist; rep.straight += Math.hypot(to.x - from.x, to.z - from.z);
@@ -60,7 +61,7 @@ export function validatePaths(sys, opts = {}) {
     }
     if (startClip) rep.startInWall++;
     const ratio = p.dist / Math.max(1e-3, Math.hypot(to.x - from.x, to.z - from.z)); if (ratio > rep.ratioMax && p.dist > 8) rep.ratioMax = ratio;
-    if (bad) rep.badPaths = (rep.badPaths || 0) + 1;
+    if (bad) { rep.badPaths = (rep.badPaths || 0) + 1; (rep.badSamples = rep.badSamples || []).length < 3 && rep.badSamples.push({ from: from.toArray().map((v) => +v.toFixed(2)), to: to.toArray().map((v) => +v.toFixed(2)), path: p.map((q, k) => [+q.x.toFixed(2), +q.y.toFixed(2), +q.z.toFixed(2), p.flags[k]]) }); }
   }
   rep.ms = performance.now() - t0; rep.hash = hash >>> 0;
   rep.clean = rep.fail === 0 && !rep.badPaths;

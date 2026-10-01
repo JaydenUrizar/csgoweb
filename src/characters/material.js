@@ -67,7 +67,7 @@ export function createActorMaterial() {
         aBase = mix(aBase, uHAccent * aoV, vRole2.y);
         aBase = mix(aBase, uBack * aoV, vRole2.z);
         float aFrz = uFreeze * 0.92; float aCell = aHash(floor(vObj * 11.0));
-        vec3 aIce = mix(vec3(0.72, 0.9, 1.0), uTeam, 0.22) * (0.75 + 0.5 * aCell);
+        vec3 aIce = mix(vec3(0.5, 0.78, 1.0), uTeam, 0.18) * (0.6 + 0.5 * aCell);
         aBase = mix(aBase, aIce, aFrz);
         diffuseColor.rgb *= aBase;`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nfloat aFin = clamp(vRole.x + vRole2.x + vRole2.z, 0.0, 1.0);\nroughnessFactor = mix(mix(0.62, uFinishR, aFin), 0.1, uFreeze);')
@@ -77,9 +77,9 @@ export function createActorMaterial() {
         totalEmissiveRadiance += uTeam * vRole.z * uTeamGlow;
         totalEmissiveRadiance += uVisor * vRole.w * uVisorGlow;
         totalEmissiveRadiance += uTeam * aFres * uRim * (1.0 - uFreeze * 0.3);
-        totalEmissiveRadiance += diffuseColor.rgb * 0.07;
+        totalEmissiveRadiance += diffuseColor.rgb * 0.07 * (1.0 - uFreeze);
         totalEmissiveRadiance += (0.5 + 0.5 * cos(6.2831 * (aFres * 1.3 + vObj.y * 0.6 + vec3(0.0, 0.33, 0.67)))) * aFres * uHolo * 1.4;
-        totalEmissiveRadiance += aIce * (aFres * 1.8 + 0.28 + 0.4 * step(0.86, aCell)) * uFreeze;
+        totalEmissiveRadiance += aIce * (aFres * 1.4 + 0.07 + 0.35 * step(0.9, aCell)) * uFreeze;
         totalEmissiveRadiance += vec3(uFlash) * (0.7 + aFres);
         totalEmissiveRadiance += uTeam * matEdge * 4.0 + vec3(matEdge) * 0.6;`);
   };

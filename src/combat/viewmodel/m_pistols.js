@@ -42,7 +42,7 @@ export function pip(b) {
   return {
     name: 'Pip', cls: 'pistol', skin: { pattern: 'solid', primary: 0x4d5a70, accent: 0x9aa9c2, glow: 0x39f0ff, wear: 0 },
     muzzle: [0, 8.0, -13.6], eject: { p: [1.8, 10, 3], v: [1.6, 1.9, 0.4] }, len: 20,
-    hands: { r: { p: [1.35, 0.5, 1.8], r: [0, 0, 0], curl: [0.62, 0.68, 0.7, 0.72, 0.4], pose: 'grip' }, l: { p: [-0.8, -0.2, 0.2], r: [0, 0, 0], curl: [0.55, 0.62, 0.66, 0.7, 0.35], pose: 'support' } },
+    hands: { r: { p: [3.5, -2, 1.6], r: [-8, 0, -90], curl: [0.66, 0.7, 0.72, 0.74, 0.45], pose: 'grip' }, l: { p: [-3.5, -3.8, 0.6], r: [-8, 0, 90], curl: [0.62, 0.66, 0.68, 0.7, 0.4], pose: 'support' } },
   };
 }
 
@@ -75,7 +75,7 @@ export function twin(b) {
   return {
     name: 'Twin', cls: 'pistol', skin: { pattern: 'stripes', primary: 0xdfe3ec, accent: 0x8892a8, glow: 0xff4fd8, wear: 0 },
     muzzle: [0, 8.3, -14.2], eject: { p: [2.4, 10, 3], v: [1.6, 1.8, 0.4] }, len: 21, gaugePairs: true,
-    hands: { r: { p: [1.55, 0.5, 1.8], r: [0, 0, 0], curl: [0.6, 0.66, 0.7, 0.72, 0.4], pose: 'grip' }, l: { p: [-0.8, -0.2, 0.2], r: [0, 0, 0], curl: [0.55, 0.62, 0.66, 0.7, 0.35], pose: 'support' } },
+    hands: { r: { p: [3.8, -2, 1.6], r: [-8, 0, -90], curl: [0.66, 0.7, 0.72, 0.74, 0.45], pose: 'grip' }, l: { p: [-3.8, -3.8, 0.6], r: [-8, 0, 90], curl: [0.62, 0.66, 0.68, 0.7, 0.4], pose: 'support' } },
   };
 }
 
@@ -111,6 +111,6 @@ export function judge(b) {
   return {
     name: 'Judge', cls: 'pistol', skin: { pattern: 'solid', primary: 0x8c5a2e, accent: 0xd9a25c, glow: 0xffa62b, wear: 0.15 },
     muzzle: [0, 8.0, -28.4], eject: null, len: 36, heavy: true,
-    hands: { r: { p: [1.5, 0.5, 2.6], r: [0, 0, 0], curl: [0.62, 0.68, 0.7, 0.72, 0.4], pose: 'grip' }, l: { p: [-0.8, -0.2, 2.0], r: [0, 0, 0], curl: [0.55, 0.62, 0.66, 0.7, 0.35], pose: 'support' } },
+    hands: { r: { p: [3.7, -2, 3.2], r: [-12, 0, -90], curl: [0.66, 0.7, 0.72, 0.74, 0.45], pose: 'grip' }, l: { p: [-3.7, -3.8, 2.2], r: [-12, 0, 90], curl: [0.62, 0.66, 0.68, 0.7, 0.4], pose: 'support' } },
   };
 }

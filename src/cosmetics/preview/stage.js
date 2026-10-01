@@ -10,34 +10,34 @@ import { ParticleSystem, RibbonTrail, TagOutFx, SHAPE } from './fx.js';
 import { backdropTexture, radialTexture, mix } from './textures.js';
 
 const FOCUS = {
-  body:   { y: 0.98, dist: 4.5, fov: 30, cy: 1.15, yaw: null },
+  body:   { y: 1.0, dist: 4.7, fov: 30, cy: 1.0, yaw: null },
   head:   { y: 1.55, dist: 1.85, fov: 30, cy: 1.6, yaw: 0 },
-  back:   { y: 1.05, dist: 4.1, fov: 30, cy: 1.2, yaw: Math.PI },
-  tagger: { y: 1.2, dist: 2.1, fov: 30, cy: 1.3, yaw: 0.15, gun: true },
+  back:   { y: 0.9, dist: 4.5, fov: 30, cy: 1.1, yaw: Math.PI },
+  tagger: { y: 1.2, dist: 2.7, fov: 30, cy: 1.3, yaw: 0.15, gun: true },
   charm:  { y: 0.95, dist: 2.3, fov: 30, cy: 1.05, yaw: 1.1 },
   name:   { y: 1.75, dist: 3.0, fov: 30, cy: 1.85, yaw: 0 },
-  wide:   { y: 0.98, dist: 5.4, fov: 30, cy: 1.35, yaw: 0.45 },
-  run:    { y: 0.95, dist: 5.2, fov: 30, cy: 1.15, yaw: 1.25 },
+  wide:   { y: 1.0, dist: 5.0, fov: 30, cy: 1.1, yaw: 0.45 },
+  run:    { y: 0.8, dist: 6.0, fov: 30, cy: 1.15, yaw: 1.25 },
 };
 
 export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER', foreignRig = null } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: preserve });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene(); scene.background = backdropTexture('ember');
-  const pmrem = new THREE.PMREMGenerator(renderer); const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04); scene.environment = envRT.texture; scene.environmentIntensity = 0.5;
+  const pmrem = new THREE.PMREMGenerator(renderer); const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04); scene.environment = envRT.texture; scene.environmentIntensity = 0.3;
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
 
   // ---- lights
-  const hemi = new THREE.HemisphereLight(0xbfd4ff, 0x2a1a10, 0.35); scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xfff1dc, 3.0); key.position.set(-2.4, 4.2, 3.4); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
+  const hemi = new THREE.HemisphereLight(0xbfd4ff, 0x2a1a10, 0.25); scene.add(hemi);
+  const key = new THREE.DirectionalLight(0xfff1dc, 1.5); key.position.set(-2.4, 4.2, 3.4); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
   key.shadow.camera.left = -1.6; key.shadow.camera.right = 1.6; key.shadow.camera.top = 2.4; key.shadow.camera.bottom = -0.5; key.shadow.camera.near = 1; key.shadow.camera.far = 12; key.shadow.bias = -0.0006; key.shadow.normalBias = 0.02;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0x9fc3ff, 0.7); fill.position.set(3, 1.6, 2.5); scene.add(fill);
-  const rimA = new THREE.DirectionalLight(0xff7a2f, 3.4); rimA.position.set(-3, 2.2, -3.2); scene.add(rimA);
-  const rimB = new THREE.DirectionalLight(0xff7a2f, 3.0); rimB.position.set(3, 2.6, -3); scene.add(rimB);
-  const under = new THREE.PointLight(0xff7a2f, 6, 4.5, 2); under.position.set(0, 0.25, 0.4); scene.add(under);
+  const fill = new THREE.DirectionalLight(0x9fc3ff, 0.35); fill.position.set(3, 1.6, 2.5); scene.add(fill);
+  const rimA = new THREE.DirectionalLight(0xff7a2f, 1.5); rimA.position.set(-3, 2.2, -3.2); scene.add(rimA);
+  const rimB = new THREE.DirectionalLight(0xff7a2f, 1.3); rimB.position.set(3, 2.6, -3); scene.add(rimB);
+  const under = new THREE.PointLight(0xff7a2f, 0.5, 3.5, 2); under.position.set(0, 0.1, 1.0); scene.add(under);
 
   // ---- platform
   const plat = new THREE.Group(); scene.add(plat);
@@ -72,7 +72,7 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
     try {
       const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples: 4 });
       composer = new EffectComposer(renderer, rt); composer.addPass(new RenderPass(scene, camera));
-      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.62, 0.55, 0.9); composer.addPass(bloom); composer.addPass(new OutputPass());
+      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.5, 0.5, 1.0); composer.addPass(bloom); composer.addPass(new OutputPass());
     } catch { composer = null; }
   }
 
@@ -105,7 +105,7 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
       rig.inspectTarget = F.gun ? 1 : 0;
     },
     setTaggerKind(k) { rig.setTaggerKind?.(k); },
-    playEmote(id) { rig.stopEmote?.(); S.tagT = 0; rig.playEmote?.(id); },
+    playEmote(id) { if (S.tagPhase !== 'idle') api.stopTagOut(); rig.stopEmote?.(); S.tagT = 0; rig.playEmote?.(id); },
     stopEmote() { rig.stopEmote?.(); },
     get emoting() { return !!rig.emote; },
     setJog(b) { S.jog = b; rig.jog = b; if (!b) for (const r of ribbons) r.reset(); },
@@ -172,7 +172,7 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
       // decor
       ticks.rotation.y += dt * 0.08; ring.material.color.setHex(TEAM_COL[S.team]).multiplyScalar(2.0 + 0.4 * Math.sin(S.time * 1.7));
       floorGlow.material.opacity = 0.5 + 0.08 * Math.sin(S.time * 1.7);
-      if (bloom) { bloom.strength += ((tagFlash > 0 ? 1.4 : 0.62) - bloom.strength) * Math.min(1, dt * 8); }
+      if (bloom) { bloom.strength += ((tagFlash > 0 ? 1.2 : 0.5) - bloom.strength) * Math.min(1, dt * 8); }
       tagFlash = Math.max(0, tagFlash - dt * 3);
     },
     render() {
