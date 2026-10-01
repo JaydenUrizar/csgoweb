@@ -1,0 +1,13 @@
+import * as THREE from 'three';
+import { MeshBVH } from 'three-mesh-bvh';
+import { buildCourse } from '../../src/player/course.js';
+import * as G from '../../src/player/geom.js';
+const c = buildCourse();
+const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(c.positions, 3)); geo.boundsTree = new MeshBVH(geo);
+const p = {x:-46,y:0.003,z:52.36};
+G.gather(geo.boundsTree, p.x-2,p.y-1,p.z-2,p.x+2,p.y+3,p.z+2);
+console.log('tris', G.triCount());
+G.resetContacts();
+p.z -= 0.055;
+G.resolve(p,1.8,0.36,p.x,0.9,p.z+0.055);
+console.log(p, JSON.stringify({g:G.C.ground,n:G.C.nWall,hw:G.C.hitWall, wn:[G.C.wx[0],G.C.wy[0],G.C.wz[0]]}));

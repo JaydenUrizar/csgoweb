@@ -20,8 +20,8 @@ info()                      // {calls, triangles, points, lines, geometries, tex
 layers = { world:0, actor:1, fx:2, viewmodel:3 }
 screen = {
   flash(color=0xffffff, amount=1, decay=3),   // additive full-screen colour flash that decays (amount 0..1)
-  blur(amount),                               // 0..1 sustained radial/gaussian-ish blur (set every frame or 0 to clear)
-  tint(color, amount),                        // sustained multiply/mix colour tint, amount 0..1 (0 clears)
+  blur(amount),                               // 0..1 radial+ring blur. Holds 0.12 s after the last call then fades (so call every frame while active, or once for a pulse); 0 clears
+  tint(color, amount),                        // screen colour tint (edge-weighted), amount 0..1. Holds 0.15 s after last call then fades; 0 clears
   damage(dirRad, amount),                     // chromatic-aberration + red-ish edge pulse; dirRad = screen-space angle of hit (0 = from ahead)
   whiteout(t),                                // flash-bang whiteout: t = seconds of full white; then fades ~2.5 s. Call again to extend.
   clear(),
