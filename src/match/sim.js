@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import { createEvents } from '../core/events.js';
 import { mulberry32 } from '../core/rng.js';
-import { MATCH, TEAMS } from '../core/config.js';
+import { TEAMS } from '../core/config.js';
+import { TIMING as MATCH } from './timing.js';
 import { ECON, lossBonus } from './economy.js';
 import { createMatch } from './flow.js';
 
@@ -105,7 +106,7 @@ export function createDriver(ctx, match, { rand, speed = 1, moveSpeed = 9 } = {}
       case 'both_wiped': { const at = T(rr(30, 80)); for (const t of ['ember', 'tide']) match.teams[t].forEach((v) => D.timeline.push({ at, run: () => tagOut(v, null) })); break; }
       case 'carrier_drop_plant': D.timeline.push({ at: T(rr(8, 14)), run: () => { const c = match.beacon.carrier; if (c) tagOut(c); } }); plant(rr(30, 55)); disarm(rr(6, 22), false); break;
       case 'plant_at_expiry': D.goals.push({ at: T(MATCH.roundTime - MATCH.beaconArmTime + 1.4), kind: 'plant', site, ox, oz, fn: plantGoal, teleport: true }); break;
-      case 'disarm_too_late': plant(rr(20, 35)); disarm(33, false); killSome('ember', 3, 20, 60); break;
+      case 'disarm_too_late': plant(rr(20, 35)); disarm(MATCH.beaconFuse - 2, false); killSome('ember', 3, 20, 60); break;
       default: break;
     }
     D.timeline.sort((a, b) => a.at - b.at);

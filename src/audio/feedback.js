@@ -15,8 +15,8 @@ export function registerFeedback() {
   const tick = (V, crown) => {
     const o = V.o, limb = o.group === 'limb', j = jit(V, 0.04), f = (limb ? 1250 : o.group === 'stomach' ? 1550 : 1800) * j, k = clamp(0.7 + (o.damage ?? 30) / 120, 0.7, 1.15);
     click(V, { g: 0.36 * k, hp: 3000, d: 0.003 });
-    noise(V, { a: 0.0003, d: 0.03, g: 0.5 * k, bp: f * 1.35, q: 1.3 });
-    osc(V, { f0: f, f1: f * 0.78, pt: 0.03, d: 0.06, g: 0.3 * k });
+    noise(V, { a: 0.0003, hold: 0.008, d: 0.07, g: 0.6 * k, bp: f * 1.35, q: 1.1, sat: 0.3 });
+    osc(V, { f0: f, f1: f * 0.78, pt: 0.03, hold: 0.015, d: 0.08, g: 0.4 * k });
     osc(V, { f0: 230 * j, f1: 120, pt: 0.02, d: 0.06, g: 0.3 * k * (limb ? 0.6 : 1) });   // body thump = weight
     if (o.armor) ring(V, { f: 1350, ratios: [1, 2.3, 3.4], decays: [1, 0.5, 0.3], gains: [1, 0.5, 0.3], d: 0.11, g: 0.14 });
     if (crown) {   // the iconic 'bing'
@@ -45,6 +45,8 @@ export function registerFeedback() {
     noise(V, { a: 0.0008, d: 0.13, g: 0.34 * k, lp: 900, hp: 50 });
     noise(V, { kind: 'pink', a: 0.004, d: 0.14, g: 0.18 * k, bp: 1400, q: 0.6 });
     click(V, { g: 0.2 * k, hp: 2000 });
+    noise(V, { a: 0.0005, hold: 0.01, d: 0.12, g: 0.42 * k, bp: 1700, q: 0.7, sat: 0.4 });       // 1-3 kHz crunch so it survives small speakers
+    osc(V, { f0: 420, f1: 210, pt: 0.04, d: 0.12, g: 0.3 * k, sat: 0.3 });
     if (crown) { noise(V, { a: 0.0003, d: 0.045, g: 0.5, bp: 2600, q: 0.8, sat: 0.4 }); ring(V, { f: 2200, ratios: [1, 1.5], decays: [1, 0.5], gains: [1, 0.4], d: 0.35, g: 0.07 }); osc(V, { f0: 90, f1: 35, pt: 0.1, d: 0.35, g: 0.5 }); }
     if (o.armor) ring(V, { f: 900, ratios: [1, 2.3], d: 0.14, g: 0.08 });
   }, { cat: 'hit', spatial: false, send: 0.05, prio: 9, voices: 4 });
@@ -66,7 +68,8 @@ export function registerFeedback() {
     noise(V, { kind: 'pink', a: 0.02, d: 0.9, g: 0.22, lp: [3500, 200, 0.9] });
     osc(V, { f0: 120, f1: 32, pt: 0.2, d: 1.1, g: 0.8, sat: 0.2 });
     click(V, { when: 0.05, g: 0.5, hp: 1200 });
-    for (let i = 0; i < 14; i++) tinkle(V, 0.08 + Math.pow(V.r(), 1.5) * 0.7, 0.04 + V.r() * 0.05);
+    noise(V, { when: 0.05, a: 0.001, hold: 0.04, d: 0.4, g: 0.22, bp: 1800, q: 0.6, sat: 0.3 }); osc(V, { f0: 520, f1: 150, pt: 0.3, d: 0.6, g: 0.18, a: 0.01 });
+    for (let i = 0; i < 14; i++) tinkle(V, 0.08 + Math.pow(V.r(), 1.5) * 0.7, 0.07 + V.r() * 0.07);
     ring(V, { f: 660, ratios: [1, 1.5, 2], d: 1.4, g: 0.05, a: 0.05 });
   }, { cat: 'tag', spatial: false, send: 0.25, prio: 9, voices: 1 });
   reg('tag.whiz', (V) => {       // near-miss pulse zip

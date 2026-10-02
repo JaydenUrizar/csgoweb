@@ -13,13 +13,13 @@ export function createIngame(ctx) {
   function emitTrail(m, dt, sp) {
     const t = m.spec.trail; if (!t || t.type === 'none') return;
     const a = m.actor, e = m.attach.trailEmitter; e.getWorldPosition(v);
-    const bx = -a.vel.x * 0.25, bz = -a.vel.z * 0.25, c1 = t.color, c2 = t.color2;
+    const bx = -a.vel.x * 0.25, bz = -a.vel.z * 0.25, c1 = t.color, c2 = t.color2, gy = a.pos.y;
     m.__tacc = (m.__tacc || 0) + dt * Math.min(1, sp / 6);
     switch (t.type) {
-      case 'sparks': { const r = 70; m.__tacc *= 1; while (m.__tacc * r >= 1) { m.__tacc -= 1 / r; glow.emit(v.x, 0.12, v.z, bx + (Math.random() - 0.5) * 1.2, 0.8 + Math.random() * 1.6, bz + (Math.random() - 0.5) * 1.2, 0.45 + Math.random() * 0.35, 0.1, 0.01, c1, c2, SHAPE.spark, 9, 0.6, 1); } break; }
-      case 'ribbon': case 'comet': { const r = 110; while (m.__tacc * r >= 1) { m.__tacc -= 1 / r; glow.emit(v.x, v.y - 0.1, v.z, bx * 0.2, 0, bz * 0.2, 0.75, t.type === 'comet' ? 0.2 : 0.14, 0.0, Math.random() < 0.5 ? c1 : c2, c2, SHAPE.glow, 0, 0.8, 0.9); } break; }
-      case 'pixels': { const r = 45; while (m.__tacc * r >= 1) { m.__tacc -= 1 / r; solid.emit(v.x + (Math.random() - 0.5) * 0.3, 0.2 + Math.random() * 1.3, v.z + (Math.random() - 0.5) * 0.3, bx * 0.3, (Math.random() - 0.5) * 0.3, bz * 0.3, 0.9 + Math.random() * 0.5, 0.09, 0.09, Math.random() < 0.5 ? c1 : c2, c2, SHAPE.square, 0, 1.2, 1, 0, 0, 0.03); } break; }
-      case 'petals': { const r = 28; while (m.__tacc * r >= 1) { m.__tacc -= 1 / r; solid.emit(v.x + (Math.random() - 0.5) * 0.3, 0.4 + Math.random() * 1.0, v.z + (Math.random() - 0.5) * 0.3, bx * 0.3, 0.3 + Math.random() * 0.4, bz * 0.3, 1.4 + Math.random() * 0.8, 0.13, 0.1, Math.random() < 0.6 ? c1 : c2, c1, SHAPE.petal, 0.3, 1.2, 1, (Math.random() - 0.5) * 7, 2.4); } break; }
+      case 'sparks': { const r = 130; while (m.__tacc * r >= 1) { m.__tacc -= 1 / r; glow.emit(v.x + (Math.random() - 0.5) * 0.2, gy + 0.12 + Math.random() * 0.25, v.z + (Math.random() - 0.5) * 0.2, bx + (Math.random() - 0.5) * 1.6, 0.6 + Math.random() * 1.8, bz + (Math.random() - 0.5) * 1.6, 0.6 + Math.random() * 0.5, 0.19, 0.02, c1, c2, SHAPE.spark, 9, 0.6, 1); } break; }
+      case 'ribbon': case 'comet': { const r = 150; while (m.__tacc * r >= 1) { m.__tacc -= 1 / r; glow.emit(v.x, v.y - 0.15 + (Math.random() - 0.5) * 0.08, v.z, bx * 0.2, 0, bz * 0.2, 1.0, t.type === 'comet' ? 0.38 : 0.26, 0.0, Math.random() < 0.5 ? c1 : c2, c2, SHAPE.glow, 0, 0.8, 0.9); } break; }
+      case 'pixels': { const r = 60; while (m.__tacc * r >= 1) { m.__tacc -= 1 / r; solid.emit(v.x + (Math.random() - 0.5) * 0.3, gy + 0.2 + Math.random() * 1.3, v.z + (Math.random() - 0.5) * 0.3, bx * 0.3, (Math.random() - 0.5) * 0.3, bz * 0.3, 1.1 + Math.random() * 0.5, 0.14, 0.14, Math.random() < 0.5 ? c1 : c2, c2, SHAPE.square, 0, 1.2, 1, 0, 0, 0.03); } break; }
+      case 'petals': { const r = 40; while (m.__tacc * r >= 1) { m.__tacc -= 1 / r; solid.emit(v.x + (Math.random() - 0.5) * 0.3, gy + 0.4 + Math.random() * 1.0, v.z + (Math.random() - 0.5) * 0.3, bx * 0.3, 0.3 + Math.random() * 0.4, bz * 0.3, 1.6 + Math.random() * 0.8, 0.2, 0.16, Math.random() < 0.6 ? c1 : c2, c1, SHAPE.petal, 0.3, 1.2, 1, (Math.random() - 0.5) * 7, 2.4); } break; }
     }
   }
   return {

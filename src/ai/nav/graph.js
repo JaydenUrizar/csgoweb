@@ -229,10 +229,15 @@ export function* buildGraphGen(collider, bounds, options = {}, hints = {}, budge
   // --- pass 2: walk edges (8 slots per node)
   const nb = new Int32Array(N * 8).fill(-1);
   g.nb = nb;
+  // a ramp edge (rise > stepUp) must follow a continuous slope: ground at 25/50/75 % along the edge matches the a->b interpolation
+  // (a vertical step taller than stepUp has ground at only the low or high level there and is rejected)
   const midRay = (a, b) => {
-    const mx = (g.px[a] + g.px[b]) / 2, mz = (g.pz[a] + g.pz[b]) / 2, hi = Math.max(g.py[a], g.py[b]), lo = Math.min(g.py[a], g.py[b]);
-    const h = downHit(mx, hi + 0.7, mz, 1.4 + (hi - lo)); if (!h) return false;
-    const hy = hi + 0.7 - h.distance; return hy >= lo - 0.12 && hy <= hi + 0.12 && h.face.normal.y >= cosSlope * 0.98;
+    const ax = g.px[a], ay = g.py[a], az = g.pz[a], bx = g.px[b], by = g.py[b], bz = g.pz[b], hi = Math.max(ay, by);
+    for (const t of [0.25, 0.5, 0.75]) {
+      const h = downHit(ax + (bx - ax) * t, hi + 0.7, az + (bz - az) * t, 1.4 + Math.abs(by - ay)); if (!h) return false;
+      const hy = hi + 0.7 - h.distance; if (Math.abs(hy - (ay + (by - ay) * t)) > 0.13 || h.face.normal.y < cosSlope * 0.98) return false;
+    }
+    return true;
   };
   for (let pass = 0; pass < 2; pass++) {
     for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
@@ -299,6 +304,7 @@ export function* buildGraphGen(collider, bounds, options = {}, hints = {}, budge
           if (made >= 2) break; if (isWalkNb(a, b)) continue;
           const by = g.py[b];
           if (!hFree(ax, by + 0.3, az, g.px[b], g.pz[b]) || !hFree(ax, by + 1.2, az, g.px[b], g.pz[b])) continue;
+          if (capsuleHits(ax + (g.px[b] - ax) * 0.5, by, az + (g.pz[b] - az) * 0.5)) continue;     // railings / bars the rays slip through
           if (!hFree(ax, ay + 0.9, az, ax + (g.px[b] - ax) * 0.25, az + (g.pz[b] - az) * 0.25)) continue;
           linkA.push(a); linkB.push(b); linkT.push(LINK_JUMP); linkC.push(hd + 2.5 + (by - ay) * 3.5 + (by - ay > 1.1 ? 6 : 0)); made++;
         }
@@ -310,6 +316,7 @@ export function* buildGraphGen(collider, bounds, options = {}, hints = {}, budge
           if (made >= 2) break; if (isWalkNb(a, b)) continue;
           const by = g.py[b], bx = g.px[b], bz = g.pz[b], drop = ay - by;
           if (!hFree(ax, ay + 0.35, az, bx, bz) || !hFree(ax, ay + 1.3, az, bx, bz)) continue;
+          if (capsuleHits((ax + bx) / 2, ay, (az + bz) / 2) || capsuleHits(bx, ay, bz)) continue;   // the body must clear railings/lips on the way off the ledge
           const h = downHit(bx, ay + 0.3, bz, drop + 0.6); if (!h || Math.abs(ay + 0.3 - h.distance - by) > 0.2) continue;
           linkA.push(a); linkB.push(b); linkT.push(LINK_DROP); linkC.push(hd + 0.6 + drop * 0.9 + (drop > 3 ? 4 : 0) + (drop < 1.3 ? 1.5 : 0)); made++;
         }
@@ -396,15 +403,25 @@ function* finalize(g, cfg, S) {
   for (let i = 0; i < N; i++) { let full = true; for (let k = 0; k < 8; k++) if (nb[i * 8 + k] < 0) { full = false; break; } if (!full) { wall[i] = 0; q[qt++] = i; } }
   while (qh < qt) { const u = q[qh++]; const d = wall[u] + 1; if (d > 12) continue; for (let k = 0; k < 8; k += 2) { const v = nb[u * 8 + k]; if (v >= 0 && wall[v] > d) { wall[v] = d; q[qt++] = v; } } }
   g.wall = wall;
+  // ledge nodes: a missing neighbour that is a DROP (lower ground there) rather than a wall -> walking here risks falling off
+  const ledge = new Uint8Array(N), DIRS = DIR;
+  for (let i = 0; i < N; i++) {
+    const c = Math.floor((g.pz[i] - g.oz) / g.cell) * g.W + Math.floor((g.px[i] - g.ox) / g.cell), ci = c % g.W, cj = (c - ci) / g.W;
+    for (let k = 0; k < 8 && !ledge[i]; k += 2) {
+      if (nb[i * 8 + k] >= 0) continue; const ni = ci + DIRS[k][0], nj = cj + DIRS[k][1]; if (ni < 0 || nj < 0 || ni >= g.W || nj >= g.H) continue;
+      const cc = nj * g.W + ni; for (let m = g.colStart[cc]; m < g.colStart[cc + 1]; m++) if (g.py[m] < g.py[i] - cfg.stepUp - 0.05) { ledge[i] = 1; break; }
+    }
+  }
+  g.ledge = ledge;
   S.pause(); yield 0.98; S.resume();
   // edge costs (metres, inflated near walls so paths keep off geometry)
   const nbc = new Float32Array(N * 8);
-  const mult = (w) => (w === 0 ? 1.35 : w === 1 ? 1.12 : w === 2 ? 1.04 : 1);
+  const mult = (w, l) => (l ? 3 : w === 0 ? 1.35 : w === 1 ? 1.12 : w === 2 ? 1.04 : 1);
   let walkEdges = 0;
   for (let i = 0; i < N; i++) for (let k = 0; k < 8; k++) {
     const j = nb[i * 8 + k]; if (j < 0) continue; walkEdges++;
     const dx = g.px[j] - g.px[i], dy = g.py[j] - g.py[i], dz = g.pz[j] - g.pz[i];
-    nbc[i * 8 + k] = Math.sqrt(dx * dx + dy * dy + dz * dz) * 0.5 * (mult(wall[i]) + mult(wall[j]));
+    nbc[i * 8 + k] = Math.sqrt(dx * dx + dy * dy + dz * dz) * 0.5 * (mult(wall[i], ledge[i]) + mult(wall[j], ledge[j]));
   }
   g.nbc = nbc;
   let jumps = 0, drops = 0; for (let i = 0; i < g.ltype.length; i++) { if (g.ltype[i] === LINK_JUMP) jumps++; else drops++; }

@@ -5,7 +5,7 @@ export class Searcher {
   constructor(g) {
     this.g = g; const N = g.N;
     this.gs = new Float32Array(N); this.fs = new Float32Array(N); this.par = new Int32Array(N);
-    this.plink = new Uint8Array(N); this.stamp = new Uint32Array(N); this.closed = new Uint8Array(N);
+    this.plink = new Uint8Array(N); this.ru = new Float32Array(N); this.ll = new Uint8Array(N); this.stamp = new Uint32Array(N); this.closed = new Uint8Array(N);
     this.hpos = new Int32Array(N); this.heap = new Int32Array(N + 1); this.hn = 0; this.gen = 0;
     this.start = -1; this.goal = -1; this.weight = 1.1; this.danger = null; this.dangerW = 0;
     this.gx = 0; this.gy = 0; this.gz = 0; this.expanded = 0; this.done = true; this.found = false;
@@ -22,7 +22,7 @@ export class Searcher {
     this.start = start; this.goal = goal; this.weight = weight; this.danger = danger; this.dangerW = dangerW;
     this.gx = g.px[goal]; this.gy = g.py[goal]; this.gz = g.pz[goal]; this.hn = 0;
     this.alt = g.alt || null; if (this.alt) { const K = this.alt.k; if (!this.gF) { this.gF = new Float32Array(K); this.gB = new Float32Array(K); } for (let l = 0; l < K; l++) { this.gF[l] = this.alt.F[goal * K + l]; this.gB[l] = this.alt.B[goal * K + l]; } } this.expanded = 0; this.done = false; this.found = false;
-    this.stamp[start] = this.gen; this.gs[start] = 0; this.par[start] = -1; this.plink[start] = 0; this.closed[start] = 0;
+    this.stamp[start] = this.gen; this.gs[start] = 0; this.par[start] = -1; this.plink[start] = 0; this.ru[start] = 99; this.ll[start] = 0; this.closed[start] = 0;
     this.fs[start] = weight * this._h(start); this._push(start);
     if (start === goal) { this.done = true; this.found = true; }
   }
@@ -41,24 +41,29 @@ export class Searcher {
     while (this.hn > 0 && exp < maxExp) {
       const u = this._pop(); closed[u] = 1; hpos[u] = -1; exp++;
       if (u === goal) { this.done = true; this.found = true; this.expanded += exp; return true; }
-      const gu = gs[u], base = u * 8;
+      const gu = gs[u], base = u * 8, ru = this.ru, ruu = ru[u], pl = this.ll[u];
       for (let k = 0; k < 8; k++) {
         const v = nb[base + k]; if (v < 0) continue;
         let c = nbc[base + k]; if (danger !== null) c += c * dW * danger[v];
-        this._relax(u, v, gu + c, 0, w, stamp, closed, gs, fs, par, plink, hpos, gen);
+        this._relax(u, v, gu + c, 0, ruu + c, w, stamp, closed, gs, fs, par, plink, hpos, gen);
       }
       for (let p = lstart[u], e = lstart[u + 1]; p < e; p++) {
-        const v = lto[p]; let c = lcost[p]; if (danger !== null) c += c * dW * danger[v];
-        this._relax(u, v, gu + c, ltype[p], w, stamp, closed, gs, fs, par, plink, hpos, gen);
+        const v = lto[p], lt = ltype[p]; let c = lcost[p];
+        // movement rules: a jump/mantle needs stacked mantle (< 2 m run-up after a link) costs +30; a drop right after a
+        // jump (hop over a low obstacle) is heavily discouraged so bots walk around planters/walls when they can
+        if (lt === 1 && pl !== 0 && ruu < 2) c += 30;
+        if (lt === 2 && pl === 1 && ruu < 9) c += 16;
+        if (danger !== null) c += c * dW * danger[v];
+        this._relax(u, v, gu + c, lt, 0, w, stamp, closed, gs, fs, par, plink, hpos, gen);
       }
     }
     this.expanded += exp;
     if (this.hn === 0) { this.done = true; this.found = false; return true; }
     return false;
   }
-  _relax(u, v, ng, lt, w, stamp, closed, gs, fs, par, plink, hpos, gen) {
-    if (stamp[v] !== gen) { stamp[v] = gen; closed[v] = 0; gs[v] = ng; par[v] = u; plink[v] = lt; fs[v] = ng + w * this._h(v); this._push(v); }
-    else if (closed[v] === 0 && ng < gs[v] - 1e-6) { gs[v] = ng; par[v] = u; plink[v] = lt; fs[v] = ng + w * this._h(v); this._up(v); }
+  _relax(u, v, ng, lt, rv, w, stamp, closed, gs, fs, par, plink, hpos, gen) {
+    if (stamp[v] !== gen) { stamp[v] = gen; closed[v] = 0; gs[v] = ng; par[v] = u; plink[v] = lt; this.ru[v] = rv; this.ll[v] = lt === 0 ? this.ll[u] : lt; fs[v] = ng + w * this._h(v); this._push(v); }
+    else if (closed[v] === 0 && ng < gs[v] - 1e-6) { gs[v] = ng; par[v] = u; plink[v] = lt; this.ru[v] = rv; this.ll[v] = lt === 0 ? this.ll[u] : lt; fs[v] = ng + w * this._h(v); this._up(v); }
   }
 }
 

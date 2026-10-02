@@ -86,7 +86,7 @@ export function registerVoice() {
       const kind = KIND[id] || 'neutral', notes = STING[kind];
       let off = 0;
       if (!simple) {
-        notes.forEach((f, i) => { ring(V, { when: i * 0.075, f, ratios: [1, 2, 3], decays: [1, 0.4, 0.2], gains: [1, 0.35, 0.15], d: 0.22, g: 0.14 }); osc(V, { when: i * 0.075, type: 'square', f0: f, d: 0.07, g: 0.035, lp: 3500 }); });
+        notes.forEach((f, i) => { ring(V, { when: i * 0.075, f, ratios: [1, 2, 3], decays: [1, 0.4, 0.2], gains: [1, 0.35, 0.15], d: 0.22, g: 0.14, a: 0.004 }); osc(V, { when: i * 0.075, type: 'square', f0: f, d: 0.07, g: 0.035, lp: 3500 }); });
         off = notes.length * 0.075 + 0.1;
       }
       const dur = speak(V, PHRASES[id], { when: off, f0: id === 'defeat' || kind === 'lose' ? 100 : 114, gain: 1 });

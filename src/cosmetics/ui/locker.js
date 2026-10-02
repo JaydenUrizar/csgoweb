@@ -124,7 +124,7 @@ export function createLocker(ctx, api) {
   }
   function cardHTML(it, i) {
     const eq = cur()[it.cat] === it.id; const set = SET_BY_ID[it.set]; const stars = store.itemStars(it.id);
-    const tag = it.cat === 'suit' && it.material !== 'matte' ? `<span class="hot">${it.material}</span>` : it.cat === 'skin' ? '' : '';
+    const fin = it.cat === 'suit' ? it.material : it.cat === 'skin' ? it.finish : 'matte'; const tag = fin && fin !== 'matte' ? `<span class="hot">${fin}</span>` : '';
     return `<button class="card r-${it.rarity} ${eq ? 'eq' : ''}" data-id="${it.id}" style="--rc:${rc(it.rarity)};--i:${Math.min(i, 30)}" aria-pressed="${eq}"><span class="ic"><img alt="" src="${iconFor(it, 1.5, L.side)}"><span class="glowf"></span></span><i class="bar"></i><span class="tick"></span>${stars ? `<span class="st">&#9733; ${stars}</span>` : ''}${tag}<span class="txt"><span class="nm">${esc(it.name)}</span><span class="sb">${esc(set.name)} &middot; ${RARITY[it.rarity].name}</span></span></button>`;
   }
   function renderGrid() {
@@ -205,14 +205,14 @@ export function createLocker(ctx, api) {
   }
   function hoverItem(id) {
     clearTimeout(L.tLeave); const it = BY_ID[id]; if (!it) return;
-    L.over = { id }; showInfo(it); L.focusId = id;
+    L.over = { id }; showInfo(it); L.focusId = id; if (it.cat === 'skin') L.stage?.setTaggerKind(it.kind);
     syncStage(); applyFocus(); emit('ui:hover', { id: 'locker-card' });
     if (it.cat === 'emote') { clearTimeout(L.tFx); L.tFx = setTimeout(() => L.stage?.playEmote(it.anim), 220); }
     else if (it.cat === 'tagOut') { clearTimeout(L.tFx); L.tFx = setTimeout(() => { if (L.over?.id === id && L.stage?.tagPhase === 'idle') L.stage.playTagOut(it.effect, it.color); }, 380); }
   }
   function leaveItem() {
     clearTimeout(L.tLeave); L.tLeave = setTimeout(() => {
-      clearTimeout(L.tFx); if (!L.over) return; L.over = null; showInfo(null); syncStage(); applyFocus();
+      clearTimeout(L.tFx); if (!L.over) return; L.over = null; showInfo(null); syncStage(); applyFocus(); if (L.cat === 'skin') L.stage?.setTaggerKind(BY_ID[cur().skin].kind);
       if (L.cat === 'emote') { const it = BY_ID[cur().emote]; if (L.stage?.emoting) L.stage.stopEmote(); void it; }
     }, 90);
   }
@@ -221,7 +221,7 @@ export function createLocker(ctx, api) {
   // ================================================================== actions
   function equip(id, { silent = false } = {}) {
     const it = BY_ID[id]; if (!it) return;
-    cur()[it.cat] = id; store.markSeen?.([id]);
+    cur()[it.cat] = id; store.markSeen?.([id]); if (it.cat === 'skin') L.stage?.setTaggerKind(it.kind);
     L.over = null; showInfo(it); syncStage(); refreshEquipped(); renderSides(); renderFoot();
     const el = L.root.querySelector(`.card[data-id="${id}"]`); if (el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
     if (!silent) emit('ui:click', { id: 'locker-equip' });
@@ -230,7 +230,7 @@ export function createLocker(ctx, api) {
   function setCat(cat, { keepFilters = false } = {}) {
     if (cat !== 'sets' && !CATEGORIES.some((c) => c.id === cat)) return;
     L.cat = cat; L.view = null; L.over = null; L.runPinned = false; if (!keepFilters) { L.q = ''; L.rar.clear(); L.setFilter = 'all'; L.sort = 'default'; }
-    showInfo(null); renderTabs(); renderSides(); renderTool(); renderGrid(); syncStage(); applyFocus(); renderCtl();
+    showInfo(null); renderTabs(); renderSides(); renderTool(); renderGrid(); if (cat === 'skin') L.stage?.setTaggerKind(BY_ID[cur().skin].kind); syncStage(); applyFocus(); renderCtl();
     if (cat === 'emote') { clearTimeout(L.tFx); L.tFx = setTimeout(() => L.stage?.playEmote(cur().emote), 450); } else L.stage?.stopEmote();
     emit('ui:click', { id: 'locker-tab' });
   }

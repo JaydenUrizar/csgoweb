@@ -160,8 +160,8 @@ export function buildEnd(ctx, A, data) {
   const winner = d.winner || (scores.ember > scores.tide ? 'ember' : 'tide');
   const my = d.playerTeam || m.playerTeam || ctx.localActor?.team || 'ember';
   const won = d.playerWon ?? (winner === my);
-  const all = [...(teams.ember || []), ...(teams.tide || [])];
-  const mvp = d.mvp || m.mvp || [...all].sort((a, b) => (b.stats?.score || 0) - (a.stats?.score || 0))[0];
+  const all = [...(teams.ember || []), ...(teams.tide || [])].filter(Boolean);
+  const mvpRaw = d.mvp || m.mvp; const mvp = (mvpRaw && typeof mvpRaw === 'object' ? mvpRaw : all.find((a) => a.name === mvpRaw || a.id === mvpRaw)) || [...all].sort((a, b) => (b.stats?.score || 0) - (a.stats?.score || 0))[0];
   const col = (t) => (t === 'ember' ? '255,122,47' : '47,208,255');
   const table = (team) => {
     const list = [...(teams[team] || [])].sort((a, b) => (b.stats?.score || 0) - (a.stats?.score || 0));
@@ -171,7 +171,7 @@ export function buildEnd(ctx, A, data) {
         h('tbody', null, list.map((a) => { const s = a.stats || {}; return h('tr', { class: (a.isPlayer ? 'me ' : '') + (a === mvp ? 'mvp' : '') }, h('td', null, a === mvp ? h('span', { class: 'star', html: '★' }) : null, a.name), h('td', null, s.tags ?? 0), h('td', null, s.outs ?? 0), h('td', null, s.assists ?? 0), h('td', null, Math.round(s.damage ?? 0)), h('td', null, s.score ?? 0)); }))));
   };
   const hist = (d.history || m.history || []).slice(0, 40);
-  const econLog = d.econLog || A.econLog?.() || [];
+  const econLog = Array.isArray(d.econLog) ? d.econLog : (A.econLog?.() || []);
   const best = (key) => [...all].sort((x, y) => (y.stats?.[key] || 0) - (x.stats?.[key] || 0))[0];
   const award = (icon, title, who, val, hot) => who ? h('div', { class: 'fx-aw' + (hot ? ' hot' : ''), style: { '--c': col(who.team) } }, h('div', { class: 'ic', html: icon }), h('div', null, h('small', null, title), h('b', null, who.name), h('em', null, val))) : null;
   const awards = h('div', { class: 'fx-awards' },

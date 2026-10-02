@@ -6,9 +6,10 @@ import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { createActor } from '../../core/actor.js';
 import { LINK_JUMP } from './config.js';
 import { buildTestMap } from './testmap.js';
-import { validatePaths, coverageReport, tacticsBench } from './validate.js';
+import { validatePaths, coverageReport, tacticsBench, holdSpotCheck } from './validate.js';
 
 export function createDebug(ctx, nav, sys) {
   const group = new THREE.Group(); group.name = 'nav-debug'; group.visible = false; ctx.render?.scene?.add(group);
@@ -134,6 +135,29 @@ export function createDebug(ctx, nav, sys) {
     stats: (n = 200) => sys.statsReport(n),
     benchmark: (n = 200) => sys.benchmark(n),
     validate: (pairs = 2000, seed = 1) => validatePaths(sys, { pairs, seed }),
+    /** Walk random paths with the game's own movement sim (ctx.player.simulate) and a bot-like pure-pursuit follower; reports stalls. */
+    simWalk(pairs = 200, seed = 1) {
+      const sim = ctx.player?.simulate; if (!sim || !sys.ready) return { error: 'no player.simulate' };
+      const g = sys.g; let s = (seed * 2654435761) >>> 0; const r = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+      const a = createActor({ name: 'navtest', team: 'ember' }), from = new THREE.Vector3(), to = new THREE.Vector3();
+      const rep = { pairs, arrived: 0, stalled: 0, failed: 0, stallAt: new Map(), sec: 0 };
+      for (let i = 0; i < pairs; i++) {
+        g.nodePos(Math.floor(r() * g.N), from); g.nodePos(Math.floor(r() * g.N), to); const p = sys.path(from, to, { noCache: true }); if (!p) { rep.failed++; continue; }
+        a.pos.copy(from); a.vel.set(0, 0, 0); a.move = null; a.onGround = true;
+        let idx = 0, t = 0, bestD = 1e9, lastProg = 0, stalled = false;
+        while (idx < p.length && t < 40) {
+          const w = p[idx], dx = w.x - a.pos.x, dz = w.z - a.pos.z, d = Math.hypot(dx, dz), last = idx === p.length - 1;
+          if (d < (last ? 0.5 : 0.7) && Math.abs(w.y - a.pos.y) < 1.6) { idx++; bestD = 1e9; lastProg = t; continue; }
+          if (d < bestD - 0.25) { bestD = d; lastProg = t; }
+          if (t - lastProg > 1.5) { stalled = true; const key = [w.x, w.y, w.z].map((v) => Math.round(v * 2) / 2).join(',') + ' f' + p.flags[idx]; rep.stallAt.set(key, (rep.stallAt.get(key) || 0) + 1); if (!rep.sample) rep.sample = { actor: a.pos.toArray().map((v) => +v.toFixed(2)), idx, path: p.map((q, k) => [q.x, q.y, q.z].map((v) => +v.toFixed(2)).concat(p.flags[k])), from: from.toArray(), to: to.toArray() }; break; }
+          const yaw = Math.atan2(-dx, -dz), jump = p.flags[idx] === 1 && d < 2.2;
+          sim(a, { forward: 1, right: 0, jump, crouch: false, walk: false, yaw, pitch: 0 }, 1 / 60); t += 1 / 60;
+        }
+        rep.sec += t; if (stalled) rep.stalled++; else if (idx >= p.length) rep.arrived++; else rep.failed++;
+      }
+      rep.stallRate = rep.stalled / pairs; rep.top = [...rep.stallAt.entries()].sort((x, y) => y[1] - x[1]).slice(0, 8); delete rep.stallAt; return rep;
+    },
+    holdCheck: (n = 60) => holdSpotCheck(sys, n),
     coverage: (n = 3000) => coverageReport(sys, n),
     tacticsBench: (n = 150) => { for (let i = 0; i < 600 && sys.bg; i++) sys.step(); return tacticsBench(sys, n); },
     /** camera: 'top' | 'iso' | null (null leaves the camera to the player). Hides roofs/skyline/viewmodel while active. */

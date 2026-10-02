@@ -1,6 +1,6 @@
 // The Beacon objective: carrier, pickup/drop, arming (hold E), fuse, disarming, win conditions and edge cases.
 import * as THREE from 'three';
-import { MATCH } from '../core/config.js';
+import { TIMING as MATCH } from './timing.js';
 import { ECON } from './economy.js';
 
 const FALLBACK_SITES = {
@@ -37,20 +37,25 @@ export function installBeacon(env) {
     }
     return null;
   }
-  function snap(p) {
-    const r = safe('map.raycast', () => { _o.set(p.x, p.y + 0.6, p.z); return ctx.map?.raycast?.(_o, _d, 4); });
+  /** Drop onto the floor below with an unbounded ray; if nothing is below (void), fall back to the carrier's last grounded spot. */
+  function snap(p, fallback) {
+    if (!ctx.map?.raycast) return;
+    const r = safe('map.raycast', () => { _o.set(p.x, p.y + 0.6, p.z); return ctx.map.raycast(_o, _d, 400); });
     if (r?.point) p.y = r.point.y;
+    else if (fallback) p.copy(fallback);
   }
+  const lastGround = new THREE.Vector3();
   const standing = (a) => a.onGround !== false && Math.hypot(a.vel.x, a.vel.z) <= TUNE.plantSpeedMax;
   const horiz = (a, p) => Math.hypot(a.pos.x - p.x, a.pos.z - p.z);
 
   function reset() {
+    lastGround.set(0, 0, 0);
     B.state = 'carried'; B.site = null; B.carrier = null; B.progress = 0; B.fuseLeft = 0; B.actor = null; B.planter = null; B.disarmer = null;
     B.duration = 0; B.kit = false; B.t = 0; B.beepT = 0; B.beeps = 0; B.interval = 1; B.noPickup = null; B.warn = 0; B.timeWarn = 0; B.pos.set(0, 0, 0);
   }
 
   function giveTo(a, initial = false) {
-    B.carrier = a; B.state = 'carried'; a.hasBeacon = true; B.pos.copy(a.pos);
+    B.carrier = a; B.state = 'carried'; a.hasBeacon = true; B.pos.copy(a.pos); lastGround.copy(a.pos);
     safe('combat.give', () => C()?.give?.(a, 'beacon'));
     emit('beacon:pickup', { actor: a, site: B.site, initial });
     if (!initial) announce('beacon_picked_up', { actor: a, teams: ['ember'] });
@@ -78,7 +83,7 @@ export function installBeacon(env) {
     if (B.state === 'arming') cancelArm('drop');
     if (B.state !== 'carried' || !B.carrier || (a && B.carrier !== a)) return false;
     const c = B.carrier;
-    B.state = 'dropped'; B.carrier = null; c.hasBeacon = false; B.pos.copy(c.pos); snap(B.pos);
+    B.state = 'dropped'; B.carrier = null; c.hasBeacon = false; B.pos.copy(c.pos); snap(B.pos, lastGround);
     if (why === 'manual') { B.noPickup = { actor: c, until: M.clock + 1.2 }; safe('combat.remove', () => C()?.remove?.(c, 'beacon')); }
     emit('beacon:drop', { actor: c, site: null, pos: B.pos, why });
     announce('beacon_dropped', { actor: c, teams: ['ember'] });
@@ -92,7 +97,7 @@ export function installBeacon(env) {
 
   function finishArm(c) {
     const site = B.site;
-    B.state = 'armed'; B.pos.copy(c.pos); snap(B.pos); B.planter = c; B.carrier = null; c.hasBeacon = false;
+    B.state = 'armed'; B.pos.copy(c.pos); snap(B.pos, lastGround); B.planter = c; B.carrier = null; c.hasBeacon = false;
     B.progress = 0; B.t = 0; B.actor = null; B.fuseLeft = B.fuse; B.beeps = 1; B.warn = 0; B.interval = beepInterval(B.fuse, B.fuse); B.beepT = B.interval;
     safe('combat.remove', () => C()?.remove?.(c, 'beacon'));
     M.armedThisRound = true; ms(c).round.objective++; ms(c).total.plants++;
@@ -170,11 +175,11 @@ export function installBeacon(env) {
 
   function tickLive(dt) {
     if ((B.state === 'carried' || B.state === 'arming') && (!B.carrier || !B.carrier.alive)) { if (B.carrier) drop(B.carrier, 'tagged'); }
-    if (B.state === 'carried' || B.state === 'arming') { if (B.carrier) B.pos.copy(B.carrier.pos); }
+    if (B.state === 'carried' || B.state === 'arming') { if (B.carrier) { B.pos.copy(B.carrier.pos); if (B.carrier.onGround !== false) lastGround.copy(B.carrier.pos); } }
     // human manual drop (G) while the beacon is the equipped item
     const me = ctx.localActor;
     if (B.state === 'carried' && B.carrier === me && ctx.input?.pressed?.('drop') && ctx.combat?.equipped?.(me)?.def?.id === 'beacon') drop(me, 'manual');
-    if (B.state === 'dropped') { for (const a of M.teams.ember) if (a.alive && horiz(a, B.pos) <= TUNE.pickupRange && Math.abs(a.pos.y - B.pos.y) <= 1.6 && pickup(a)) break; }
+    if (B.state === 'dropped') { for (const a of M.teams.ember) if (a.alive && horiz(a, B.pos) <= TUNE.pickupRange && Math.abs(a.pos.y - B.pos.y) <= 2.2 && pickup(a)) break; }
     tickArming(dt);
     if (M.phase !== 'live') return;
     const tl = M.phaseDuration - M.phaseTime;

@@ -8,6 +8,8 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createRig, TEAM_COL, makeSkinnedTagger } from './rig.js';
 import { createRealRig } from './real.js';
 import { ParticleSystem, RibbonTrail, TagOutFx, SHAPE } from './fx.js';
+import { BY_ID } from '../catalog.js';
+import { createNameplate } from './nameplate.js';
 import { backdropTexture, radialTexture, mix } from './textures.js';
 
 const FOCUS = {
@@ -15,8 +17,8 @@ const FOCUS = {
   head:   { y: 1.45, dist: 2.1, fov: 30, cy: 1.55, yaw: 0 },
   back:   { y: 0.9, dist: 4.5, fov: 30, cy: 1.1, yaw: Math.PI },
   tagger: { y: 1.15, dist: 3.3, fov: 30, cy: 1.2, yaw: 0, gun: true },
-  charm:  { y: 0.95, dist: 2.3, fov: 30, cy: 1.05, yaw: 1.1 },
-  name:   { y: 1.75, dist: 3.0, fov: 30, cy: 1.85, yaw: 0 },
+  charm:  { y: 0.95, dist: 1.7, fov: 30, cy: 1.0, yaw: 1.3 },
+  name:   { y: 1.62, dist: 2.7, fov: 30, cy: 1.7, yaw: 0 },
   wide:   { y: 1.0, dist: 5.0, fov: 30, cy: 1.1, yaw: 0.45 },
   run:    { y: 0.8, dist: 6.0, fov: 30, cy: 1.15, yaw: 1.25 },
 };
@@ -24,21 +26,21 @@ const FOCUS = {
 export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAYER', fallbackOnly = false } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: preserve });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.8;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene(); scene.background = backdropTexture('ember');
   const pmrem = new THREE.PMREMGenerator(renderer); const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04); scene.environment = envRT.texture; scene.environmentIntensity = 0.3;
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
 
   // ---- lights
-  const hemi = new THREE.HemisphereLight(0xbfd4ff, 0x2a1a10, 0.25); scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xfff1dc, 1.5); key.position.set(-2.4, 4.2, 3.4); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
+  const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x2a2a30, 0.3); scene.add(hemi);
+  const key = new THREE.DirectionalLight(0xfff1dc, 1.15); key.position.set(-2.4, 4.2, 3.4); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
   key.shadow.camera.left = -1.6; key.shadow.camera.right = 1.6; key.shadow.camera.top = 2.4; key.shadow.camera.bottom = -0.5; key.shadow.camera.near = 1; key.shadow.camera.far = 12; key.shadow.bias = -0.0006; key.shadow.normalBias = 0.02;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0x9fc3ff, 0.35); fill.position.set(3, 1.6, 2.5); scene.add(fill);
-  const rimA = new THREE.DirectionalLight(0xff7a2f, 1.5); rimA.position.set(-3, 2.2, -3.2); scene.add(rimA);
-  const rimB = new THREE.DirectionalLight(0xff7a2f, 1.3); rimB.position.set(3, 2.6, -3); scene.add(rimB);
-  const under = new THREE.PointLight(0xff7a2f, 0.5, 3.5, 2); under.position.set(0, 0.1, 1.0); scene.add(under);
+  const fill = new THREE.DirectionalLight(0xdfe8ff, 0.4); fill.position.set(3, 1.6, 2.5); scene.add(fill);
+  const rimA = new THREE.DirectionalLight(0xff7a2f, 0.55); rimA.position.set(-3, 2.2, -3.2); scene.add(rimA);
+  const rimB = new THREE.DirectionalLight(0xff7a2f, 0.5); rimB.position.set(3, 2.6, -3); scene.add(rimB);
+  const under = new THREE.PointLight(0xff7a2f, 0.15, 3.5, 2); under.position.set(0, 0.1, 1.0); scene.add(under);
 
   // ---- platform
   const plat = new THREE.Group(); scene.add(plat);
@@ -52,7 +54,7 @@ export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAY
   for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2; const m = new THREE.Mesh(new THREE.BoxGeometry(i % 4 ? 0.012 : 0.02, 0.004, i % 4 ? 0.06 : 0.11), tickMat); m.position.set(Math.cos(a) * 1.05, 0.004, Math.sin(a) * 1.05); m.rotation.y = -a + Math.PI / 2; ticks.add(m); }
   const shadowCatch = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.ShadowMaterial({ opacity: 0.55 })); shadowCatch.rotation.x = -Math.PI / 2; shadowCatch.position.y = 0.006; shadowCatch.receiveShadow = true; scene.add(shadowCatch);
   const glowTex = radialTexture('rgba(255,255,255,0.9)', 'rgba(255,255,255,0)', 256);
-  const floorGlow = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 4.6), new THREE.MeshBasicMaterial({ map: glowTex, color: 0xff7a2f, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); floorGlow.rotation.x = -Math.PI / 2; floorGlow.position.y = 0.001; scene.add(floorGlow);
+  const floorGlow = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 4.6), new THREE.MeshBasicMaterial({ map: glowTex, color: 0xff7a2f, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); floorGlow.rotation.x = -Math.PI / 2; floorGlow.position.y = 0.001; scene.add(floorGlow);
   // light shafts behind
   const shaftTex = (() => { const cv = document.createElement('canvas'); cv.width = 64; cv.height = 256; const c = cv.getContext('2d'); const g = c.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.35, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, 64, 256); const g2 = c.createLinearGradient(0, 0, 64, 0); g2.addColorStop(0, 'rgba(0,0,0,1)'); g2.addColorStop(0.5, 'rgba(0,0,0,0)'); g2.addColorStop(1, 'rgba(0,0,0,1)'); c.globalCompositeOperation = 'destination-out'; c.fillStyle = g2; c.fillRect(0, 0, 64, 256); const t = new THREE.CanvasTexture(cv); return t; })();
   const shafts = [];
@@ -65,11 +67,12 @@ export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAY
   scene.add(glowFx.points, solidFx.points);
   const ribbons = [new RibbonTrail(46), new RibbonTrail(46)]; for (const r of ribbons) scene.add(r.mesh);
   const tagFx = new TagOutFx(scene, glowFx, solidFx);
+  const np = createNameplate(); if (rig.isReal) scene.add(np.sprite);
   const inspect = { g: new THREE.Group(), key: '', obj: null, a: 0 }; inspect.g.position.y = 1.15; inspect.g.visible = false; scene.add(inspect.g);
   function syncInspect() {
-    const sk = S.spec?.taggerSkin, kind = rig.tagger?.kind ?? 'arc'; if (!sk) return; const k = JSON.stringify(sk) + kind; if (k === inspect.key) return; inspect.key = k;
+    const sk = S.spec?.taggerSkin, kind = rig.tagger?.kind ?? 'arc'; if (!sk) return; const meta = BY_ID[S.spec._meta?.ids?.skin] ?? {}; const k = JSON.stringify(sk) + kind + (meta.decal ?? '') + (meta.finish ?? ''); if (k === inspect.key) return; inspect.key = k;
     if (inspect.obj) { inspect.g.remove(inspect.obj); inspect.obj.traverse((o) => { if (o.isMesh && o.material?.dispose) o.material.dispose(); }); }
-    inspect.obj = makeSkinnedTagger(kind, sk); const len = { pip: 0.3, zip: 0.62, arc: 0.95, lance: 1.1 }[kind] ?? 0.9; inspect.obj.position.z = -len * 0.5 + 0.1; inspect.g.add(inspect.obj);
+    inspect.obj = makeSkinnedTagger(kind, sk, meta); const len = { pip: 0.3, zip: 0.62, arc: 0.95, lance: 1.1 }[kind] ?? 0.9; inspect.obj.position.z = -len * 0.5 + 0.1; inspect.g.add(inspect.obj);
     const sc = 1.45 / Math.max(0.5, len); inspect.g.scale.setScalar(Math.min(2.4, sc));
   }
 
@@ -79,7 +82,7 @@ export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAY
     try {
       const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples: 4 });
       composer = new EffectComposer(renderer, rt); composer.addPass(new RenderPass(scene, camera));
-      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.35, 0.5, 1.0); composer.addPass(bloom); composer.addPass(new OutputPass());
+      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.22, 0.5, 1.2); composer.addPass(bloom); composer.addPass(new OutputPass());
     } catch { composer = null; }
   }
 
@@ -104,11 +107,11 @@ export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAY
     get team() { return S.team; },
     setSpec(spec, team = S.team, nm = S.name) {
       if (team !== S.team) setTeamTheme(team); S.name = nm; S.spec = spec;
-      rig.setSpec(spec, { team, name: nm });
+      rig.setSpec(spec, { team, name: nm }); np.draw(spec.nameplate, nm, team);
       ribbons[0].setColors(spec.trail.color, spec.trail.color2); ribbons[1].setColors(spec.trail.color, spec.trail.color2);
     },
     setFocus(f) {
-      const F = FOCUS[f] ?? FOCUS.body; S.focus = f; S.target.y = F.y; S.target.dist = F.dist; S.target.cy = F.cy; S.target.fov = F.fov; S.yawGoal = F.yaw; S.gunFocus = !!F.gun;
+      const F = FOCUS[f] ?? FOCUS.body; S.focus = f; S.zoom = 1; S.target.y = F.y; S.target.dist = F.dist; S.target.cy = F.cy; S.target.fov = F.fov; S.yawGoal = F.yaw; S.gunFocus = !!F.gun;
       rig.inspectTarget = F.gun ? 1 : 0;
     },
     setTaggerKind(k) { rig.setTaggerKind?.(k); },
@@ -164,6 +167,7 @@ export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAY
       void el;
       // tag-out timeline
       rig.update(dt);
+      if (rig.isReal) { np.sprite.visible = S.focus === 'name'; if (np.sprite.visible) { rig.headWorld(_v); np.sprite.position.set(_v.x, _v.y + 0.38, _v.z); } }
       const insp = S.focus === 'tagger'; if (insp) syncInspect(); inspect.g.visible = insp && !!inspect.obj; rig.root.visible = !insp; if (insp) { inspect.a += dt; inspect.g.rotation.set(0.12 * Math.sin(S.time * 0.8), S.yaw + Math.PI / 2 * 0 - 1.2, 0.05); inspect.g.position.y = 1.15 + Math.sin(S.time * 1.3) * 0.02; }
       if (S.tagPhase === 'freeze') {
         S.tagT += dt; rig.body.position.y += Math.sin(S.tagT * 40) * 0.002;
@@ -184,8 +188,8 @@ export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAY
       glowFx.update(dt); solidFx.update(dt); glowFx.tintPass(); solidFx.tintPass();
       // decor
       ticks.rotation.y += dt * 0.08; ring.material.color.setHex(TEAM_COL[S.team]).multiplyScalar(2.0 + 0.4 * Math.sin(S.time * 1.7));
-      floorGlow.material.opacity = 0.5 + 0.08 * Math.sin(S.time * 1.7);
-      if (bloom) { bloom.strength += ((tagFlash > 0 ? 1.1 : 0.35) - bloom.strength) * Math.min(1, dt * 8); }
+      floorGlow.material.opacity = 0.32 + 0.05 * Math.sin(S.time * 1.7);
+      if (bloom) { bloom.strength += ((tagFlash > 0 ? 1.0 : 0.22) - bloom.strength) * Math.min(1, dt * 8); }
       tagFlash = Math.max(0, tagFlash - dt * 3);
     },
     render() {

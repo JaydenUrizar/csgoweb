@@ -22,17 +22,19 @@ export function slide(V, when, dur, { f0 = 600, f1 = 1800, g = 0.2, q = 1.3 } = 
 function gun(V, P) {
   // density: all layers feed a soft saturator so the shot is loud (high RMS vs peak) instead of a lone click spike
   const out0 = V.out, pre = V.ac.createGain(), sh = V.ac.createWaveShaper(), post = V.ac.createGain();
-  sh.curve = satCurve(V.ac, 0.2); sh.oversample = '2x'; pre.gain.value = 1.0; post.gain.value = 0.62; pre.connect(sh); sh.connect(post); post.connect(out0); V.out = pre;
+  sh.curve = satCurve(V.ac, P.sat ?? 0.28); sh.oversample = '2x'; pre.gain.value = 1.0; post.gain.value = 0.62; pre.connect(sh); sh.connect(post); post.connect(out0); V.out = pre;
   const { r, fp } = V, o = V.o, rr = (o.rr | 0) & 3, pit = (o.pitch || 1) * RR[rr], dist = o.dist || 0;
   const J = (x, p = 0.07) => x * (1 + (r() * 2 - 1) * p);
   const gk = fp ? 1 : 0.85, far = Math.min(1, dist / 60);
-  const tailK = (fp ? 1 : 1.6 + far * 1.4) * 1.0, tailD = fp ? 1 : 1.5 + far, BK = 0.38, SK = 0.22;
+  const tailK = (fp ? 1 : 1.6 + far * 1.4) * 1.0, tailD = fp ? 1 : 1.5 + far, BK = 0.38 * (P.bodyK ?? 1), SK = 0.22 * (P.bodyK ?? 1);
   const c = P.crack, sn = P.snap || {};
   // 1: transient click + broadband snap (1-9 kHz): the 'crack' that makes a shot read as loud and bright
   click(V, { g: (P.click ?? 0.6) * gk * 0.55, hp: J(P.clickHp ?? 2600), d: 0.003 });
-  noise(V, { a: 0.0002, hold: 0.004 + (sn.d ?? c.d) * 0.25, d: (sn.d ?? c.d * 0.9) * (fp ? 2.2 : 2.4), g: (sn.g ?? c.g * 1.1) * gk, hp: J(sn.hp ?? 900, 0.1), lp: (sn.lp ?? 11000) * (fp ? 1 : 0.62 - far * 0.2), sat: 0.65 });
-  noise(V, { a: 0.0003, hold: 0.003 + c.d * 0.2, d: c.d * (fp ? 3 : 3.4), g: c.g * gk * 1.1, bp: J(c.f * RRC[rr], 0.07), q: c.q ?? 0.5, hp: 400, lp: (c.lp ?? 9000) * (fp ? 1 : 0.55), sat: (c.sat ?? 0.3) + 0.2 });
-  if (fp || far < 0.5) noise(V, { a: 0.0002, d: 0.018 + V.r() * 0.01, g: 0.32 * gk, hp: J(5600, 0.1), q: 1 });                   // air / sizzle
+  noise(V, { a: 0.0002, hold: 0.004 + (sn.d ?? c.d) * 0.25, d: (sn.d ?? c.d * 0.9) * (fp ? 2.2 : 2.4), g: (sn.g ?? c.g * 1.1) * gk, hp: J(sn.hp ?? 900, 0.1), lp: (sn.lp ?? 11000) * (fp ? 1 : 0.9 - far * 0.2), sat: 0.65 });
+  noise(V, { a: 0.0003, hold: 0.003 + c.d * 0.2, d: c.d * (fp ? 3 : 3.4), g: c.g * gk * 1.1, bp: J(c.f * RRC[rr], 0.07), q: c.q ?? 0.5, hp: 400, lp: (c.lp ?? 9000) * (fp ? 1 : 0.85), sat: (c.sat ?? 0.3) + 0.2 });
+  noise(V, { a: 0.0002, d: 0.018 + V.r() * 0.01, g: 0.32 * gk, hp: J(5600, 0.1), q: 1 });                   // air / sizzle
+  // sustained 'chest' layer (30-90 ms): lowers crest factor so pistols/SMGs read as shots, not clicks
+  noise(V, { kind: 'pink', a: 0.002, hold: 0.012 + c.d * 0.5, d: 0.07 + c.d * 2.5, g: c.g * gk * (P.chest ?? 0.55), bp: J(P.chestF ?? 900, 0.1), q: 0.55, sat: 0.4 });
   const b = P.body;
   osc(V, { f0: J(b.f0, 0.03) * pit, f1: b.f1 * pit, pt: b.pt, d: b.d * (fp ? 1 : 0.9), g: b.g * BK * (fp ? 1 : 0.8), sat: b.sat ?? 0.15, type: b.type ?? 'sine' });
   if (P.body2) osc(V, { f0: P.body2.f0 * pit, f1: P.body2.f1 * pit, pt: P.body2.pt, d: P.body2.d, g: P.body2.g * 0.7 * gk, type: P.body2.type ?? 'triangle', sat: 0.3 });
@@ -47,35 +49,35 @@ function gun(V, P) {
 
 // ---------------- per-tagger fire parameters ----------------
 const FIRE = {
-  pip: { snap: { hp: 1000, lp: 10000, g: 1.4, d: 0.022 }, click: 0.55, crack: { f: 3300, d: 0.02, g: 0.5, q: 0.7, lp: 9000 }, body: { f0: 250, f1: 92, pt: 0.02, d: 0.14, g: 1.0 }, zap: { f0: 2000, f1: 520, pt: 0.03, d: 0.07, g: 0.2 },
-    tail: { hi: 4200, lo: 800, d: 0.28, g: 0.16 }, mech: { t: 0.05, f: 2200, g: 0.11, metal: 0.3, body: 260 } },
-  twin: { snap: { hp: 2200, lp: 12000, d: 0.012 }, click: 0.6, clickHp: 3500, crack: { f: 4300, d: 0.013, g: 0.5, q: 0.7, lp: 11000 }, body: { f0: 360, f1: 150, pt: 0.012, d: 0.075, g: 0.7 }, zap: { type: 'square', f0: 3000, f1: 1000, pt: 0.02, d: 0.05, g: 0.16, lp: 6000 },
-    tail: { hi: 5500, lo: 1200, d: 0.16, g: 0.13 }, mech: { t: 0.04, f: 3000, g: 0.08, metal: 0.4, body: 320 } },
+  pip: { bodyK: 2.2, chest: 1.0, chestF: 800, sat: 0.4, snap: { hp: 1000, lp: 10000, g: 1.4, d: 0.022 }, click: 0.55, crack: { f: 3300, d: 0.02, g: 0.5, q: 0.7, lp: 9000 }, body: { f0: 250, f1: 92, pt: 0.02, d: 0.14, g: 1.0 }, zap: { f0: 2000, f1: 520, pt: 0.03, d: 0.07, g: 0.2 },
+    tail: { hi: 4200, lo: 700, d: 0.36, g: 0.24 }, mech: { t: 0.05, f: 2200, g: 0.11, metal: 0.3, body: 260 } },
+  twin: { bodyK: 2.5, chest: 0.9, chestF: 1300, sat: 0.38, snap: { hp: 1400, lp: 10000, d: 0.014 }, click: 0.6, clickHp: 3500, crack: { f: 4300, d: 0.013, g: 0.5, q: 0.7, lp: 11000 }, body: { f0: 360, f1: 150, pt: 0.012, d: 0.075, g: 0.7 }, zap: { type: 'square', f0: 3000, f1: 1000, pt: 0.02, d: 0.05, g: 0.16, lp: 6000 },
+    tail: { hi: 5000, lo: 900, d: 0.3, g: 0.2 }, mech: { t: 0.04, f: 3000, g: 0.08, metal: 0.4, body: 320 } },
   judge: { snap: { hp: 300, lp: 6500, d: 0.05, g: 1.1 }, click: 0.7, clickHp: 1800, crack: { f: 1100, d: 0.055, g: 0.85, q: 0.5, sat: 0.55, hp: 250 }, body: { f0: 165, f1: 40, pt: 0.055, d: 0.55, g: 1.9, sat: 0.35 }, body2: { f0: 420, f1: 110, pt: 0.03, d: 0.16, g: 0.5 },
     sub: { f: 46, d: 0.55, g: 0.7 }, zap: { f0: 1500, f1: 300, pt: 0.05, d: 0.1, g: 0.18 },
     tail: { hi: 3200, lo: 260, d: 1.0, g: 0.36 }, mech: { t: 0.1, f: 1500, g: 0.2, metal: 0.8, body: 130 } },
-  zip: { snap: { hp: 1500, lp: 11000, d: 0.01 }, click: 0.5, clickHp: 3800, crack: { f: 5200, d: 0.01, g: 0.42, q: 0.8, hp: 900, lp: 11000 }, body: { f0: 430, f1: 210, pt: 0.008, d: 0.05, g: 0.5 }, zap: { f0: 3800, f1: 1500, pt: 0.01, d: 0.04, g: 0.14, lp: 7000 },
-    tail: { hi: 5000, lo: 1400, d: 0.1, g: 0.1, hp: 1200 } },
-  hum: { snap: { hp: 1500, lp: 11000, d: 0.012 }, click: 0.55, clickHp: 3000, crack: { f: 3500, d: 0.015, g: 0.5, q: 0.8, hp: 700 }, body: { f0: 310, f1: 130, pt: 0.014, d: 0.08, g: 0.72 }, zap: { f0: 190, f1: 150, pt: 0.05, d: 0.09, g: 0.22, type: 'sawtooth', lp: 1800 },
-    tail: { hi: 4200, lo: 900, d: 0.17, g: 0.13, hp: 200 } },
-  arc: { snap: { hp: 800, lp: 10000, d: 0.03, g: 1.0 }, click: 0.7, clickHp: 2200, crack: { f: 2700, d: 0.032, g: 0.85, q: 0.6, sat: 0.6, hp: 400 }, body: { f0: 210, f1: 66, pt: 0.028, d: 0.22, g: 0.98, sat: 0.3 }, body2: { f0: 520, f1: 180, pt: 0.02, d: 0.09, g: 0.4 },
+  zip: { bodyK: 3.0, chest: 0.9, chestF: 1100, sat: 0.38, snap: { hp: 1000, lp: 9000, d: 0.016 }, click: 0.5, clickHp: 3800, crack: { f: 5200, d: 0.01, g: 0.42, q: 0.8, hp: 900, lp: 11000 }, body: { f0: 430, f1: 210, pt: 0.008, d: 0.05, g: 0.5 }, zap: { f0: 3800, f1: 1500, pt: 0.01, d: 0.04, g: 0.14, lp: 7000 },
+    tail: { hi: 4500, lo: 900, d: 0.24, g: 0.2, hp: 500 } },
+  hum: { bodyK: 2.4, chest: 0.8, chestF: 1000, sat: 0.36, snap: { hp: 1000, lp: 10000, d: 0.014 }, click: 0.55, clickHp: 3000, crack: { f: 3500, d: 0.015, g: 0.5, q: 0.8, hp: 700 }, body: { f0: 310, f1: 130, pt: 0.014, d: 0.08, g: 0.72 }, zap: { f0: 190, f1: 150, pt: 0.05, d: 0.09, g: 0.22, type: 'sawtooth', lp: 1800 },
+    tail: { hi: 4200, lo: 700, d: 0.3, g: 0.2, hp: 150 } },
+  arc: { bodyK: 1.3, snap: { hp: 800, lp: 10000, d: 0.03, g: 1.0 }, click: 0.7, clickHp: 2200, crack: { f: 2700, d: 0.032, g: 0.85, q: 0.6, sat: 0.6, hp: 400 }, body: { f0: 210, f1: 66, pt: 0.028, d: 0.22, g: 0.98, sat: 0.3 }, body2: { f0: 520, f1: 180, pt: 0.02, d: 0.09, g: 0.4 },
     zap: { f0: 2400, f1: 380, pt: 0.05, d: 0.13, g: 0.26, lp: 6500 }, sub: { f: 60, d: 0.2, g: 0.35 },
     tail: { hi: 3800, lo: 400, d: 0.55, g: 0.3 }, mech: { t: 0.06, f: 1900, g: 0.15, metal: 0.6, body: 190 },
     extra(V, { J, gk }) { for (const [t, f] of [[0.006, 5200], [0.018, 6800], [0.034, 4300]]) noise(V, { when: t + V.r() * 0.004, a: 0.0002, d: 0.008 + V.r() * 0.008, g: 0.3 * gk, hp: J(f), q: 1 }); } },
-  rail: { snap: { hp: 1300, lp: 12000, d: 0.02 }, click: 0.5, clickHp: 3000, crack: { f: 3000, d: 0.022, g: 0.6, q: 0.7, hp: 600, sat: 0.15 }, body: { f0: 265, f1: 112, pt: 0.03, d: 0.15, g: 0.82 },
+  rail: { bodyK: 1.6, snap: { hp: 1300, lp: 12000, d: 0.02 }, click: 0.5, clickHp: 3000, crack: { f: 3000, d: 0.022, g: 0.6, q: 0.7, hp: 600, sat: 0.15 }, body: { f0: 265, f1: 112, pt: 0.03, d: 0.15, g: 0.82 },
     zap: { type: 'sine', f0: 1200, f1: 3400, pt: 0.05, d: 0.09, g: 0.16, lp: 8000 }, tail: { hi: 3600, lo: 600, d: 0.34, g: 0.2, hp: 150 },
     mech: { t: 0.055, f: 2500, g: 0.09, metal: 0.4, body: 220 } },
-  halo: { snap: { hp: 1000, lp: 9000, d: 0.02, g: 0.6 }, click: 0.4, clickHp: 2500, crack: { f: 2100, d: 0.024, g: 0.4, q: 0.6, hp: 500, sat: 0.1 }, body: { f0: 185, f1: 88, pt: 0.03, d: 0.13, g: 0.72 },
+  halo: { bodyK: 1.3, snap: { hp: 1000, lp: 9000, d: 0.02, g: 0.6 }, click: 0.4, clickHp: 2500, crack: { f: 2100, d: 0.024, g: 0.4, q: 0.6, hp: 500, sat: 0.1 }, body: { f0: 185, f1: 88, pt: 0.03, d: 0.13, g: 0.72 },
     zap: { type: 'sine', f0: 3400, f1: 900, pt: 0.06, d: 0.12, g: 0.15, lp: 8000 }, tail: { hi: 5200, lo: 700, d: 0.55, g: 0.2, hp: 200 },
     ring: { f: 880, ratios: [1, 2.76, 5.4, 8.9], decays: [1, 0.7, 0.45, 0.3], gains: [1, 0.55, 0.3, 0.16], d: 0.8, g: 0.05 } },
   lance: { snap: { hp: 3200, lp: 15000, d: 0.04, g: 1.4 }, click: 0.8, clickHp: 1500, crack: { f: 1500, d: 0.085, g: 1.0, q: 0.45, sat: 0.7, hp: 150 }, body: { f0: 115, f1: 27, pt: 0.09, d: 0.8, g: 0.55, sat: 0.35 }, body2: { f0: 380, f1: 80, pt: 0.05, d: 0.25, g: 0.55 },
     sub: { f: 34, d: 1.0, g: 0.8 }, zap: { f0: 5200, f1: 280, pt: 0.14, d: 0.25, g: 0.2, lp: 9000 },
     tail: { hi: 2600, lo: 170, d: 1.7, g: 0.5, hp: 50 },
     extra(V) { noise(V, { a: 0.0001, hold: 0.006, d: 0.06, g: 0.8, hp: 5500 }); noise(V, { when: 0.03, kind: 'pink', a: 0.01, d: 0.9, g: 0.25, bp: 2500, q: 0.4, sweep: [700, 0.9] }); } },
-  scatter: { snap: { hp: 600, lp: 8000, d: 0.06, g: 1.0 }, click: 0.75, clickHp: 1800, crack: { f: 1900, d: 0.065, g: 0.95, q: 0.4, sat: 0.6, hp: 200 }, body: { f0: 175, f1: 52, pt: 0.05, d: 0.32, g: 0.95, sat: 0.3 }, body2: { f0: 500, f1: 130, pt: 0.03, d: 0.14, g: 0.4 },
+  scatter: { bodyK: 1.5, snap: { hp: 600, lp: 8000, d: 0.06, g: 1.0 }, click: 0.75, clickHp: 1800, crack: { f: 1900, d: 0.065, g: 0.95, q: 0.4, sat: 0.6, hp: 200 }, body: { f0: 175, f1: 52, pt: 0.05, d: 0.32, g: 0.95, sat: 0.3 }, body2: { f0: 500, f1: 130, pt: 0.03, d: 0.14, g: 0.4 },
     sub: { f: 44, d: 0.32, g: 0.45 }, tail: { hi: 3500, lo: 300, d: 0.85, g: 0.38, hp: 80 },
     extra(V, { J, gk }) { for (let i = 0; i < 9; i++) noise(V, { when: 0.008 + V.r() * 0.07, a: 0.0002, d: 0.006 + V.r() * 0.01, g: (0.18 + V.r() * 0.15) * gk, hp: J(4200, 0.3), q: 1 }); } },
-  storm: { snap: { hp: 700, lp: 8500, d: 0.03, g: 0.9 }, click: 0.7, clickHp: 2000, crack: { f: 2200, d: 0.028, g: 0.75, q: 0.55, sat: 0.55, hp: 250 }, body: { f0: 135, f1: 54, pt: 0.02, d: 0.17, g: 1.0, sat: 0.3 }, body2: { f0: 300, f1: 100, pt: 0.02, d: 0.1, g: 0.4 },
+  storm: { bodyK: 1.5, snap: { hp: 700, lp: 8500, d: 0.03, g: 0.9 }, click: 0.7, clickHp: 2000, crack: { f: 2200, d: 0.028, g: 0.75, q: 0.55, sat: 0.55, hp: 250 }, body: { f0: 135, f1: 54, pt: 0.02, d: 0.17, g: 1.0, sat: 0.3 }, body2: { f0: 300, f1: 100, pt: 0.02, d: 0.1, g: 0.4 },
     sub: { f: 58, d: 0.2, g: 0.6 }, zap: { f0: 1400, f1: 300, pt: 0.03, d: 0.07, g: 0.1 },
     tail: { hi: 2800, lo: 250, d: 0.5, g: 0.32, hp: 70 }, mech: { t: 0.035, f: 1300, g: 0.16, metal: 0.7, body: 120 },
     extra(V, { fp }) { if (fp) for (let i = 0; i < 3; i++) clack(V, 0.05 + i * 0.022 + V.r() * 0.006, { f: 1600 + i * 300, g: 0.07, d: 0.012, metal: 0.3, body: 300 }); } },
@@ -180,11 +182,11 @@ const IDS = ['pip', 'twin', 'judge', 'zip', 'hum', 'arc', 'rail', 'halo', 'lance
 const REACH = { pip: 7, twin: 6, judge: 11, zip: 5, hum: 6, arc: 9, rail: 8, halo: 8, lance: 16, scatter: 11, storm: 10 };
 const SEND = { pip: 0.32, twin: 0.28, judge: 0.42, zip: 0.22, hum: 0.25, arc: 0.4, rail: 0.34, halo: 0.55, lance: 0.6, scatter: 0.5, storm: 0.42 };
 export const TRIM = {};
-const MAXV = { zip: 12, hum: 10, storm: 10, twin: 10 };
+const MAXV = { zip: 16, hum: 14, storm: 14, twin: 14 };
 
 export function registerWeapons() {
   for (const id of IDS) {
-    reg(`tagger.${id}.fire`, (V) => gun(V, FIRE[id]), { cat: 'tagger.' + id, ref: REACH[id] * 0.7, roll: 1.4, maxDist: 160, send: SEND[id], voices: MAXV[id] ?? 8, prio: 3, gain: TRIM[id] ?? 1 });
+    reg(`tagger.${id}.fire`, (V) => gun(V, FIRE[id]), { cat: 'tagger.' + id, ref: REACH[id] * 0.8, roll: 1.25, maxDist: 160, send: SEND[id], voices: MAXV[id] ?? 14, prio: 3, airK: 2.8, countDur: 0.9, presence: 4, gain: TRIM[id] ?? 1 });
   }
   reg('tagger.tap.fire', tapFire, { cat: 'tagger.tap', ref: 2.5, send: 0.05, prio: 2, gain: 1 });
   reg('tagger.tap.hit', tapHit, { cat: 'tagger.tap', ref: 4, send: 0.15, prio: 3 });

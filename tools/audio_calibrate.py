@@ -4,17 +4,17 @@ hits its LUFS-short target: fire > hit confirm > damage > impacts/steps > foley 
 import sys, json, re, os
 D = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith('--') else 'shots/audio'
 TARGETS = [  # (regex, LUFS-short-max, max peak dBFS)
- (r'^tagger\.(judge|lance|scatter|storm)\.fire$', -14, -1.5), (r'^tagger\.(arc|rail|halo)\.fire$', -15.5, -1.5), (r'^tagger\.pip\.fire$', -20, -1.5), (r'^tagger\.(twin|zip|hum)\.fire$', -19, -1.5), (r'^tagger\.tap\.fire$', -26, -3),
+ (r'^tagger\.(judge|lance|scatter|storm)\.fire$', -14, -1.5), (r'^tagger\.(arc|rail|halo)\.fire$', -15.5, -1.5), (r'^tagger\.pip\.fire$', -18, -1.5), (r'^tagger\.(twin|zip|hum)\.fire$', -18, -1.5), (r'^tagger\.tap\.fire$', -26, -3),
  (r'^tagger\.[a-z]+\.(bolt|pump)$|^tagger\.lance\.bolt|^tagger\.scatter\.pump', -27, -6),
  (r'^tagger\.[a-z]+\.(reload1|reload2|reload3)$', -33, -8), (r'^tagger\.[a-z]+\.(draw|inspect)$', -37, -10), (r'^tagger\.[a-z]+\.empty$', -34, -8), (r'^tagger\.tap\.hit$', -22, -3),
  (r'^tagger\.(scope|pickup|drop)', -34, -8),
- (r'^hit\.crown$', -19, -2), (r'^hit\.tick$', -21, -2), (r'^hit\.kill$', -18, -2), (r'^dmg\.taken$', -19, -3),
+ (r'^hit\.crown$', -19, -2), (r'^hit\.tick$', -19, -2), (r'^hit\.kill$', -18, -2), (r'^dmg\.taken$', -19, -3),
  (r'^tag\.out\.shatter$', -24, -3), (r'^tag\.out\.self$', -22, -3), (r'^tag\.whiz$', -34, -8),
- (r'^impact\.', -30, -6), (r'^step\.', -33, -8), (r'^move\.land$', -28, -6), (r'^move\.', -37, -10),
+ (r'^impact\.', -29, -6), (r'^step\.', -29, -6), (r'^move\.land$', -28, -6), (r'^move\.', -37, -10),
  (r'^util\.(pulse\.boom|haze\.pop)$', -16, -2), (r'^util\.strobe\.pop$', -17, -2), (r'^util\.strobe\.ring$', -30, -6), (r'^util\.haze\.hiss$', -33, -10), (r'^util\.', -34, -8),
  (r'^beacon\.complete$', -17, -2), (r'^beacon\.armed$', -24, -3), (r'^beacon\.arm\.beep$', -27, -4), (r'^beacon\.', -29, -6),
  (r'^ui\.roundstart\.horn$', -24, -3), (r'^ui\.(round|match)\.', -27, -4), (r'^ui\.', -36, -10),
- (r'^announce\.', -26, -3), (r'^music\.armed$', -31, -6), (r'^music\.(menu|win|lose)$', -30, -6), (r'^music\.', -38, -8),
+ (r'^announce\.', -23, -3), (r'^music\.armed$', -31, -6), (r'^music\.menu$', -30, -6), (r'^music\.buy$', -33, -6), (r'^music\.(win|lose)$', -27, -4), (r'^music\.', -38, -8),
 ]
 damp = float(sys.argv[sys.argv.index('--damp') + 1]) if '--damp' in sys.argv else 0.85
 M = json.load(open(os.path.join(D, 'metrics.json')))
@@ -22,7 +22,7 @@ cal_path = 'src/audio/calib.js'; txt = open(cal_path).read(); cal = json.loads(r
 out = []; cal_t = os.path.getmtime(cal_path)
 for n, m in sorted(M.items()):
     if not os.path.exists(os.path.join(D, n + '.wav')) or os.path.getmtime(os.path.join(D, n + '.wav')) < cal_t: continue   # stale metrics: never compound
-    if n.endswith('.dry') or n.endswith('.tp') or 'lufs_short_max' not in m or n.startswith('music.'): continue
+    if n.endswith('.dry') or n.endswith('.tp') or 'lufs_short_max' not in m: continue
     for rx, tgt, pk in TARGETS:
         if re.search(rx, n):
             d = tgt - m['lufs_short_max']; room = pk - m['peak_db']

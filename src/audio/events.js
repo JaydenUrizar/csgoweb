@@ -131,7 +131,7 @@ export function wireEvents(ctx, audio) {
   let lastMoney = -9;
   bind('credits', (e) => { if (isLocal(e.actor) && (e.delta ?? 0) > 0 && e.reason !== 'buy' && clock - lastMoney > 0.2) { lastMoney = clock; audio.play('ui.money', { fp: true, delay: 0.2 }); } });
   bind('announce', (e) => { if (!e.id) return; if ((e.id === 'round_start' || e.id === 'round_pistol') && phase !== 'live') return; audio.announce(e.id, e.delay ? { delay: e.delay } : {}); });   // buy-phase 'round start' would double the live one
-  bind('ping', (e) => { if (e.pos) audio.play('ui.ping', { pos: e.pos }); });
+  bind('ping', (e) => { if (!e.pos) return; const my = myTeam(), at = e.actor; if (at && my && at.team && at.team !== my) return; audio.play('ui.ping', { pos: e.pos }); });   // team pings only
 
   // ---------------- round flow ----------------
   let phase = null, phaseSeen = false, lastTick = -1, said30 = false, said10 = false, hornT = -9;

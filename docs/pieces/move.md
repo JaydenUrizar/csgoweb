@@ -17,6 +17,9 @@
 ## Round 2 changes
 Speed/footsteps now come from post-collision displacement (wedged in a V = 0 m/s, no steps); 2-plane crease clip; stair-lip snag fixed (no more speed loss at stairs44); bhop takeoff no longer loses speed (smooth soft cap 7.8→11 m/s, hard 12.2); run 7.2 m/s; slide ×1.38 boost to ≤10 m/s, ~1.2 s / 9 m, 3.4° roll, deeper eye drop; speed FOV kick removed (`fovKick` setting, default 0; world FOV fixed); crouch-jump +0.17 m; mantle up to 1.5 m; livelier bob (2.3 cm, 0.7° roll) + footstep bounce; consumes `ctx.combat.aimPunch/scopeFov/sensScale/speedMult` and `ctx.match.frozen`.
 
+## Round 3 changes
+Regression fixed: slow wishspeeds (walk, crouch-walk, speedScale 0.4/0.5) from rest work (displacement-zeroing only applies when actually blocked; friction stop-speed floor is capped by wishspeed). `tools/move_test.mjs` now ASSERTS (exit 1 on failure): walk/crouch/scoped from rest, stairs, vcrease, tunnelling, wall glide <= run, slide, crouch-jump, mantle, bhop turn-rate forgiveness, determinism. Camera: no pitch offsets (aim == view), roll <= 0.17° (bob) / 0.2° slide, bob 4 cm + footstep bounce; speed cue via `ctx.player.view.speedFx` (see docs/requests/vfx-from-move-1.md). Air strafing: cap 1.4 m/s, accel 30, strafe keys never bleed speed (gain 1.34x@180°/s … 1.26x@720°/s), wall-slide speed clamped to run speed.
+
 ## Measured (round 1 numbers; run is now 7.2)
 run 6.6 m/s (CS2 4.76; ×1.39), 90% speed in 0.15 s, walk 0.52×, crouch 0.34×, counter-strafe to accurate speed 0.05 s / full stop 0.08 s (hold 120 ms), release stop 0.42 s, jump 1.05 m / 0.60 s hang, run-jump 3.9 m, perfect bhop plateaus ≈ 8.9 takeoff / 10 peak (soft cap), slide boost ×1.2 to ≤ 8.8 m/s, ~0.9 s / 4.5 m, step 0.45 m, ramps ≤ 45°, mantle ≤ 0.6 m lip (≤ 1.45 m above last ground), tunnelling 0/102, determinism identical, ~5 µs/tick.
 

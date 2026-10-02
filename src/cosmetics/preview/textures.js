@@ -87,15 +87,39 @@ export function suitTexture(kind, base, accent) {
 }
 
 /** Tagger skin texture with wear (0..1): scuffs, edge wear, dirt. */
-export function skinTexture(kind, primary, accent, wear) {
+export function skinTexture(kind, primary, accent, wear, decal = 'none', glow = 0xffffff) {
   const w = Math.round(wear * 20) / 20;
-  const key = `k|${kind}|${primary}|${accent}|${w}`;
+  const key = `k|${kind}|${primary}|${accent}|${w}|${decal}`;
   let t = cache.get(key); if (t) return t;
   const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
   const ctx = cv.getContext('2d'); drawPattern(ctx, S, kind, primary, accent, (primary ^ accent) & 0xffff);
+  drawDecal(ctx, S, decal, accent, glow, primary);
   paintWear(ctx, S, w, primary);
   t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   cache.set(key, t); return t;
+}
+/** Skin decals (bold, readable at gun scale). Painted over the base pattern. */
+export function drawDecal(c, S, decal, accent, glow, primary) {
+  if (!decal || decal === 'none') return; const A = hex(accent), G = hex(glow), D = hex(mix(primary, 0x000000, 0.6)); c.save(); c.lineJoin = 'round'; c.lineCap = 'round';
+  const rnd = mulberry(77 + decal.length * 13);
+  switch (decal) {
+    case 'bars': c.fillStyle = A; for (let i = -2; i < 12; i++) { c.beginPath(); c.moveTo(i * S / 6, 0); c.lineTo(i * S / 6 + S / 12, 0); c.lineTo(i * S / 6 + S / 12 + S / 3, S); c.lineTo(i * S / 6 + S / 3, S); c.fill(); } break;
+    case 'arrows': c.strokeStyle = A; c.lineWidth = S / 14; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(S * 0.15, i * S / 4 + S * 0.1); c.lineTo(S * 0.5, i * S / 4 + S * 0.22); c.lineTo(S * 0.85, i * S / 4 + S * 0.1); c.stroke(); } break;
+    case 'scales': c.strokeStyle = A; c.lineWidth = S / 40; for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) { c.beginPath(); c.arc(x * S / 8 + (y & 1 ? S / 16 : 0), y * S / 14, S / 16, 0, Math.PI); c.stroke(); } break;
+    case 'dots': c.fillStyle = A; for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) { c.beginPath(); c.arc(x * S / 5 + S / 10 + (y & 1 ? S / 10 : 0), y * S / 5 + S / 10, S / 18, 0, 7); c.fill(); } break;
+    case 'bolt': c.fillStyle = G; c.beginPath(); c.moveTo(S * 0.6, 0); c.lineTo(S * 0.25, S * 0.55); c.lineTo(S * 0.5, S * 0.55); c.lineTo(S * 0.35, S); c.lineTo(S * 0.8, S * 0.38); c.lineTo(S * 0.55, S * 0.38); c.lineTo(S * 0.75, 0); c.fill(); break;
+    case 'flame': for (const [col, k] of [[A, 1], [G, 0.62]]) { c.fillStyle = col; for (let i = 0; i < 6; i++) { const x = i * S / 5; c.beginPath(); c.moveTo(x - S / 10, S); c.quadraticCurveTo(x, S * (0.55 - 0.2 * k * (i % 2)), x + S / 14, S * (0.2 + 0.3 * k + 0.1 * (i % 2))); c.quadraticCurveTo(x + S / 8, S * 0.6, x + S / 8, S); c.fill(); } } break;
+    case 'sun': c.fillStyle = G; c.beginPath(); c.arc(S / 2, S / 2, S * 0.2, 0, 7); c.fill(); c.strokeStyle = A; c.lineWidth = S / 26; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; c.beginPath(); c.moveTo(S / 2 + Math.cos(a) * S * 0.28, S / 2 + Math.sin(a) * S * 0.28); c.lineTo(S / 2 + Math.cos(a) * S * 0.45, S / 2 + Math.sin(a) * S * 0.45); c.stroke(); } break;
+    case 'wave': c.strokeStyle = A; c.lineWidth = S / 22; for (let r = 0; r < 6; r++) { c.beginPath(); for (let x = 0; x <= S; x += 8) { const y = r * S / 5 + Math.sin(x / S * 12.5 + r) * S / 22; x ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); } break;
+    case 'bubbles': c.strokeStyle = G; c.lineWidth = S / 50; for (let i = 0; i < 16; i++) { c.beginPath(); c.arc(rnd() * S, rnd() * S, S * (0.03 + rnd() * 0.07), 0, 7); c.stroke(); } break;
+    case 'grid': c.strokeStyle = G; c.lineWidth = S / 70; for (let i = 0; i <= 8; i++) { c.beginPath(); c.moveTo(i * S / 8, 0); c.lineTo(i * S / 8, S); c.moveTo(0, i * S / 8); c.lineTo(S, i * S / 8); c.stroke(); } break;
+    case 'lantern': c.fillStyle = G; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(S * (0.2 + i * 0.3), S / 2, S * 0.1, S * 0.16, 0, 0, 7); c.fill(); c.fillStyle = A; c.fillRect(S * (0.2 + i * 0.3) - 3, S * 0.3, 6, S * 0.4); c.fillStyle = G; } break;
+    case 'leaf': c.fillStyle = A; for (let i = 0; i < 7; i++) { c.save(); c.translate(rnd() * S, rnd() * S); c.rotate(rnd() * 6); c.beginPath(); c.ellipse(0, 0, S * 0.09, S * 0.04, 0, 0, 7); c.fill(); c.restore(); } break;
+    case 'static': for (let i = 0; i < 260; i++) { c.fillStyle = rnd() < 0.5 ? A : G; c.globalAlpha = 0.25 + rnd() * 0.6; c.fillRect(rnd() * S, rnd() * S, 2 + rnd() * 14, 2); } c.globalAlpha = 1; break;
+    case 'laurel': c.fillStyle = A; for (const sx of [0.3, 0.7]) for (let i = 0; i < 6; i++) { c.save(); c.translate(S * sx, S * (0.15 + i * 0.13)); c.rotate((sx < 0.5 ? -0.6 : 0.6)); c.beginPath(); c.ellipse(0, 0, S * 0.1, S * 0.04, 0, 0, 7); c.fill(); c.restore(); } break;
+    case 'ring': c.strokeStyle = G; c.lineWidth = S / 20; c.beginPath(); c.arc(S / 2, S / 2, S * 0.3, 0, 7); c.stroke(); c.strokeStyle = D; c.lineWidth = S / 8; c.beginPath(); c.arc(S / 2, S / 2, S * 0.42, 0, 7); c.stroke(); break;
+  }
+  c.restore();
 }
 export function paintWear(ctx, S, wear, base = 0x444444) {
   if (wear <= 0.02) return;

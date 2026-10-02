@@ -23,6 +23,9 @@ Files: `taggers.js` (12 defs, spray patterns, constants) · `ballistics.js` (ina
 ## Round 2 changes
 Inaccuracy tables now CS2-real (AK stand 0.40 deg, run 10.4 deg; Pip/USP rangeMod 0.99), fire-accumulation noise cut so the AK pattern stays readable, Negev tightens when sustained (`tighten`), AK recovery 0.43 s. Speed fraction uses `ctx.player.runSpeed x weapon speed` (move applies `speedMult`). Semi-auto/burst held through draw fires once ready; `weapon:scope` also on AWP re-scope; viewmodel/utility updates try/caught (error reported once in ctx.errors); mouse wheel cycles weapons; damage refused outside warmup/live/armed (roundEnd, halftime, matchEnd -> no tag events); firing blocked when `match.frozen/paused`.
 
+## Round 3 changes
+AK/M4 spray re-keyed to the CS2 shape (right drift, hook to -4.5 deg by bullet 14, +3 deg by 19, flat after 10); late-spray noise halved. AWP/AUG zoom settles over 0.3 s (instant quick-scope keeps most of the unscoped cone); lance zoom 3.27/13.6 = 40/10 deg FOV at base 100. Deagle 53, Negev 800 rpm. Exit frags ARE allowed in roundEnd (design choice, matches CS2; flow pays them); halftime/matchEnd/frozen/paused block firing. Tag-out drops only the best gun (primary, else sidearm); `inventory.current` is left on a valid slot. Open-air misses in `weapon:fire.hit[]` are `{point, surface:'body', miss:true}` (no actor).
+
 ## Tuning
 All in `taggers.js` (`inacc(...)` tables, `pattern`, `recover`, `penPower/penDmg`, `cycle/rpm`); `VIEW_TRACK`; materials in `ballistics.js`.
 

@@ -14,7 +14,7 @@ export const TUNE = {
   runSpeed: 7.2, walkMul: 0.52, crouchMul: 0.34,
   accel: 9.0, friction: 5.6, stopSpeed: 1.6,            // ground (Source formulas)
   gravity: 23, terminal: 46, jumpHeight: 1.05,           // jump v0 = sqrt(2 g h) = 6.95 m/s, hang ≈ 0.60 s
-  airAccel: 12, airCap: 0.86,                            // 30 u/s * (7.2/250) ≈ 0.86 m/s wish cap
+  airAccel: 30, airCap: 1.4,                            // 30 u/s * (7.2/250) ≈ 0.86 m/s wish cap
   softStart: 7.8, softEnd: 11.0, hardMax: 12.2,            // air-strafe gain fades 1 → 0 between these horizontal speeds
   bhopCap: 99, bhopKeep: 1,                           // takeoff above bhopCap keeps only this fraction of the excess
   coyote: 0.075, jumpBuffer: 0.11,
@@ -26,7 +26,7 @@ export const TUNE = {
   // mantle
   mantleMaxLip: 0.65, mantleMinLip: 0.08, mantleMaxAboveGround: 1.62, crouchJumpLift: 0.17, mantleCooldown: 0.18,
   crouchRate: 16, eyeSlideDrop: 0.3,
-  strideRun: 2.25, strideWalk: 1.7, strideCrouch: 1.25,
+  strideRun: 1.95, strideWalk: 1.7, strideCrouch: 1.25,
   actorPush: true,
 };
 
@@ -279,7 +279,7 @@ export function createSim(env) {
     if (!m.sliding && m.onGround && m.slideCd <= 0 && (m.crouchBuf > 0 || landedCrouch) && crouch && hs >= TUNE.slideMinSpeed && !frozen && !dead) {
       m.sliding = true; m.slideT = 0; m.crouching = true; m.crouchBuf = 0; hull = HC;
       if (hs < TUNE.slideBoostMax) { const nh = Math.min(hs * TUNE.slideBoost, TUNE.slideBoostMax), k = nh / hs; v.x *= k; v.z *= k; hs = nh; }
-      emit('slide', { actor: a, speed: hs, pos: a.pos });
+      emit('slide', { actor: a, speed: hs, pos: a.pos, side: m.slideSide });
     }
 
     // ---- jump ---------------------------------------------------------------------------------
@@ -323,7 +323,7 @@ export function createSim(env) {
         }
       }
       if (!m.sliding) {
-        friction(v, dt, TUNE.friction, TUNE.stopSpeed);
+        friction(v, dt, TUNE.friction, wmag > 0 ? Math.min(TUNE.stopSpeed, wishspeed) : TUNE.stopSpeed);   // slow wishspeeds (scoped / leg-hit crouch-walk) must still win against friction
         if (wmag > 0) {
           // counter-strafe assist: opposing wish never overshoots into reverse acceleration in the same tick
           const before = v.x * wx + v.z * wz;
@@ -384,7 +384,10 @@ export function createSim(env) {
       const nx = v.x + wx * as, nz = v.z + wz * as;
       if (Math.hypot(nx, nz) > hs) as *= f;
     }
+    const ox = v.x, oz = v.z, hs0 = Math.hypot(ox, oz);
     v.x += wx * as; v.z += wz * as;
+    // forgiving strafing: steering with the strafe keys may bend the path but never bleeds speed (only deliberate braking, wish > ~135° off, does)
+    if (hs0 > 0.5 && (wx * ox + wz * oz) / hs0 > -0.7) { const hs1 = Math.hypot(v.x, v.z); if (hs1 < hs0) { const k = hs0 / hs1; v.x *= k; v.z *= k; } }
   }
 
   // ---- ground movement over plane + stairs + snap ----------------------------------------------
@@ -399,6 +402,7 @@ export function createSim(env) {
     moveSlide(p, V, V.x * dt, V.y * dt, V.z * dt, hull, 1);
     const hWant = Math.hypot(hvx, hvz) * dt, hDone = Math.hypot(p.x - x0, p.z - z0);
     let steppedDy = 0;
+    const blockedA = C.hitWall;
     if (hWant > 1e-5 && hDone < hWant * 0.92 && C.hitWall) {
       if (tryStep(a, m, hull, x0, y0, z0, hvx, hvz, dt, hDone)) {
         steppedDy = PB.y - p.y;
@@ -412,8 +416,12 @@ export function createSim(env) {
     {
       // blocked? take velocity from what actually happened (zero when wedged) → no phantom speed / footsteps
       const cv = Math.hypot(v.x, v.z), act = Math.hypot(p.x - x0, p.z - z0) / dt;
-      if (cv < 0.6 && act < 0.3 && steppedDy === 0) { v.x = v.z = 0; }
-      else if (cv > 1e-3 && act < cv * 0.6 && steppedDy === 0) { if (act < 0.3) { v.x = v.z = 0; } else { v.x = (p.x - x0) / dt; v.z = (p.z - z0) / dt; } }
+      if (blockedA && cv < 0.6 && act < 0.3 && steppedDy === 0) { v.x = v.z = 0; }
+      else if (blockedA && cv > 1e-3 && act < cv * 0.6 && steppedDy === 0) { if (act < 0.3) { v.x = v.z = 0; } else { v.x = (p.x - x0) / dt; v.z = (p.z - z0) / dt; } }
+    }
+    if (blockedA && !m.sliding) {   // gliding along a wall never gains speed beyond what we had / run speed
+      const lim = Math.max(m.prevHS, TUNE.runSpeed * m.speedScale), hh = Math.hypot(v.x, v.z);
+      if (hh > lim) { const k = lim / hh; v.x *= k; v.z *= k; }
     }
     // is there still ground under us?
     let sup = probeSupport(p, hull, R, 0.02);

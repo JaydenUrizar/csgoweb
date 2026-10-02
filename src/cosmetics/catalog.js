@@ -62,20 +62,23 @@ const pattern = (id, name, r, s, pat, color, flavor) => add('pattern', id, name,
 const back = (id, name, r, s, model, color, flavor) => add('back', id, name, r, s, { model, color }, flavor);
 const trail = (id, name, r, s, type, color, color2, flavor) => add('trail', id, name, r, s, { type, color, color2 }, flavor);
 const tagOut = (id, name, r, s, effect, color, flavor) => add('tagOut', id, name, r, s, { effect, color }, flavor);
-const skin = (id, name, r, s, pat, primary, accent, glow, flavor) => add('skin', id, name, r, s, { pattern: pat, primary, accent, glow }, flavor);
+const SKIN_X = { 'skin-factory': ['arc', 'none', 'matte'], 'skin-hazard': ['pip', 'bars', 'matte'], 'skin-arctic': ['lance', 'none', 'matte'], 'skin-crimson': ['zip', 'arrows', 'gloss'], 'skin-cobalt': ['arc', 'scales', 'gloss'], 'skin-slate': ['lance', 'bolt', 'metal'], 'skin-checker': ['zip', 'dots', 'gloss'],
+  'skin-solar': ['arc', 'flame', 'gloss'], 'skin-corona': ['lance', 'sun', 'holo'], 'skin-tide': ['zip', 'wave', 'gloss'], 'skin-abyss': ['pip', 'bubbles', 'holo'], 'skin-neon': ['arc', 'grid', 'holo'], 'skin-lantern': ['pip', 'lantern', 'gloss'], 'skin-verdant': ['zip', 'leaf', 'metal'], 'skin-midnight': ['lance', 'static', 'carbon'],
+  'skin-gilded': ['arc', 'laurel', 'metal'], 'skin-frost': ['pip', 'dots', 'gloss'], 'skin-ember-ops': ['arc', 'none', 'matte'], 'skin-tide-ops': ['zip', 'none', 'matte'], 'skin-void': ['lance', 'ring', 'carbon'] };
+const skin = (id, name, r, s, pat, primary, accent, glow, flavor) => { const x = SKIN_X[id] ?? ['arc', 'none', 'matte']; add('skin', id, name, r, s, { pattern: pat, primary, accent, glow, kind: x[0], decal: x[1], finish: x[2] }, flavor); };
 const charm = (id, name, r, s, model, color, flavor) => add('charm', id, name, r, s, { model, color }, flavor);
 const plate = (id, name, r, s, style, color, flavor) => add('nameplate', id, name, r, s, { style, color }, flavor);
 const emote = (id, name, r, s, anim, flavor) => add('emote', id, name, r, s, { anim }, flavor);
 
 // ======================================================= SUITS
-suit('suit-graphite',  'Graphite Kit',     'common', 'issue', 0x3a3f4a, 0x9aa6b8, 'solid',    'matte',    'Plain, honest, hard to see coming.');
-suit('suit-chalk',     'Chalk Runner',     'common', 'issue', 0xe8edf2, 0x5b6b80, 'stripes',  'matte',    'Fresh-laundered and immediately regretted.');
-suit('suit-clay',      'Clay Court',       'common', 'issue', 0xc7683a, 0xf1d9b5, 'solid',    'matte',    'Sun-baked terracotta.');
-suit('suit-harbor',    'Harbor Blue',      'common', 'issue', 0x2b5d8a, 0xbfe3ff, 'chevron',  'matte',    'Dockside navy with sea-glass trim.');
-suit('suit-moss',      'Moss Ops',         'common', 'issue', 0x4a5d3a, 0xc9d19a, 'camo',     'matte',    'Forest-patch camo. Very hard to hide in an arena.');
-suit('suit-signal',    'Signal Yellow',    'rare',   'issue', 0xe8c531, 0x222222, 'checker',  'satin',    'Caution-tape chic.');
+suit('suit-graphite',  'Standard Kit',     'common', 'issue', 0x3a3f4a, 0x9aa6b8, 'solid',    'matte',    'Plain, honest, hard to see coming.');
+suit('suit-chalk',     'Pinstripe Runner',     'common', 'issue', 0xe8edf2, 0x5b6b80, 'stripes',  'matte',    'Fresh-laundered and immediately regretted.');
+suit('suit-clay',      'Court Plain',       'common', 'issue', 0xc7683a, 0xf1d9b5, 'solid',    'matte',    'Clean lines, no distractions.');
+suit('suit-harbor',    'Harbor Chevron',      'common', 'issue', 0x2b5d8a, 0xbfe3ff, 'chevron',  'matte',    'Dockside arrows. Colours follow your side.');
+suit('suit-moss',      'Field Camo',         'common', 'issue', 0x4a5d3a, 0xc9d19a, 'camo',     'matte',    'Forest-patch camo. Very hard to hide in an arena.');
+suit('suit-signal',    'Checker Runner',    'rare',   'issue', 0xe8c531, 0x222222, 'checker',  'satin',    'Finish-line energy.');
 suit('suit-chrome',    'Chrome Runner',    'rare',   'issue', 0x9aa4b2, 0xffffff, 'gradient', 'metallic', 'Mirror finish, zero regrets.');
-suit('suit-void',      'Void Black',       'rare',   'issue', 0x14151b, 0x5f6bff, 'hex',      'satin',    'Absorbs light. Reflects style.');
+suit('suit-void',      'Hex Void',       'rare',   'issue', 0x14151b, 0x5f6bff, 'hex',      'satin',    'Faceted plating. Reflects style.');
 suit('suit-solar',     'Solar Flare Plate','epic',   'solar', 0xd7263d, 0xffb627, 'gradient', 'satin',    'Crimson plate, sunrise trim.');
 suit('suit-solar-ii',  'Corona Prime',     'legendary','solar',0x7a1220, 0xffd166, 'chevron', 'metallic', 'A star wore this first.');
 suit('suit-tide',      'Deep Tide Hull',   'epic',   'tide',  0x0b3954, 0x2fd0ff, 'hex',      'satin',    'Pressure-rated. Glows where it is thin.');
@@ -86,8 +89,8 @@ suit('suit-verdant',   'Verdant Weave',    'epic',   'verdant',0x123524, 0x3ddc8
 suit('suit-midnight',  'Static Coat',      'rare',   'midnight',0x1b1c3f, 0x7c4dff, 'checker', 'satin',    'Interference pattern from a dead channel.');
 suit('suit-gilded',    'Gilded Livery',    'legendary','gilded',0xf4efe6, 0xd4a72c, 'stripes', 'metallic', 'Ivory, gold leaf and a hint of royalty.');
 suit('suit-frost',     'Glacier Pop Kit',  'rare',   'frost', 0xbfe8ff, 0xff7ac8, 'stripes',  'matte',    'Vanilla ice with a raspberry ripple.');
-suit('suit-ember-ops', 'Ember Ops',        'rare',   'issue', 0x8a2b12, 0xff9a3c, 'camo',     'matte',    'Rust-belt camo. Warm and mean.');
-suit('suit-tide-ops',  'Tide Ops',         'rare',   'issue', 0x0d4a52, 0x5fe6d8, 'camo',     'matte',    'Reef camo. Cool and calm.');
+suit('suit-ember-ops', 'Ops Camo',        'rare',   'issue', 0x8a2b12, 0xff9a3c, 'camo',     'matte',    'Rust-belt camo. Warm and mean.');
+suit('suit-tide-ops',  'Recon Camo',         'rare',   'issue', 0x0d4a52, 0x5fe6d8, 'camo',     'matte',    'Reef camo. Cool and calm.');
 
 // ======================================================= HELMETS
 helmet('helm-none',    'Bare Head',       'common', 'issue', 'none',     0x000000, 0x000000, 'Wind in your hair. No protection whatsoever.');

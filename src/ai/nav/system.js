@@ -58,7 +58,7 @@ export class NavSystem {
     if (options) this.options = { ...this.options, ...options };
     this.cfg = { ...NAV_DEFAULTS, ...this.options }; this.building = null;
     const it = this._buildGen(Infinity); let r; while (!(r = it.next()).done);
-    this.bg = null; return r.value;
+    this.bg = this.ready ? this.tactics.precomputeProfiles(160) : null; return r.value;
   }
   /** Start a time-sliced rebuild (old data stays usable). Drive it with step(ms) or pump via nav.update. */
   startBuild(options, budgetMs = 3) {

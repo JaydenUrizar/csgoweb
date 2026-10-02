@@ -1,0 +1,26 @@
+{"piece":"move","round":2,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"Ground-response charts (speed/run vs time; hold W+release, strafe+80 ms counter-tap, walk key+W from rest). B has the snappier accel (t90 0.14 s) and counter-strafe, but its walk panel is a flat line at 0, so walking does not work. A's slower curves all work."},
+ {"pair":2,"picked":"ref","truth":"ref","why":"6-frame first-person run strips. B (CS2 Office corridor) clearly reads as running. A covers about 4 m at 7 m/s with a near-static horizon, so it reads as strolling. The 2.7 cm bob and 0.36 deg roll are invisible at this scale."},
+ {"pair":3,"picked":"ours","truth":"ours","why":"Perfect-timing bhop with A/D sync strafes. A has a smooth soft-capped plateau (1.37x) with no landing sawtooth, and W-only keeps run speed: fluid and predictable, as the design asks. B is Source-style sawtooth growth with W-only decay."}],
+"winner_overall":"ref","score":5.6,
+"biggest_gap":"REGRESSION: walking and crouch-walking from rest do not work. In-game repro: ?test=1&seed=1&scene=movement-course&station=flat, inject {forward:true, walk:true} for 1.2 s. actor.move.speed stays 0.00 and the player creeps 0.3 m (about 0.25 m/s; should be 3.74 m/s). {crouch} then {crouch,forward} for 1.2 s: 0.00 m/s, 0.2 m. tools/move_test.mjs prints 'walk 0.00 crouch 0.00' itself. The same happens for ANY speedScale<=0.5 from rest (pure sim: 0.6 gives 4.32 m/s, 0.5 gives 0.00), so a scoped Lance (scopedSpeedU 100 = 0.4) and a leg-hit victim (hitSlow 0.5) are frozen in place, and tunnel1.5/1.3/1.15 cannot be crouch-walked into. Running then pressing Shift correctly settles at 3.74, so only accelerating from low speed is broken (low wishspeed loses to friction/stopSpeed, or to the new displacement-derived velocity). In CS2, Shift+W reaches 130 u/s in about 0.2 s and Ctrl+W reaches 85 u/s. Add asserts to move_test so this cannot ship again.",
+"other_gaps":[
+ "The camera-only pitch offset is not applied to aim. During a slide the camera holds -2.0 deg pitch (YXZ-decomposed) for the whole 1.2 s; landing gives +0.66 deg and running -0.19 deg. Combat fires along actor.forward(), so during a slide the screen-centre crosshair sits 2 deg below the shot line (about 0.5 m at 15 m). Remove the slide pitch, or fold it into actor aim.",
+ "The world camera rolls on plain A/D strafing (+/-1.0 deg) and holds a constant 3.4 deg roll for the entire slide. CS2's world camera never rolls. Counter-strafe peeks tilt the horizon. Make the roll optional, or keep it to a brief slide-entry kick.",
+ "The run camera conveys little speed (pair 2). Bob is 2.7 cm p2p with 0.36 deg roll, and the landing dip is 4.9 cm with almost no visible pitch kick. 7.2 m/s does not feel faster than CS2 on screen.",
+ "Bhop gain curve inverts with effort. Sync strafing at 180 deg/s plateaus at 1.37x, 360 at 1.29x, 540 at 1.21x and 720 at 1.02x, and the plateau is reached by about hop 3, so the skill ceiling is short and lazy strafes are optimal.",
+ "Thin wall glide is inconsistent: 0.00 m/s at 5 deg incidence (sticks), 3.03 at 15 deg, and 7.90 m/s at 45 deg, which exceeds run speed 7.2 (wall-slide speed gain).",
+ "The move_test harness prints failures (walk 0.00, crawl tunnel blocked) without asserting them."],
+"bugs":[
+ "Walk (Shift+W) and crouch-walk (Ctrl+W) from rest: 0.00 m/s reported, about 0.25 m/s actual (real game + pure sim).",
+ "speedScale<=0.5 from rest gives no movement. This affects the scoped Lance (0.4) and the leg-hit slow (0.5x).",
+ "Crawl tunnels (1.15-1.5 m) cannot be entered crouched from a standstill. They are only reachable by sliding in.",
+ "Slide/landing camera pitch offset is not applied to the aim direction (2.0 deg crosshair-vs-shot mismatch while sliding)."],
+"strengths":[
+ "R1 bugs fixed: vcrease wedged gives 0.00 m/s, no footsteps and no jitter; stairs44 holds 7.2 m/s; bhop takeoffs no longer notch.",
+ "Crisp ground feel: t90 0.14 s, counter-strafe reaches accurate speed in 42 ms (the accurate flag agrees), full stop 75 ms.",
+ "Robust collision: 0/102 tunnelling. A 2-min real-map random-input fuzz had no fall-through, NaN or console errors. In a 25 s live 10-actor match the worst player/bot overlap was 2.6 cm (never >15 cm).",
+ "Footsteps are tied to displacement: exactly every 2.25 m running and 1.25 m crouched, with none while blocked.",
+ "Slide reaches 9.4-9.5 m/s for 1.2-1.5 s and slide-jump keeps 9 m/s. Mantle works to 1.5 m, crouch-jump gives +0.17 m, and the soft-capped bhop is fluid. Deterministic."],
+"pass":false}

@@ -1,5 +1,5 @@
 // 2D procedural item icons for locker cards / slots (canvas). Cached as data URLs per item.
-import { drawPattern, mix, hex } from '../preview/textures.js';
+import { drawPattern, drawDecal, mix, hex } from '../preview/textures.js';
 import { RARITY } from '../catalog.js';
 import { teamBase, teamAccent, teamHelmet, teamBack } from '../loadout.js';
 
@@ -139,20 +139,18 @@ const ICONS = {
     c.restore();
   },
   skin(c, it) {
-    // rifle silhouette with the skin pattern
-    c.save(); c.translate(120, 90); c.scale(1.02, 1.02);
-    const fill = patFill(c, it.pattern, it.primary, it.accent, 128);
+    // tagger silhouette (pistol / smg / rifle / sniper per skin) with the skin's pattern + decal + finish sheen
+    const pc = document.createElement('canvas'); pc.width = pc.height = 128; const px = pc.getContext('2d'); drawPattern(px, 128, it.pattern, it.primary, it.accent, (it.primary ^ it.accent) & 0xffff); drawDecal(px, 128, it.decal, it.accent, it.glow, it.primary);
+    c.save(); c.translate(120, 90); const fill = c.createPattern(pc, 'repeat'); const dk = hex(mix(it.primary, 0x0a0b10, 0.78));
     const g = (x, y, w, h, r, f = fill) => { rr(c, x, y, w, h, r); c.fillStyle = f; c.fill(); c.strokeStyle = 'rgba(0,0,0,0.55)'; c.lineWidth = 2; c.stroke(); };
-    g(-96, -20, 46, 24, 6, hex(mix(it.primary, 0x0a0b10, 0.75)));      // stock
-    g(-52, -26, 100, 28, 6);                                             // receiver
-    g(46, -22, 52, 20, 4, hex(it.accent));                              // handguard
-    g(96, -14, 30, 7, 2, hex(mix(it.primary, 0x0a0b10, 0.75)));       // barrel
-    c.save(); c.rotate(-0.3); g(-4, 4, 22, 52, 5, hex(mix(it.primary, 0x0a0b10, 0.75))); c.restore();   // mag
-    c.save(); c.rotate(0.28); g(-44, 4, 20, 40, 5, hex(mix(it.primary, 0x0a0b10, 0.75))); c.restore();   // grip
-    g(-30, -36, 46, 10, 3, hex(mix(it.primary, 0x0a0b10, 0.75)));
-    shadow(c, hex(it.glow), 14); c.fillStyle = hex(it.glow); rr(c, -44, -22, 88, 4, 2); c.fill(); noShadow(c);
-    const gl = c.createLinearGradient(-90, -30, 90, 20); gl.addColorStop(0, 'rgba(255,255,255,0.22)'); gl.addColorStop(0.4, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(0,0,0,0.25)'); c.fillStyle = gl; rr(c, -96, -36, 220, 60, 8); c.fill();
-    c.restore();
+    const rot = (a, fn) => { c.save(); c.rotate(a); fn(); c.restore(); };
+    let box;
+    if (it.kind === 'pip') { c.scale(1.9, 1.9); g(-42, -22, 84, 22, 5); g(-30, -4, 46, 12, 3, dk); rot(0.2, () => g(-34, -2, 18, 40, 4, dk)); g(34, -17, 14, 8, 2, dk); box = [-48, -26, 100, 70]; }
+    else if (it.kind === 'zip') { c.scale(1.3, 1.3); g(-60, -20, 26, 22, 5, dk); g(-38, -24, 84, 26, 5); g(44, -16, 28, 12, 3, dk); g(70, -12, 22, 6, 2, dk); rot(-0.1, () => g(0, 2, 18, 40, 4, dk)); rot(0.25, () => g(-30, 2, 16, 32, 4, dk)); g(-28, -34, 40, 10, 3, dk); box = [-66, -36, 160, 80]; }
+    else if (it.kind === 'lance') { c.scale(0.98, 0.98); g(-100, -14, 52, 22, 5, dk); g(-54, -24, 86, 26, 5); g(30, -18, 62, 16, 3, it.accent ? hex(it.accent) : fill); g(88, -11, 36, 5, 2, dk); g(-24, -44, 54, 14, 6, dk); g(-10, -34, 8, 10, 1, dk); rot(0.27, () => g(-36, 4, 18, 44, 4, dk)); box = [-104, -48, 232, 90]; }
+    else { c.scale(0.98, 0.98); g(-96, -20, 46, 24, 6, dk); g(-52, -26, 100, 28, 6); g(46, -22, 52, 20, 4, hex(it.accent)); g(96, -14, 30, 7, 2, dk); rot(-0.3, () => g(-4, 4, 22, 52, 5, dk)); rot(0.28, () => g(-44, 4, 20, 40, 5, dk)); g(-30, -36, 46, 10, 3, dk); box = [-98, -38, 232, 86]; }
+    shadow(c, hex(it.glow), 14); c.fillStyle = hex(it.glow); const bx = box; rr(c, bx[0] + 52, bx[1] + 18, Math.max(40, bx[2] * 0.4), 4, 2); c.fill(); noShadow(c);
+    void box; c.restore();
   },
   charm(c, it) {
     c.save(); c.translate(120, 40); const col = hex(it.color), lt = hex(mix(it.color, 0xffffff, 0.5));

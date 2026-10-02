@@ -49,7 +49,7 @@ export function createRealRig(ctx, name = 'PLAYER') {
     else { rig.team = team; m.actor.name = nm; C.spawn(actor, { spec }); m.wantId = undefined; }   // applyCosmetics + force the held tagger/skin to refresh
     m.hideHeld = !!rig.emote;
     const k = JSON.stringify(spec.charm);
-    if (k !== charmKey) { charmKey = k; if (charm) { charm.group.removeFromParent(); charm.dispose?.(); charm = null; } charm = buildCharmObject(spec.charm, 1.25); if (charm) { m.attach.hip.add(charm.group); charm.group.position.set(0.02, 0, 0); } rig.animated.charm = charm ? { item: charm.item } : null; }
+    if (k !== charmKey) { charmKey = k; if (charm) { charm.group.removeFromParent(); charm.dispose?.(); charm = null; } charm = buildCharmObject(spec.charm, 1.9); if (charm) { m.attach.hip.add(charm.group); charm.group.position.set(0.02, 0, 0); } rig.animated.charm = charm ? { item: charm.item } : null; }
     void first;
   };
   rig.setTaggerKind = (kind) => { rig.tagger.kind = kind; if (m) { m.dbg.weapon = KIND_TO_ID[kind] ?? 'arc'; } };

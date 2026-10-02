@@ -2,7 +2,7 @@
 // Runs the real src/match logic in a sandbox ctx (no browser): rule scenarios at 120 Hz + full random matches, then prints a CS2-rule conformance table.
 import { createSandbox, createChecker, runMatch } from '../src/match/sim.js';
 import { ECON, lossBonus } from '../src/match/economy.js';
-import { MATCH } from '../src/core/config.js';
+import { TIMING as MATCH } from '../src/match/timing.js';
 
 const seedsN = +(process.argv[process.argv.indexOf('--seeds') + 1]) || 12;
 const rows = []; let failed = 0;
@@ -45,7 +45,7 @@ const playSquad = (m, sq) => playRound(m, sideOfSquad(m, sq));
   row('Buy phase', `${MATCH.buyTime}s`, `${(tb).toFixed(2)}s`, near(tb, MATCH.buyTime, 0.02));
   row('Freeze phase', `${MATCH.freezeTime}s`, `${(tf - tb).toFixed(2)}s`, near(tf - tb, MATCH.freezeTime, 0.02));
   row('Not frozen when live', false, m.frozen, !m.frozen);
-  tick(m, 30); row('timeLeft counts down', '~75', m.timeLeft.toFixed(1), near(m.timeLeft, 75, 0.1));
+  tick(m, 30); row('timeLeft counts down', `~${MATCH.roundTime - 30}`, m.timeLeft.toFixed(1), near(m.timeLeft, MATCH.roundTime - 30, 0.1));
   until(m, () => m.phase === 'roundEnd');
   const e = evOf(t, 'round:end')[0];
   row('Live phase length', `${MATCH.roundTime}s`, `${(m.history[0].time).toFixed(2)}s`, near(m.history[0].time, MATCH.roundTime, 0.02));
@@ -69,17 +69,17 @@ const playSquad = (m, sq) => playRound(m, sideOfSquad(m, sq));
   row('Moving cancels arming', 'carried', m.beacon.state, m.beacon.state === 'carried');
   const { took } = plantNow(t);
   row('Arm time (hold E)', '3.2s', `${took.toFixed(3)}s (+1 tick)`, near(took, 3.2, 0.03) || m.measure);
-  row('Armed -> phase "armed", fuse', `${MATCH.beaconFuse}s`, `${m.phase}/${m.beacon.fuseLeft.toFixed(2)}`, m.phase === 'armed' && near(m.beacon.fuseLeft, 35, 0.05));
+  row('Armed -> phase "armed", fuse', `${MATCH.beaconFuse}s`, `${m.phase}/${m.beacon.fuseLeft.toFixed(2)}`, m.phase === 'armed' && near(m.beacon.fuseLeft, MATCH.beaconFuse, 0.05));
   row('Plant bonus +300 to every Ember', 300, m.teams.ember.map((a) => a.match.round.income).join(','), m.teams.ember.every((a) => a.match.round.income === 300));
   row('Carrier loses Beacon on arm', false, c0.hasBeacon, !c0.hasBeacon);
   const a0 = m.clock; until(m, () => m.phase === 'roundEnd', 60);
   const e = evOf(t, 'round:end')[0];
   row('Fuse completes -> EMBER wins', 'ember/beacon', `${e.winner}/${e.reason}`, e.winner === 'ember' && e.reason === 'beacon');
-  row('Fuse duration', '35s', `${(m.clock - a0).toFixed(2)}s`, near(m.clock - a0, 35, 0.05));
+  row('Fuse duration', `${MATCH.beaconFuse}s`, `${(m.clock - a0).toFixed(2)}s`, near(m.clock - a0, MATCH.beaconFuse, 0.05));
   const eb = evOf(t, 'beacon:complete'); row('beacon:complete emitted once', 1, eb.length, eb.length === 1);
   const beeps = []; // beep cadence accelerates
   t = fresh(3); m = t.m; toLive(t); plantNow(t);
-  m.ctx; const iv = []; t.ctx.events.on('beacon:beep', (e) => iv.push(e.interval)); tick(m, 34.9);
+  m.ctx; const iv = []; t.ctx.events.on('beacon:beep', (e) => iv.push(e.interval)); tick(m, MATCH.beaconFuse - 0.1);
   row('Beep cadence accelerates', 'start~1s, end~0.1s', `${iv[0]?.toFixed(2)} -> ${iv.at(-1)?.toFixed(2)}`, iv.length > 20 && iv[0] > 0.9 && iv.at(-1) < 0.2 && iv.every((x, i) => i === 0 || x <= iv[i - 1] + 1e-9));
 }
 { // disarm
@@ -115,7 +115,7 @@ const playSquad = (m, sq) => playRound(m, sideOfSquad(m, sq));
   t = fresh(9); m = t.m; toLive(t); tick(m, 20); wipe(t, 'ember', null); wipe(t, 'tide', null); tick(m, 0.05);
   row('Both teams eliminated simultaneously (no beacon) -> TIDE', 'tide/elimination', `${evOf(t, 'round:end')[0]?.winner}/${evOf(t, 'round:end')[0]?.reason}`, evOf(t, 'round:end')[0]?.winner === 'tide');
   t = fresh(10); m = t.m; toLive(t); plantNow(t); wipe(t, 'ember', null); wipe(t, 'tide', null); tick(m, 1);
-  row('Both wiped AFTER arming -> beacon decides (EMBER on completion)', 'armed...', m.phase, m.phase === 'armed'); until(m, () => m.phase === 'roundEnd', 40);
+  row('Both wiped AFTER arming -> beacon decides (EMBER on completion)', 'armed...', m.phase, m.phase === 'armed'); until(m, () => m.phase === 'roundEnd', 60);
   row('...result', 'ember/beacon', `${evOf(t, 'round:end')[0].winner}/${evOf(t, 'round:end')[0].reason}`, evOf(t, 'round:end')[0].winner === 'ember' && evOf(t, 'round:end')[0].reason === 'beacon');
   // plant in progress at time expiry completes
   t = fresh(11); m = t.m; toLive(t); const c = m.beacon.carrier; const ctr = siteC(m); tick(m, MATCH.roundTime - 1.5);
@@ -314,11 +314,43 @@ function TUNE_GRACE() { return 20.5; }
   while (m.phase !== 'matchEnd' && m.round < 8) playSquad(m, 'A'); until(m, () => m.phase === 'buy', 20); playSquad(m, 'A'); // 8th... scores 8 -> end
   t = fresh(47); m = t.m; for (let i = 0; i < 7; i++) playSquad(m, 'A'); if (m.phase === 'halftime') m.newRound();
   row('Match point announced when a squad is 1 win away', 'match_point', ids2(t).includes('match_point'), ids2(t).includes('match_point'));
-  t = fresh(48); m = t.m; toLive(t); const survivor = m.teams.tide[0]; for (const v of m.teams.tide.slice(1)) tagOut(t, v, m.teams.ember[0]); tick(m, 0.1);
-  row('1vX clutch announced once', 'clutch', evOf(t, 'announce').filter((a) => a.id === 'clutch').length, evOf(t, 'announce').filter((a) => a.id === 'clutch').length === 1);
+  t = fresh(48); m = t.m; toLive(t); const lone = m.teams.ember[0]; for (const v of m.teams.ember.slice(1)) tagOut(t, v, m.teams.tide[0]); tick(m, 0.1);
+  const cl0 = evOf(t, 'announce').filter((a) => a.id === 'clutch').length;
+  for (const v of m.teams.tide.slice(0, 3)) tagOut(t, v, lone); tick(m, 0.1);
+  row('Clutch voice line: not on a hopeless 1v5, fires once on a 1v2 for the viewer', '0 then 1', `${cl0} then ${evOf(t, 'announce').filter((a) => a.id === 'clutch').length}`, cl0 === 0 && evOf(t, 'announce').filter((a) => a.id === 'clutch').length === 1);
+  t = fresh(51); m = t.m; toLive(t); for (const v of m.teams.tide.slice(1)) tagOut(t, v, m.teams.ember[1]); tick(m, 0.1);
+  row('No clutch line for the AI side / other team', 0, evOf(t, 'announce').filter((a) => a.id === 'clutch').length, evOf(t, 'announce').filter((a) => a.id === 'clutch').length === 0);
   { const t2 = fresh(49), m2 = t2.m; toLive(t2); const c = m2.beacon.carrier; const bp = []; t2.ctx.events.on('beacon:beep', (e) => bp.push(e)); const s0 = m2.clock; plantNow(t2); tick(m2, 0.05);
     row('First beep fires the moment the beacon arms', 'n=1 at arm', `${bp[0]?.n} (${bp.length} beeps)`, bp.length >= 1 && bp[0].n === 1 && bp[0].fuseLeft === MATCH.beaconFuse); }
   { const t2 = fresh(50), m2 = t2.m; toLive(t2); tagOut(t2, m2.beacon.carrier, m2.teams.tide[0]); tick(m2, 0.1); const id = evOf(t2, 'announce').map((a) => a.id); row('beacon_dropped announce (Ember team only)', 'beacon_dropped', id.includes('beacon_dropped'), id.includes('beacon_dropped')); }
+}
+{ // match:end payload (menu/hud contract), OT labels, spectate dedupe, beacon floor snap
+  const t = fresh(60), m = t.m; let guard = 0; while (m.phase !== 'matchEnd' && guard++ < 40) { toLive(t); const w = aliveOf(m, 'ember')[0]; tagOut(t, aliveOf(m, 'tide')[0], w, 'arc'); playSquad(m, 'A'); }
+  const e = evOf(t, 'announce'); let me = null; t.ctx.events.on('match:end', (x) => { me = x; });
+  const rec = m.matchResult;
+  row('match:end payload complete {winner,scores,teams,mvp,history,econLog,scoreboard}', 'all keys', rec ? Object.keys(rec).join(',') : 'none', !!rec && rec.winner && rec.scores && rec.teams?.ember?.length === 5 && rec.teams?.tide?.length === 5 && rec.mvp && Array.isArray(rec.history) && rec.history.length === m.history.length && Array.isArray(rec.econLog) && rec.econLog.length === m.history.length && rec.scoreboard?.ember?.rows?.length === 5);
+  row('match:end: actors carry stats {tags,outs,assists,damage,score}', 'numbers', JSON.stringify(rec.teams.ember[0].stats), rec.teams.ember.concat(rec.teams.tide).every((a) => ['tags', 'outs', 'assists', 'damage', 'score'].every((k) => typeof a.stats?.[k] === 'number')) && rec.teams.ember.concat(rec.teams.tide).reduce((x, a) => x + a.stats.tags, 0) > 0);
+  row('econLog entries {n,ember,tide} within [0,9000]', 'ok', `${rec.econLog.length} entries`, rec.econLog.every((x) => x.n > 0 && x.ember >= 0 && x.ember <= 9000 && x.tide >= 0 && x.tide <= 9000));
+  row('match:end history carries reason/mvp/credits', 'ok', JSON.stringify(rec.history[0]).slice(0, 60), rec.history.every((h) => h.reason && h.winner && h.credits && h.scores));
+}
+{ // OT labels
+  const t = fresh(61), m = t.m; for (let i = 0; i < 14; i++) playSquad(m, i % 2 ? 'B' : 'A'); if (m.phase === 'halftime') m.newRound();
+  row('OT labels: round 15 = OVERTIME 1 first half, first to 11', 'ROUND 15 · OVERTIME 1 / OVERTIME 1 · FIRST HALF / 11', `${m.roundLabel} / ${m.halfLabel} / ${m.winTarget}`, m.roundLabel === 'ROUND 15 · OVERTIME 1' && m.halfLabel === 'OVERTIME 1 · FIRST HALF' && m.winTarget === 11 && m.roundTotal === null);
+  const r2 = fresh(62); r2.m.enterFreeze(); row('Regulation labels: first half, first to 8, 14 rounds', 'FIRST HALF / 8 / 14', `${r2.m.halfLabel} / ${r2.m.winTarget} / ${r2.m.roundTotal}`, r2.m.halfLabel === 'FIRST HALF' && r2.m.winTarget === 8 && r2.m.roundTotal === 14);
+}
+{ // spectate: one event per switch
+  const t = fresh(63), m = t.m; const calls = []; t.ctx.player = { spectate: (a) => { calls.push(a); t.ctx.events.emit('spectate', { actor: a }); } }; const sp = []; t.ctx.events.on('spectate', (e) => sp.push(e.actor)); toLive(t);
+  const me = m.teams.ember[0]; tagOut(t, me, m.teams.tide[0]); tick(m, 0.2); const first = sp.length; const tgt = m.spectating; tagOut(t, tgt, m.teams.tide[1]); tick(m, 0.2);
+  row('spectate event fires once per switch (no duplicates)', '1 then 1', `${first} then ${sp.length - first}`, first === 1 && sp.length - first === 1 && calls.length === 2);
+}
+{ // beacon snaps to the floor from any height; void falls back to last grounded spot
+  const t = fresh(64), m = t.m; t.ctx.map = { raycast: (o) => (o.x > 100 ? null : { point: { x: o.x, y: 0, z: o.z } }), spawns: null }; toLive(t);
+  const c = m.beacon.carrier; c.pos.set(5, 0, 5); c.onGround = true; tick(m, 0.1); c.pos.set(5, 9, 5); c.onGround = false; tagOut(t, c, m.teams.tide[0]); tick(m, 0.1);
+  row('Carrier tagged 9 m up: Beacon drops to the floor', 'y=0', m.beacon.pos.y, m.beacon.state === 'dropped' && m.beacon.pos.y === 0);
+  const e = aliveOf(m, 'ember')[0]; e.pos.set(5, 0, 5); tick(m, 0.2); row('...and can be picked up', 'carried', m.beacon.state, m.beacon.state === 'carried');
+  const c2 = m.beacon.carrier; c2.pos.set(300, 0, 300); c2.onGround = true; tick(m, 0.1); const c3 = m.beacon.carrier; c3.pos.set(300, 9, 300); c3.onGround = false; tagOut(t, c3, m.teams.tide[0]); tick(m, 0.1);
+  row('Void drop falls back to last grounded position', 'x=300', m.beacon.pos.x, near(m.beacon.pos.x, 300, 0.01) && m.beacon.pos.y === 0);
+  t.ctx.map = null;
 }
 function ids2(t) { return evOf(t, 'announce').map((a) => a.id); }
 

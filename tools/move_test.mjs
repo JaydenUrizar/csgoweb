@@ -21,9 +21,15 @@ const course = buildCourse();
 const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(course.positions, 3));
 geo.boundsTree = new MeshBVH(geo);
 const collider = { geometry: geo };
+// huge flat floor for speed-chain tests (no obstacles)
+const openGeo = new THREE.BufferGeometry();
+openGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-600, 0, -600, -600, 0, 600, 600, 0, -600, 600, 0, -600, -600, 0, 600, 600, 0, 600]), 3));
+openGeo.boundsTree = new MeshBVH(openGeo);
+let activeCollider = collider;
+const useOpen = (on) => { activeCollider = on ? { geometry: openGeo } : collider; };
 const ST = course.stations;
 let events = [];
-const sim = createSim({ collider: () => collider, emit: (t, d) => events.push({ t, ...d, actor: undefined }), surfaceAt: () => 'stone' });
+const sim = createSim({ collider: () => activeCollider, emit: (t, d) => events.push({ t, ...d, actor: undefined }), surfaceAt: () => 'stone' });
 
 const RUN = TUNE.runSpeed;
 const f2 = (v) => (Math.abs(v) < 1e-9 ? '0.00' : v.toFixed(2));
@@ -65,6 +71,8 @@ function plotAscii(label, s, key, w = 60, h = 8, lo, hi) {
   for (const r of rows) print('  |' + r.join(''));
 }
 function should(name) { return !only || only.includes(name); }
+const failures = [];
+function check(label, ok, detail = '') { if (!ok) failures.push(label + (detail ? ' — ' + detail : '')); print(`  [${ok ? 'PASS' : 'FAIL'}] ${label}${detail ? ' (' + detail + ')' : ''}`); }
 
 // -----------------------------------------------------------------------------------------------
 if (should('accel')) {
@@ -83,6 +91,19 @@ if (should('accel')) {
   const w = mkAt('flat'); w.pos.set(0, 0, 25); const sw = run(w, 1.0, (t, a, m, c) => { c.forward = 1; c.walk = true; });
   const cc = mkAt('flat'); cc.pos.set(0, 0, 25); const sc = run(cc, 1.5, (t, a, m, c) => { c.forward = 1; c.crouch = true; });
   results.accel.walk = sw[sw.length - 1].hs; results.accel.crouch = sc[sc.length - 1].hs;
+  check('walk from rest reaches 0.52x run', Math.abs(sw[sw.length - 1].hs / RUN - 0.52) < 0.03, f2(sw[sw.length - 1].hs));
+  check('crouch-walk from rest reaches 0.34x run', Math.abs(sc[sc.length - 1].hs / RUN - 0.34) < 0.03, f2(sc[sc.length - 1].hs));
+  check('walk reaches 90% in <= 0.30 s', timeTo(sw, (p) => p.hs >= 0.9 * RUN * 0.52) <= 0.30, f3(timeTo(sw, (p) => p.hs >= 0.9 * RUN * 0.52)));
+  check('run reaches 90% in <= 0.20 s', t90 <= 0.2, f3(t90));
+  check('diagonal not faster than run', sd[sd.length - 1].hs <= RUN + 0.01);
+  for (const sc2 of [0.4, 0.5, 0.6, 0.8]) {
+    const q = mkAt('flat'); q.pos.set(0, 0, 25); sim.ensure(q); q.move.speedScale = sc2;
+    const sq = run(q, 1.0, (t, a, m, c) => { c.forward = 1; });
+    check(`speedScale ${sc2} from rest reaches ${f2(RUN * sc2)} m/s`, Math.abs(sq[sq.length - 1].hs - RUN * sc2) < 0.1, f2(sq[sq.length - 1].hs));
+    const q2 = mkAt('flat'); q2.pos.set(0, 0, 25); sim.ensure(q2); q2.move.speedScale = sc2;
+    const sq2 = run(q2, 1.5, (t, a, m, c) => { c.forward = 1; c.crouch = true; });
+    check(`speedScale ${sc2} crouch-walk from rest moves`, sq2[sq2.length - 1].hs > RUN * sc2 * 0.34 * 0.9, f2(sq2[sq2.length - 1].hs));
+  }
   print(`  walk ${f2(sw[sw.length - 1].hs)} (=${f2(sw[sw.length - 1].hs / RUN)}x, CS2 0.52)   crouch ${f2(sc[sc.length - 1].hs)} (=${f2(sc[sc.length - 1].hs / RUN)}x, CS2 0.34)`);
 }
 
@@ -134,8 +155,9 @@ function airStrafeBot(mode) {
 }
 if (should('bhop')) {
   head('3. bunny-hop chain (jump buffered, 12 hops)');
+  useOpen(true);
   for (const mode of ['perfect', 'w', 'none']) {
-    const a = mkAt('lane'); a.pos.set(56, 0, 58); a.yaw = 0;
+    const a = mkActor(0, 0, 0, 0);
     const takeoffs = [];
     events = [];
     const s = run(a, 9, (t, a, m, c) => { airStrafeBot(mode)(t, a, m, c); if (t < 0.6) { c.jump = false; c.yaw = 0; c.forward = 1; } }, { cmd: cmd0() });
@@ -145,13 +167,30 @@ if (should('bhop')) {
     charts['bhop_' + mode] = { title: 'bhop ' + mode, series: { speed: thin(s, 2), z: thin(s, 4, ['t', 'z']) } };
     print(`  ${mode.padEnd(8)} hops ${jumps.length}  takeoff speeds: ${jumps.map((v) => f2(v)).join(' ')}  | peak ${f2(peak)} m/s (${f2(peak / RUN)}x run)`);
   }
+  // sync-strafe sweep: hold A/D alternating every 0.30 s of air while turning the view at `rate` deg/s
+  const plateau = {};
+  for (const rate of [90, 180, 360, 540, 720]) {
+    const a = mkActor(0, 0, 0, 0); events = []; let yaw = 0, side = 1, lastFlip = 0, airT = 0;
+    run(a, 12, (t, a, m, c) => {
+      if (t < 0.6) { c.forward = 1; c.jump = false; return; }
+      if (m.onGround) { c.jump = ((Math.floor(t / DT) % 2) === 0); airT = 0; c.forward = 1; c.right = 0; yaw = Math.atan2(-a.vel.x, -a.vel.z); c.yaw = yaw; return; }
+      c.jump = true; airT += DT; if (airT - lastFlip > 0.3) { side = -side; lastFlip = airT; }
+      yaw += side * rate * Math.PI / 180 * DT; c.yaw = yaw; c.forward = 0; c.right = side > 0 ? -1 : 1;
+    });
+    const jumps = events.filter((e) => e.t === 'jump').map((e) => e.speed);
+    plateau[rate] = jumps[jumps.length - 1] / RUN;
+  }
+  print('  sync-strafe turn-rate sweep (plateau takeoff / run): ' + Object.entries(plateau).map(([r, v]) => `${r}°/s ${f2(v)}x`).join('  '));
+  results.bhopSweep = plateau; useOpen(false);
+  check('bhop gain forgiving: 720°/s sync keeps >= 70% of the 180°/s gain', (plateau[720] - 1) >= 0.7 * (plateau[180] - 1), `${f2(plateau[720])} vs ${f2(plateau[180])}`);
+  check('bhop plateau stays soft-capped (<= 1.5x run)', Math.max(...Object.values(plateau)) <= 1.5);
   print(`  soft cap: takeoff cap ${TUNE.bhopCap} (keep ${TUNE.bhopKeep} of excess), air gain fades ${TUNE.softStart}→${TUNE.softEnd} m/s, hard max ${TUNE.hardMax}`);
 }
 
 // -----------------------------------------------------------------------------------------------
 if (should('airturn')) {
   head('4. air-strafe turn (jump at run speed, curve 90°)');
-  const a = mkAt('flat'); a.pos.set(-30, 0, 25); a.yaw = 0;
+  useOpen(true); const a = mkActor(0, 0, 0, 0);
   let yaw = 0, jumped = false;
   const s = run(a, 1.2, (t, a, m, c) => {
     if (t < 0.5) { c.forward = 1; return; }
@@ -167,6 +206,7 @@ if (should('airturn')) {
   let dAng = (a1 - a0) * 180 / Math.PI; while (dAng > 180) dAng -= 360; while (dAng < -180) dAng += 360;
   results.airturn = { speedIn: s[Math.round(0.45 / DT)].hs, speedOut: last.hs, turnDeg: Math.abs(dAng) };
   print(`  in ${f2(results.airturn.speedIn)} m/s → out ${f2(last.hs)} m/s after ${f2(last.t - 0.5)}s, heading changed ${f2(Math.abs(dAng))}°  (perfect strafe GAINS speed while turning)`);
+  useOpen(false);
   charts.airturn = { title: 'air-strafe turn', series: { speed: thin(s, 2) } };
 }
 
@@ -181,6 +221,7 @@ if (should('slide')) {
   const peak = Math.max(...s.map((p) => p.hs));
   results.slide = { start: t0, duration: t1 - t0, peakSpeed: peak, endSpeed: sl.length ? sl[sl.length - 1].hs : NaN, distance: sl.length ? Math.abs(sl[sl.length - 1].z - sl[0].z) : 0 };
   print(`  slide starts ${f3(t0)}s, lasts ${f3(t1 - t0)}s, peak ${f2(peak)} m/s, ends at ${f2(results.slide.endSpeed)} m/s, distance ${f2(results.slide.distance)} m`);
+  check('slide boosts above run speed', peak >= RUN * 1.3, f2(peak)); check('slide lasts 0.8-1.6 s', t1 - t0 > 0.8 && t1 - t0 < 1.6, f2(t1 - t0)); check('slide covers >= 7 m', results.slide.distance >= 7, f2(results.slide.distance));
   charts.slide = { title: 'slide', series: { speed: thin(s, 1) , sliding: thin(s.map((p) => ({ t: p.t, v: p.sl })), 2, ['t', 'v']) } };
   plotAscii('speed', s, 'hs', 60, 7, 0, 9.5);
   // slide down slope
@@ -214,6 +255,8 @@ if (should('jump')) {
   print(`  run-jump: peak ${f3(results.jump.runPeak)} m, distance ${f2(dist)} m at ${f2(RUN)} m/s (hang ${f3(l.t - j.t)} s)`);
   const c = mkAt('lane'); c.pos.set(56, 0, 58);
   const s3 = run(c, 1.6, (t, a, m, cm) => { cm.jump = t > 0.1 && t < 0.12; cm.crouch = t > 0.3; });
+  check('crouch-jump adds >= 0.1 m', Math.max(...s3.map((p) => p.y)) >= 1.15, f3(Math.max(...s3.map((p) => p.y))));
+  check('standing jump peak 1.05 +-0.03', Math.abs(peak - 1.05) < 0.03);
   print(`  crouch-jump peak ${f3(Math.max(...s3.map((p) => p.y)))} m (hull shrinks in the air, feet unchanged)`);
   // jump buffer: press jump 90 ms before landing
   const d = mkAt('flat'); d.pos.set(0, 0, 25);
@@ -246,6 +289,7 @@ if (should('stairs')) {
     let minSp = 99; for (const p of s) if (p.t > 0.6 && p.z > -100) minSp = Math.min(minSp, p.hs);
     // camera height = y + viewStep smoothing: worst per-tick change
     let maxJump = 0, maxCam = 0; for (let i = 1; i < s.length; i++) { maxJump = Math.max(maxJump, Math.abs(s[i].y - s[i - 1].y)); maxCam = Math.max(maxCam, Math.abs((s[i].y + s[i].vs) - (s[i - 1].y + s[i - 1].vs))); }
+    if (name !== 'stairs50') check(`${name}: no speed loss on stairs`, minSp >= RUN * 0.97, f2(minSp)); else check('stairs50 (0.5 rise) blocks walking', top < 0.1);
     results.stairs[name] = { top, minSpeed: minSp, maxPosJump: maxJump, maxCamJump: maxCam };
     print(`  ${name.padEnd(11)} top reached ${f2(top)} m | min speed while climbing ${f2(minSp)} | max Δy/tick physics ${f3(maxJump)} → camera ${f3(maxCam)} m/tick (${f2(maxCam * 120)} m/s)`);
     if (name === 'stairs18') charts.stairs18 = { title: 'stairs18 y / camera y', series: { y: thin(s.map((p) => ({ t: p.t, v: p.y })), 1, ['t', 'v']), cam: thin(s.map((p) => ({ t: p.t, v: p.y + p.vs })), 1, ['t', 'v']), speed: thin(s, 1) } };
@@ -315,6 +359,10 @@ if (should('tight')) {
   for (const g of [0.8, 0.74, 0.68]) { const r = pass('squeeze' + g, 2.2, (p) => p.z < -38); R2['squeeze' + g] = r.ok; print(`  pillar gap ${g} m: ${r.ok ? 'passes' : 'blocked'}`); }
   for (const hgt of [1.5, 1.3, 1.15]) { const r = pass('tunnel' + hgt, 9.0, (p) => p.z < -31, { crouch: true }); R2['tunnel' + hgt] = r.ok; print(`  crawl tunnel ceiling ${hgt} m while crouched: ${r.ok ? 'passes' : 'blocked'}`); }
   { const a = mkAt('tunnel1.5'); const s = run(a, 3.0, (t, a, m, c) => { c.forward = 1; c.crouch = t < 0.7; }); print(`  tunnel 1.5 m: crouch released inside → stays crouched? end crouching=${a.move.crouching} (auto-crouch under low ceiling) z ${f2(a.pos.z)}`); }
+  check('crawl tunnels 1.5/1.3 enterable from rest crouched', R2['tunnel1.5'] && R2['tunnel1.3']);
+  check('tunnel 1.15 blocked', !R2['tunnel1.15']);
+  check('corridors 0.75/0.9/1.2 pass', R2['corridor0.75'] && R2['corridor0.9'] && R2['corridor1.2']);
+  check('door 0.78 passes, 0.7 blocked', R2['door0.78'] && !R2['door0.7']);
   results.tight = R2;
 }
 
@@ -348,13 +396,15 @@ if (should('walls')) {
     const crossed = dir > 0 ? a.pos.z < -50.2 : a.pos.z > -49.8;
     if (crossed && a.pos.x > -10 && a.pos.x < 0) leaks++;
   }
+  check('no tunnelling', leaks === 0, `${leaks}/${trials}`);
   print(`  tunnelling test (14 m/s at a 2 cm wall, ±80°, dt 8/16/33 ms, both sides): ${leaks}/${trials} leaks`);
-  results.walls = { leaks, trials };
+  results.walls = { leaks, trials }; check('wall glide never exceeds run speed', rows.every((r) => r.hs <= RUN + 0.02), rows.map((r) => f2(r.hs)).join(' '));
   // C: V crease: press into it, measure jitter
   {
     const a = mkAt('vcrease'); a.pos.z = -46;
     const s = run(a, 3.0, (t, a, m, c) => { c.forward = 1; c.right = 0.4; });
     const tail = s.filter((p) => p.t > 1.5); let jit = 0; for (let i = 1; i < tail.length; i++) jit = Math.max(jit, Math.hypot(tail[i].x - tail[i - 1].x, tail[i].z - tail[i - 1].z));
+    check('V-crease wedge: zero speed and no jitter', s[s.length - 1].hs < 0.05 && jit < 0.001, `${f2(s[s.length - 1].hs)} / ${f3(jit)}`);
     print(`  V-crease pressed for 3 s: final speed ${f2(s[s.length - 1].hs)} m/s, max motion/tick after settling ${f3(jit)} m, y ${f3(s[s.length - 1].y)}`);
   }
   // D: standing still on flat: zero drift; standing on a box edge: no jitter
@@ -411,6 +461,7 @@ if (should('fuzz')) {
   }
   const ms = performance.now() - t0;
   print(`  ${ticks} ticks: worst penetration ${f3(worstPen)} m | NaN ${nan} | escapes ${escapes} | max speed ${f2(maxSp)} m/s | ${(ms / ticks * 1000).toFixed(1)} µs/tick (incl. checks)`);
+  check('fuzz: no NaN, no deep penetration', nan === 0 && worstPen < 0.02, `${nan} / ${f3(worstPen)}`);
   results.fuzz = { ticks, worstPen, nan, escapes, maxSpeed: maxSp, usPerTick: ms / ticks * 1000 };
 }
 
@@ -427,7 +478,7 @@ if (should('determinism')) {
   };
   const A = runOnce(), B = runOnce();
   print(`  two identical 10 s runs: ${A === B ? 'IDENTICAL' : 'DIFFER'}`);
-  results.determinism = A === B;
+  results.determinism = A === B; check('deterministic', A === B);
 }
 
 if (should('perf')) {
@@ -441,6 +492,9 @@ if (should('perf')) {
   results.perf = { usPerCall: ms / n * 1000 };
 }
 
+if (should('ledges')) { check('mantle reaches 1.5 m box, not 1.7 m', results.ledges[1.5].jumpUp && !results.ledges[1.7].jumpUp); check('0.45 m walkable, 0.5 m not', results.ledges[0.45].walkUp && !results.ledges[0.5].walkUp); }
+print(failures.length ? `\nFAILED ${failures.length}:\n - ` + failures.join('\n - ') : '\nALL CHECKS PASSED');
 fs.mkdirSync(OUT.replace(/[^/]*$/, '') || '.', { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ tune: { ...TUNE }, results, charts }, null, 1));
 print(`\nwrote ${OUT}`);
+if (failures.length) process.exit(1);

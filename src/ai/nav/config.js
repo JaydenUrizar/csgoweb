@@ -13,7 +13,7 @@ export const NAV_DEFAULTS = {
   maxDrop: 4.5,         // highest drop a bot may take (cost grows with height)
   maxCells: 320000,     // safety: auto-coarsen the grid if bounds are huge
   eye: 1.62, crouchEye: 1.12,
-  runSpeed: 6.3,        // m/s used by eta()
+  runSpeed: 7.2,        // m/s used by eta() (player/simulate.js TUNE.runSpeed)
   jumpPenalty: 0.45,    // seconds added per jump link in eta()
   weight: 1.5,          // A* heuristic weight (1 = optimal, >1 = much faster, <1% longer paths)
   sliceExpansions: 2500,// A* node expansions per rendered frame for requestPath jobs

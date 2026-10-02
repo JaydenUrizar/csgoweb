@@ -44,6 +44,9 @@ export function create(ctx) {
   let inMenuWorld = false;
 
   // Lazy: nothing is built (and render.render is never touched) unless the menu world is actually shown.
+  const econLog = [];
+  ctx.events.on('round:end', (d) => { try { const p = d?.econ?.players; if (!p) return; const sum = (t) => (p[t] || []).reduce((a, r) => a + (+r.credits || 0), 0); econLog.push({ n: d.n, ember: sum('ember'), tide: sum('tide') }); } catch { /* optional */ } });
+  ctx.events.on('match:start', () => { econLog.length = 0; });
   let _bd = null; const bdGet = () => (_bd ||= createBackdrop(ctx));
   const backdrop = { enter: () => bdGet()?.enter(), leave: () => _bd?.leave(), warm: () => bdGet()?.warm(), setMood: (m) => _bd?.setMood(m), suspend: (v) => _bd?.suspend(v), snapMood: () => _bd?.snapMood(), update: (dt) => _bd?.update(dt), dispose: () => _bd?.dispose(), get real() { return _bd; } };
   const prefs = () => ({ difficulty: 'pro', side: 'random', map: 'crux', ...(S.get('menuPrefs') || {}) });
@@ -212,7 +215,9 @@ export function create(ctx) {
   }
   function showEnd(data) {
     if (base === 'end') return; tutorial.stop(); clearOverlays(); setOn(pause, false);
-    if (end) end.el.remove(); end = buildEnd(ctx, A, data); root.insertBefore(end.el, tutorial.el); screens.end = end;
+    if (end) end.el.remove();
+    try { end = buildEnd(ctx, A, data); } catch (e) { ctx.errors.push('menu buildEnd ' + (e?.stack || e)); end = buildEnd(ctx, A, { ...fakeEndData(ctx, data?.winner || 'ember'), fake: false, teams: { ember: [], tide: [] }, history: [], econLog: [], scores: data?.scores || ctx.match?.scores || { ember: 0, tide: 0 } }); }
+    root.insertBefore(end.el, tutorial.el); screens.end = end;
     setBase('end'); void end.el.offsetWidth; setOn(end, true); try { ctx.input?.unlock?.(); } catch {}
     ctx.events.emit('ui:open', { owner: 'menu', name: 'end' }); focusIn(end.el);
   }

@@ -60,6 +60,7 @@ export function createDebug(B, api) {
 
   function stateOf(b) {
     const a = b.actor, ai = b.ai, o = ai.order, wi = ai.wi, mv = ai.mv;
+    if (!a.alive) return { name: a.name, team: a.team, diff: ai.diff.id, alive: false, hp: 0, pos: [], speed: 0, area: ctx.nav?.areaAt?.(a.pos) || '', role: 'dead', order: 'dead', arrived: false, path: '-', stuck: +ai.stuckTotal.toFixed(1), tele: ai.teleports, target: '-', style: '-', wpn: '-', util: '-', known: '', kd: `${ai.kills}/${ai.deaths}`, aimErrM: 0 };
     return {
       name: a.name, team: a.team, diff: ai.diff.id, alive: a.alive, hp: a.hp, pos: [+a.pos.x.toFixed(1), +a.pos.y.toFixed(1), +a.pos.z.toFixed(1)], speed: +(a.move?.speed || 0).toFixed(1),
       area: ctx.nav?.areaAt?.(a.pos) || '', role: ai.role, order: o ? `${o.kind}${o.role ? ':' + o.role : ''}${o.nodeId ? '@' + o.nodeId : ''}${o.waiting ? ' (wait)' : ''}` : '-',
@@ -99,12 +100,12 @@ export function createDebug(B, api) {
     const reactBy = {}; for (const [d, ms] of t.reactions) (reactBy[d] ||= []).push(ms);
     const reactionMs = Object.fromEntries(Object.entries(reactBy).map(([d, a]) => { a.sort((x, y) => x - y); return [d, { n: a.length, p25: a[Math.floor(a.length * 0.25)], p50: a[Math.floor(a.length * 0.5)], p75: a[Math.floor(a.length * 0.75)] }]; }));
     return {
-      reactionMs, rounds: r.length, wins: { ...t.wins }, reasons: { ...t.reasons }, plantRate: +(r.filter((x) => x.planted).length / n).toFixed(2),
+      callouts: t.callouts, calloutsPerRound: +(t.callouts / n).toFixed(1), reactionMs, moveRunShare: +(t.mv.moving ? t.mv.run / t.mv.moving : 0).toFixed(2), standShare: +(t.mv.moving + t.mv.still ? t.mv.still / (t.mv.moving + t.mv.still) : 0).toFixed(2), rounds: r.length, wins: { ...t.wins }, reasons: { ...t.reasons }, plantRate: +(r.filter((x) => x.planted).length / n).toFixed(2),
       len: { mean: +avg(lens).toFixed(1), p10: q(0.1), p50: q(0.5), p90: q(0.9), min: lens[0] || 0, max: lens[lens.length - 1] || 0 },
       firstContact: { mean: +avg(contacts).toFixed(1), min: contacts.length ? Math.min(...contacts) : 0, max: contacts.length ? Math.max(...contacts) : 0 },
       tagsPerRound: +avg(tags).toFixed(2), kills: t.kills, stuck: { seconds: +t.stuckTime.toFixed(1), incidents: t.stuckIncidents, teleports: t.teleports, roundsWithStuck: r.filter((x) => x.stuck > 0).length, cleanRounds: +(r.filter((x) => x.stuck === 0).length / n).toFixed(3) },
       log: t.log.slice(-60), throws: t.throws || 0, throwsBy: t.throwsBy || {}, shots: t.shots, hits: t.hits, paths: t.paths, exceptions: t.exceptions,
-      cpuMsPerTick: +(t.cpu.ticks ? t.cpu.ms / t.cpu.ticks : 0).toFixed(4), cpuMaxMs: +t.cpu.max.toFixed(2),
+      cpuMsPerTick: +(t.cpu.ticks ? t.cpu.ms / t.cpu.ticks : 0).toFixed(4), cpuMedianMsPerTick: +(() => { const w = (t.cpu.wins || []).slice().sort((a, b) => a - b); return w.length ? w[Math.floor(w.length / 2)] : 0; })().toFixed(4), cpuMaxMs: +t.cpu.max.toFixed(2),
     };
   }
 

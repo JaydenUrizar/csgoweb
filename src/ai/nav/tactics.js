@@ -1,6 +1,7 @@
 // Visibility, cover, angle-holding and sampling helpers that sit on top of the navgrid. Pure (no DOM).
 import * as THREE from 'three';
 
+const PR = 16;   // rays per spot sight profile
 export class Tactics {
   constructor(sys) {
     this.sys = sys;
@@ -84,7 +85,7 @@ export class Tactics {
       for (let dz = -1; dz <= 1 && ok; dz++) for (let dx = -1; dx <= 1 && ok; dx++) { const l = hash.get((bz + dz) * W + bx + dx); if (!l) continue; for (const m of l) { if (Math.abs(g.py[m] - y) < 1.5 && (g.px[m] - x) ** 2 + (g.pz[m] - z) ** 2 < sp2) { ok = false; break; } } }
       if (!ok) continue; sel.push(n); const k = key(x, z); let l = hash.get(k); if (!l) hash.set(k, l = []); l.push(n);
     }
-    const S = sel.length, node = Int32Array.from(sel), prof = new Float32Array(S * 32), have = new Uint8Array(S), expo = new Float32Array(S);
+    const S = sel.length, node = Int32Array.from(sel), prof = new Float32Array(S * PR), have = new Uint8Array(S), expo = new Float32Array(S);
     const bstart = new Int32Array(W * H + 1), order = new Int32Array(S);
     for (let i = 0; i < S; i++) bstart[key(g.px[node[i]], g.pz[node[i]]) + 1]++;
     for (let i = 0; i < W * H; i++) bstart[i + 1] += bstart[i];
@@ -101,18 +102,26 @@ export class Tactics {
     }
     return true;
   }
-  /** 32-ray eye-height sight profile of spot si (cached). Returns Float32Array view or null if budget exhausted. */
-  spotProfile(si, compute = true) {
-    const g = this.sys.g, sp = g.spots; if (sp.have[si]) return sp.prof.subarray(si * 32, si * 32 + 32); if (!compute) return null;
-    const n = sp.node[si], x = g.px[n], y = g.py[n] + this.sys.cfg.eye, z = g.pz[n];
-    for (let i = 0; i < 32; i++) { const yaw = i * Math.PI / 16; sp.prof[si * 32 + i] = this.castDist(x, y, z, -Math.sin(yaw), 0, -Math.cos(yaw), 90); }
-    let open = 0; for (let i = 0; i < 32; i++) if (sp.prof[si * 32 + i] > 12) open++; sp.expo[si] = open / 32;
-    sp.have[si] = 1; return sp.prof.subarray(si * 32, si * 32 + 32);
+  /**
+   * Openness of spot si: fraction of 16 eye-height rays that see farther than 12 m. A pure function of the graph (cached), so
+   * results never depend on query history; the background pump just fills the cache ahead of time.
+   */
+  spotExposure(si) {
+    const g = this.sys.g, sp = g.spots; if (sp.have[si]) return sp.expo[si];
+    const n = sp.node[si], x = g.px[n], y = g.py[n] + this.sys.cfg.eye, z = g.pz[n]; let open = 0;
+    for (let i = 0; i < PR; i++) { const yaw = i * Math.PI * 2 / PR; const d = this.castDist(x, y, z, -Math.sin(yaw), 0, -Math.cos(yaw), 14); sp.prof[si * PR + i] = d; if (d > 12) open++; }
+    sp.expo[si] = open / PR; sp.have[si] = 1; return sp.expo[si];
   }
-  /** Generator: fill all spot profiles in the background (call from the build pump). */
-  *precomputeProfiles(budgetRays = 600) {
+  /** Generator: fill all spot exposures in the background (called from the build pump, ~160 rays per slice). */
+  *precomputeProfiles(budgetRays = 160) {
     const sp = this.sys.g.spots; let used = 0;
-    for (let si = 0; si < sp.n; si++) { if (!sp.have[si]) { this.spotProfile(si); used += 32; } if (used >= budgetRays) { used = 0; yield si / sp.n; } }
+    for (let si = 0; si < sp.n; si++) { if (!sp.have[si]) { this.spotExposure(si); used += PR; } if (used >= budgetRays) { used = 0; yield si / sp.n; } }
+  }
+  /** Line is clear of static geometry AND live smoke. */
+  lineClear(ax, ay, az, bx, by, bz) {
+    if (this.blocked(ax, ay, az, bx, by, bz)) return false;
+    const f = this.sys.hooks.blocksLine; if (f && f(this.A.set(ax, ay, az), this.B.set(bx, by, bz))) return false;
+    return true;
   }
 
   // ------------------------------------------------------------------------------------------------- cover
@@ -187,32 +196,34 @@ export class Tactics {
     return res;
   }
   /**
-   * Good places to hold an angle on `toward` from around `near`, from the precomputed spot set (<= ~40 ray tests per call).
-   * Returns [{pos, node, range, exposure (0..1 fraction of open sight lines), visible (spot sees `toward`), score, yaw}] best first.
-   * If nothing sees the threat point it falls back to spots whose sight profile points at it (visible=false).
+   * Good places to hold an angle on a threat at `toward`, from the precomputed spot set (~3 rays per candidate).
+   * Scores how much of the holder's BODY the threat could see (head / chest / legs from the threat's eye, smoke aware):
+   * head-or-chest-only spots (box edges, door frames, low walls) win over fully exposed open floor, and ambient openness
+   * (fraction of long sight lines) is penalised. Returns [{pos, node, range, bodyExposure (0..1, 1/3 = head only),
+   * exposure (0..1 openness), visible, score, yaw}] best first. If the threat is not visible from anywhere nearby it falls back
+   * to spots facing its bearing (visible=false, bodyExposure=0). Deterministic: depends only on the graph and the arguments.
    */
   holdSpots(near, toward, radius = 14, o) {
     const sys = this.sys, g = sys.g, cfg = sys.cfg, max = o?.max ?? 5, minRange = o?.minRange ?? 6, list = [];
     if (!g.spots) return [];
+    const tx = toward.x, tz = toward.z, ty = toward.y + (o?.threatEye ?? cfg.eye);
     this.eachSpotNear(near.x, near.y, near.z, radius, o?.dy ?? 2.4, (si, n, d) => { list.push(d, si); });
     const idx = []; for (let i = 0; i < list.length; i += 2) idx.push(i); idx.sort((a, b) => list[a] - list[b] || list[a + 1] - list[b + 1]);
-    const cand = [], fallback = []; let lazy = 4;
-    for (let q = 0; q < idx.length && q < (o?.candidates ?? 28); q++) {
+    const cand = [], fallback = [], H = [1.68, 1.15, 0.35];
+    for (let q = 0; q < idx.length && q < (o?.candidates ?? 30); q++) {
       const d = list[idx[q]], si = list[idx[q] + 1], n = g.spots.node[si], x = g.px[n], y = g.py[n], z = g.pz[n];
-      const range = Math.hypot(toward.x - x, toward.z - z); if (range < minRange) continue;
-      let prof = this.spotProfile(si, false); if (!prof && lazy > 0) { lazy--; prof = this.spotProfile(si, true); }
-      let visible = false, exposure = 0.5, facing = true, sightB = 0;
-      if (prof) {
-        exposure = g.spots.expo[si];
-        const ang = Math.atan2(-(toward.x - x), -(toward.z - z)); const i = ((Math.round(ang / (Math.PI / 16)) % 32) + 32) % 32;
-        sightB = Math.max(prof[i], prof[(i + 1) % 32], prof[(i + 31) % 32]); facing = sightB >= range * 0.55;
+      const range = Math.hypot(tx - x, tz - z); if (range < minRange) continue;
+      let seen = 0; for (let i = 0; i < 3; i++) if (this.lineClear(tx, ty, tz, x, y + H[i], z)) seen++;
+      const yaw = Math.atan2(-(tx - x), -(tz - z));
+      if (seen === 0) {                                  // off-angle: remember how far this spot can see along the bearing
+        if (!fallback.length || fallback.length < 12) { const sb = this.castDist(x, y + cfg.eye, z, -Math.sin(yaw), 0, -Math.cos(yaw), 60); fallback.push({ pos: new THREE.Vector3(x, y, z), node: n, range, bodyExposure: 0, exposure: this.spotExposure(si), visible: false, score: Math.min(sb, 40) * 0.1 - this.spotExposure(si) * 2 - d * 0.22, yaw }); }
+        continue;
       }
-      if (facing) visible = !this.blocked(x, y + cfg.eye, z, toward.x, toward.y + cfg.eye, toward.z);
-      if (!visible && !facing) { fallback.push({ pos: new THREE.Vector3(x, y, z), node: n, range, exposure, visible: false, score: Math.min(sightB, 40) * 0.1 - exposure * 2 - d * 0.22, yaw: Math.atan2(-(toward.x - x), -(toward.z - z)) }); continue; }
-      const score = (visible ? 4 : 0) + Math.min(range, 40) * 0.12 - exposure * 3.5 - d * 0.22 + (g.wall[n] === 0 ? 1 : 0.4);
-      cand.push({ pos: new THREE.Vector3(x, y, z), node: n, range, exposure, visible, score, yaw: Math.atan2(-(toward.x - x), -(toward.z - z)) });
+      const e = seen / 3, open = this.spotExposure(si);
+      const score = (e < 1 ? 5 - Math.abs(e - 1 / 3) * 2.5 : 0.8) + Math.min(range, 40) * 0.08 - open * 2.2 - d * 0.2 + (g.wall[n] === 0 ? 1 : 0.4);
+      cand.push({ pos: new THREE.Vector3(x, y, z), node: n, range, bodyExposure: e, exposure: open, visible: true, score, yaw });
     }
-    const pool = cand.length ? cand : fallback;   // threat not visible from anywhere nearby: best spots facing its bearing
+    const pool = cand.length ? cand : fallback;
     pool.sort((a, b) => b.score - a.score || a.node - b.node);
     const out = []; for (const c of pool) { let ok = true; for (const k of out) if (k.pos.distanceToSquared(c.pos) < 4) { ok = false; break; } if (ok) { out.push(c); if (out.length >= max) break; } }
     return out;

@@ -15,14 +15,15 @@ export function create(ctx) {
   const lockerApi = () => (locker ??= createLocker(ctx, api));
 
   // ---------------------------------------------------------------- loadouts
-  const usedSuits = { ember: new Map(), tide: new Map() };
+  const used = { ember: new Map(), tide: new Map() };
+  const traits = (l) => { const sp = resolveLoadout(l); return [`s:${l.suit}`, `h:${sp.helmet.shape}`, `v:${sp.visor.shape}`, `b:${sp.back.model}`, `p:${sp.suit.pattern}`, `m:${sp.suit.material}`, `c:${sp.charm.model}`]; };
   function botLoadout(actor) {
-    const team = actor.team === 'tide' ? 'tide' : 'ember'; let best = null, bestScore = 1e9;
-    for (let k = 0; k < 8; k++) {   // avoid identical suits on a team: pick the least-used of a few tries
-      const l = normalize(randomLoadoutRaw(coreRng, team), team); const used = usedSuits[team].get(l.suit) ?? 0;
-      if (used < bestScore) { best = l; bestScore = used; if (!used) break; }
+    const team = actor.team === 'tide' ? 'tide' : 'ember'; const u = used[team]; let best = null, bestScore = 1e9;
+    for (let k = 0; k < 16; k++) {   // pick the candidate sharing the fewest traits (suit, headgear, visor, back, pattern, finish, charm) with teammates
+      const l = normalize(randomLoadoutRaw(coreRng, team), team); let sc = 0; for (const t of traits(l)) sc += (u.get(t) ?? 0) * (t[0] === 'h' || t[0] === 'b' || t[0] === 'p' ? 2 : 1);
+      if (sc < bestScore) { best = l; bestScore = sc; if (!sc) break; }
     }
-    usedSuits[team].set(best.suit, (usedSuits[team].get(best.suit) ?? 0) + 1);
+    for (const t of traits(best)) u.set(t, (u.get(t) ?? 0) + 1);
     return best;
   }
   function getLoadout(actor) {

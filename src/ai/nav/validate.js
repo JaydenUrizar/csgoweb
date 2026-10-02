@@ -104,3 +104,16 @@ export function tacticsBench(sys, calls = 150, seed = 11) {
   for (const k of Object.keys(t)) out[k] = stat(t[k]);
   return out;
 }
+
+/** holdSpots quality + determinism: results must not depend on whether profiles were precomputed; picks should not be fully exposed. */
+export function holdSpotCheck(sys, calls = 60, seed = 21) {
+  const g = sys.g, T = sys.tactics, rnd = mulberry32(seed * 7 + 3), a = new THREE.Vector3(), b = new THREE.Vector3(), sig = (r) => r.map((h) => `${h.node}:${h.bodyExposure.toFixed(2)}`).join(',');
+  const cases = []; for (let i = 0; i < calls; i++) { g.nodePos(Math.floor(rnd() * g.N), a); g.nodePos(Math.floor(rnd() * g.N), b); cases.push([a.clone(), b.clone()]); }
+  const cold = cases.map(([p, q]) => sig(T.holdSpots(p, q, 14)));
+  g.spots.have.fill(0); const cold2 = cases.map(([p, q]) => sig(T.holdSpots(p, q, 14)));
+  while (sys.bg && !sys.bg.next().done);
+  const warm = cases.map(([p, q]) => sig(T.holdSpots(p, q, 14)));
+  let same = 0, picks = 0, full = 0, partial = 0, empty = 0;
+  for (let i = 0; i < calls; i++) { if (cold[i] === warm[i] && cold2[i] === warm[i]) same++; const r = T.holdSpots(cases[i][0], cases[i][1], 14); if (!r.length) empty++; if (r[0]) { picks++; if (r[0].bodyExposure >= 0.99) full++; else if (r[0].visible) partial++; } }
+  return { calls, deterministic: same === calls, same, empty, picks, topFullyExposed: full, topPartial: partial };
+}

@@ -103,7 +103,7 @@ function stepVoice(V, s, o) {
 export function registerWorld() {
   for (const s of SURFACES) {
     reg(`impact.${s}`, (V) => IMPACT[s](V, clamp(V.o.intensity ?? 1, 0.3, 1.4), jit(V, 0.1)), { cat: 'impact', ref: 3.5, roll: 1.2, maxDist: 70, send: 0.35, voices: 10, prio: 1 });
-    reg(`step.${s}`, (V) => stepVoice(V, s, V.o), { cat: 'step', ref: 1.6, roll: 1.35, maxDist: 42, send: 0.2, voices: 16, prio: 2, gain: 1.3 });
+    reg(`step.${s}`, (V) => stepVoice(V, s, V.o), { cat: 'step', ref: 3.2, roll: 1.0, maxDist: 55, send: 0.22, voices: 18, prio: 2, gain: 1.5, occK: 0.5, airK: 2.2, countDur: 0.4, presence: 3 });
   }
   reg('impact.body', (V) => {   // pulse strikes a player
     click(V, { g: 0.35, hp: 2400 }); noise(V, { a: 0.0005, d: 0.05, g: 0.4, bp: 1800, q: 1 }); osc(V, { f0: 300, f1: 110, pt: 0.02, d: 0.08, g: 0.35 });

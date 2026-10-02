@@ -1,6 +1,8 @@
 // Adaptive procedural music: tiny 16-step sequencer + synth voices. Loop-friendly (4 bars, Am-F-C-G), mixed low.
 // States: menu | buy | live | armed (tempo/intensity ride the fuse) | win | lose | off.
 import { osc, noise, click, ring, midi, clamp, lerp, mulberry32, dB } from './dsp.js';
+import { CALIB } from './calib.js';
+const SG = (n) => (STATE_GAIN[n] ?? 1) * (CALIB['music.' + n] ?? 1);
 
 const CHORDS = [[57, 60, 64], [53, 57, 60], [55, 60, 64], [55, 59, 62]];   // Am F C G (voicing around A3)
 const ROOTS = [33, 29, 36, 31];
@@ -11,7 +13,7 @@ const at = (V, when) => ({ ...V, t: V.t + when, end: 0 });
 function kick(V, w, g = 0.8) { const v = at(V, w); osc(v, { f0: 140, f1: 44, pt: 0.05, d: 0.3, g, sat: 0.15 }); noise(v, { a: 0.0005, d: 0.012, g: g * 0.3, lp: 3000 }); }
 function hat(V, w, g = 0.15, open = false) { noise(at(V, w), { a: 0.0005, d: open ? 0.16 : 0.035, g, hp: 7500 }); }
 function clap(V, w, g = 0.3) { const v = at(V, w); for (const o of [0, 0.011, 0.023]) noise(v, { when: o, a: 0.0005, d: 0.02, g: g * 0.6, bp: 1600, q: 1.2 }); noise(v, { when: 0.024, a: 0.001, d: 0.14, g, bp: 1500, q: 0.8 }); }
-function bass(V, w, note, dur, g = 0.4, bright = 900) { const f = midi(note), v = at(V, w); osc(v, { type: 'sawtooth', f0: f, d: dur, hold: dur * 0.15, a: 0.03, g, lp: [bright * 0.35, bright, 0.02], lpQ: 2 }); osc(v, { f0: f, d: dur * 1.1, g: g * 0.9, a: 0.03 }); }
+function bass(V, w, note, dur, g = 0.4, bright = 900, att = 0.03) { const f = midi(note), v = at(V, w); osc(v, { type: 'sawtooth', f0: f, d: dur, hold: dur * 0.15, a: att, g, lp: [bright * 0.35, bright, 0.02], lpQ: 2 }); osc(v, { f0: f, d: dur * 1.1, g: g * 0.9, a: att }); }
 function pad(V, w, notes, dur, g = 0.05) { const v = at(V, w), L = dur * 1.7; for (const n of notes) for (const dt of [-9, 0, 9]) osc(v, { type: 'sawtooth', f0: midi(n), det: dt, a: L * 0.3, hold: L * 0.2, d: L * 0.5, g, lp: [500, 1300, L * 0.6], lpQ: 0.8 }); }
 function pluck(V, w, note, g = 0.12, d = 0.28) { const f = midi(note), v = at(V, w); osc(v, { type: 'triangle', f0: f, d, g, a: 0.002, lp: [4200, 900, d] }); osc(v, { type: 'square', f0: f, d: d * 0.5, g: g * 0.35, a: 0.002, lp: [3000, 700, d * 0.5] }); }
 function riser(V, w, len, g = 0.1) { noise(at(V, w), { a: len * 0.9, hold: 0.05, d: 0.1, g, bp: 400, q: 0.6, sweep: [7000, len], hp: 300 }); }
@@ -26,17 +28,16 @@ function step(V, state, i, w, sd, I = 0) {
   if (state === 'menu') {
     if (s16 === 0) pad(V, w, [...ch, root + 24], sd * 16, 0.045);
     if (s16 % 2 === 0) pluck(V, w, ch[ARP[s16]] + (s16 % 8 === 0 ? 24 : 12), 0.07, 0.4);
-    if (s16 === 0 || s16 === 8) kick(V, w, 0.35);
-    if (s16 === 4 || s16 === 12) hat(V, w, 0.06);
-    if (s16 === 0) bass(V, w, root, sd * 8, 0.3, 500);
+    if (s16 === 4 || s16 === 12) hat(V, w, 0.04);
+    if (s16 === 0) bass(V, w, root, sd * 20, 0.3, 500, 0.5);   // slow attack: no accent at the bar line
   } else if (state === 'buy') {
-    if (s16 % 2 === 0) bass(V, w, root + (s16 === 6 || s16 === 14 ? 12 : 0), sd * 1.6, 0.26, 700);
+    if (s16 % 2 === 0) bass(V, w, root + (s16 === 6 || s16 === 14 ? 12 : 0), sd * 1.6, 0.26, 1300);
     if (s16 === 0) pad(V, w, ch, sd * 16, 0.035);
     if (s16 % 4 === 0) hat(V, w, 0.06);
     if (s16 === 0) kick(V, w, 0.3);
     if (s16 === 10 || s16 === 15) pluck(V, w, ch[(s16 + bar) % 3] + 24, 0.08, 0.3);
   } else if (state === 'live') {   // sparse, warm bed: sub/pad drone + soft low plucks (no HF ticks so loop seams stay inaudible)
-    if (s16 === 0) { pad(V, w, [root + 12, root + 19, ch[0] + 12], sd * 16, 0.04); bass(V, w, root, sd * 18, 0.12, 280); }
+    if (s16 === 0) { pad(V, w, [root + 12, root + 19, ch[0] + 12], sd * 16, 0.04); bass(V, w, root, sd * 18, 0.12, 750); }
     if (s16 === 0 || s16 === 6 || s16 === 10) pluck(V, w, ch[(s16 + bar) % 3] + 12, 0.05, 0.7);
     if (s16 === 8) pluck(V, w, root + 24, 0.03, 0.9);
   } else if (state === 'armed') {
@@ -47,7 +48,7 @@ function step(V, state, i, w, sd, I = 0) {
     if (lvl > 0.2 && s16 % 2 === 1) pluck(V, w, ch[ARP[s16]] + 24, 0.06 + lvl * 0.05, 0.16);
     if (lvl > 0.55 && (s16 === 4 || s16 === 12)) clap(V, w, 0.16);
     if (lvl > 0.75 && s16 === 0 && bar % 2 === 1) riser(V, w, sd * 16, 0.07);
-    if (s16 === 0 && bar === 0) pad(V, w, ch, sd * 16, 0.03);
+    if (s16 === 0) pad(V, w, ch, sd * 16, 0.04);
   }
 }
 /** One-shot stingers (win / lose), relative to V.t. Returns duration. */
@@ -71,7 +72,7 @@ export function createMusic(mixer) {
   const ac = mixer.ac;
   let cur = null, pending = null, nextT = 0, idx = 0, bpm = 100, intensity = 0, timer = 0, want = 'menu', running = false, sting_ = null;
   const state = { name: 'off', bus: null };
-  function mkBus(name) { const b = ac.createGain(); b.gain.value = 0.0001; b.connect(mixer.bus.music.in); b.gain.setTargetAtTime(STATE_GAIN[name] ?? 1, ac.currentTime, 0.25); return b; }
+  function mkBus(name) { const b = ac.createGain(); b.gain.value = 0.0001; b.connect(mixer.bus.music.in); b.gain.setTargetAtTime(SG(name), ac.currentTime, 0.25); return b; }
   function killBus(b, fade = 0.5) { if (!b) return; b.gain.cancelScheduledValues(ac.currentTime); b.gain.setTargetAtTime(0.0001, ac.currentTime, fade / 3); setTimeout(() => { try { b.disconnect(); } catch {} }, (fade + 2.5) * 1000); }
   function begin(name) {
     killBus(state.bus, name === 'win' || name === 'lose' ? 0.25 : 0.8);
@@ -112,7 +113,7 @@ export function createMusic(mixer) {
 /** Offline: render `seconds` of a music state onto ac (for tools). */
 export function scheduleMusicOffline(ac, out, name, seconds, { intensity = 0.5 } = {}) {
   const V = mkV(ac, out, 1); let t = 0.05, i = 0, bpm = STATE_BPM[name] ?? 100;
-  const gain = ac.createGain(); gain.gain.value = STATE_GAIN[name] ?? 1; gain.connect(out); V.out = gain;
+  const gain = ac.createGain(); gain.gain.value = SG(name); gain.connect(out); V.out = gain;
   if (name === 'win' || name === 'lose') { V.t = 0.05; sting(V, name); return; }
   while (t < seconds) { const sd = 60 / bpm / 4; V.t = t; V.r = mulberry32(1234 + i * 7); step(V, name, i, 0, sd, intensity); t += sd; i++; if (name === 'armed') bpm = lerp(112, 168, intensity); }
 }

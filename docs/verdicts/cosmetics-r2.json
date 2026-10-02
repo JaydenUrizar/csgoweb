@@ -1,0 +1,27 @@
+{"piece":"cosmetics","round":2,
+"blind":[
+{"pair":1,"picked":"ref","truth":"ref","why":"Full locker at 1920x1080 (1920/00_initial) vs the CS2 loadout (ss_13). Ours is now clean, dense (2 full rows, 20 suits visible) and has a consistent rarity language. CS2 still wins on desirability. It shows both team agents large, and the item art has depth and variety. Our hero figure is small, stands in an odd X-crossed-legs pose, and all 20 suit cards use the same box-man silhouette with only small differences in colour and pattern."},
+{"pair":2,"picked":"ref","truth":"ref","why":"Tagger-skins tab at 1280x720 (1280/ember_skin) vs ss_13 scaled to 1280. Our skins are flat recolours of a single tagger silhouette. The wear label collides with its value ('WEARFACTORY FRESH · 0.030'), and the kit rows are cramped to about 25 px. The CS2 finishes each read as a distinct product."},
+{"pair":3,"picked":"ref","truth":"ref","why":"Tide bots at 10 m in a real match (match/tide_10m) vs a CS2 CT lineup (ss_1). Both teams read instantly, and that is a real win for us. But our five bots are near-identical teal robots: patterns are faint, helmets are similar, and only a tiny pink charm dot sets two of them apart. CS2 agents are individually recognisable and still read as one team."}],
+"winner_overall":"ref","score":6.6,
+"biggest_gap":"The locker preview does not show what you equipped, most of all on the Tide side. The Tide athlete renders as a blown-out cyan-white bloom blob, so the item you are inspecting cannot be seen. Repro: ?test=1&seed=1&scene=locker at 1920x1080, press T then R (Abyssal Skin, Wave Scales, Cyclops Eye). (1) The visor tab with Cyclops Eye equipped shows a white glowing face, not a red eye (1920/06_drag_wheel). (2) Wave Scales shows no hex pattern on the body (1920/c_pattern). (3) The Charms tab zooms onto the hip, and Pearl Drop is an unreadable white blob (1920/c_charm; at 720p the Lucky Cube is not visible at all, 1280/ember_charm). (4) The Nameplates tab shows no nameplate anywhere (1920/c_nameplate). CS2's inspect view lights the agent neutrally and frames each slot so that the item is the hero. Fix: per-team exposure and bloom clamp in the preview (no emissive overload on light-cyan suits), focus cameras per slot that keep the item in frame and in front of the body, and a visible nameplate in the plate tab.",
+"other_gaps":[
+"In-game individuality is weak. At 10 m all 5 Ember bots are the same orange and all 5 Tide bots the same teal (r2_bots_zoom.png). Patterns, suits and backs barely survive the team clamp, and only helmets and charms differ. Use larger-scale pattern contrast and more distinct silhouette parts (helmet, back) so a player can tell bots apart, as CS2 agents can.",
+"The team-hue clamp makes names lie. On Tide, 'Signal Yellow' is teal checker, 'Void Black' is lilac and 'Harbor Blue' on Ember is red and orange (1280/tide_suit, 1920/00_initial). Rename suits by pattern or finish, or keep a strong non-hue identity.",
+"Skins (20) are one tagger mesh with a palette swap and are not desirable. Add per-skin decals, patterns and finish variety (the wear float exists but no wear is visible).",
+"At 720p the Emotes tab toolbar wraps to two lines and covers the athlete from the waist down (1280/ember_emote). The wave arm also clips out of the top of the stage.",
+"Hero framing: the FULL camera at 1080p, after a wheel zoom, does not reset, so the head stays cut off under the EMBER/TIDE toggle (1920/c_tagOut, s_emote). The idle pose has crossed and twisted legs (1920/00_initial).",
+"Trails in game are faint: a few sparse green dots on the floor behind a running bot at 6 m (match/live_follow_6m_tide). The trail does not read as a premium cosmetic."],
+"bugs":[
+"Pressing T (switch side) loads the Tide kit and turns the footer teal, but the EMBER/TIDE toggle stays highlighted on EMBER until another action (1920/02_key_t; same with debug setSide at 720p, 1280/tide_suit).",
+"Calling locker setCat(<current category>) empties the item grid. The header still says 'N of N items shown' (1280/ember_suit, 1920/s_tagout, 1920/s_emote). A real click on the active tab does not trigger it, but any code path that re-opens the current category (for example openLocker({cat})) likely does.",
+"The 720p skin toolbar label collides with its value: 'WEARFACTORY FRESH · 0.030'.",
+"The bot trail emitter sits at floor level while the bot is airborne mid-jump. Particles spawn on the ground several metres below the jumping body (match/live_follow_6m_tide)."],
+"strengths":[
+"Density fixed: 2 full rows at 720p and 2+ at 1080p, with clean tabs, filters, search, sort and a clear common/rare/epic/legendary underline language.",
+"The preview is now the real in-game athlete, with the team tint applied to cards and body.",
+"Team readability in a real match is excellent: orange vs teal reads instantly at 10 m.",
+"Share codes round-trip losslessly: 200 of 200 random loadouts for both teams. A malformed code returns null and does not throw.",
+"Charms render in game at the hip, trails emit, bots get de-duplicated random loadouts, and there were no console errors in any run.",
+"Sets tab is coherent: 8 themed collections with descriptions and an equip-full-set button."],
+"pass":false}

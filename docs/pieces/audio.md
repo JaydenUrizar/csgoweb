@@ -17,6 +17,12 @@ API: `ctx.audio.play(name,{pos,gain,pitch,actor,fp,delay})`, `music.set/setInten
 * 'round start' VO only at live (buy-phase announce ignored); music live bed has no HF ticks, pads overlap across bars.
 * Reference: no isolated CS2 SFX could be obtained (web results are paywalled/unlicensed sample sites; trailers are music/VO-mixed). Targets used: critic's measured CS2 transient (broadband, centroid ~3.5 kHz), onset/decay shapes from trailer transients (`tools/audio_ref.py scan`), and LUFS class ordering.
 
+## Round 3 changes
+* Voice budget: per-name lists with stealing; the local first-person shot is never refused (steals its oldest), remote voices steal the farthest, counted separately (40/40 local Arc shots play with 6 bots firing).
+* Pistols/SMG: sustained 'chest' layer + per-weapon body/saturation; Pip -18 LUFS (was -29), FP spectra near the real CS set in `shots/critic-audio-r2/cs` (analysis only).
+* Distance: HRTF presence shelf + `airK` so TP gunfire keeps 2-4 kHz crack; steps ref 3.2 m, 9 dB ILD at 90 deg (stereo ILD stage after HRTF), `occK` 0.5 for steps.
+* hit.tick/dmg.taken/tag.out.self got 1-3 kHz content; announcer -23 LUFS; music calibrated (menu -30, buy -33, live -38, armed -31), menu bar-line accent removed, armed pad underlay; team-only pings; audio_dump retries hung renderers.
+
 ## Tuning
 Per-weapon params `FIRE` + `TRIM` in weapons.js; global makeup/comp in mixer.js; music state gains in music.js; voice level in voice.js (`cg`).
 

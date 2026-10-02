@@ -70,16 +70,15 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
 
   // ---- voices ----
   const counts = Object.create(null), rrc = Object.create(null); let active = 0, spatialActive = 0, played = 0, dropped = 0, seedCtr = 1;
-  const MAX_VOICES = 72, MAX_SPATIAL = 30;
+  const MAX_VOICES = 120, MAX_SPATIAL = 36, lists = Object.create(null);
   const ctl = { reverb: 1, sfx: 1 };
   const rand32 = () => (Math.random() * 4294967296) | 0;
 
   function play(name, o = {}) {
     const def = SOUNDS[name]; if (!def) return null;
     if (!offline && ac.state !== 'running') return null;
-    if ((counts[name] | 0) >= def.voices && def.prio < 8) { dropped++; return null; }
-    if (active >= MAX_VOICES && def.prio < 5) { dropped++; return null; }
     const fp = o.fp ?? !!o.isLocal;
+    if (active >= MAX_VOICES && def.prio < 5 && !fp) { dropped++; return null; }
     const has3d = def.spatial && o.pos && !fp;
     let dist = 0, sx = 0, sy = 0, sz = 0, dg = 1, fc = 22000, occV = 0;
     if (has3d) {
@@ -91,21 +90,32 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
       if (spatialActive >= MAX_SPATIAL && def.prio < 4 && dist > 25) { dropped++; return null; }
     }
     const now = ac.currentTime, t = now + (o.delay || 0) + 0.004;
+    // ---- per-name voice budget with stealing: the local first-person voice is never refused; local and remote are counted separately ----
+    const lst = lists[name] || (lists[name] = []);
+    if (!offline) for (let i = lst.length - 1; i >= 0; i--) if (lst[i].expire < now) lst.splice(i, 1);
+    const same = lst.filter((e) => e.fp === fp);
+    if (same.length >= def.voices) {
+      let victim = null;
+      if (fp) victim = same.reduce((a, b) => (a.t0 <= b.t0 ? a : b));                     // oldest local
+      else { victim = same.reduce((a, b) => (a.dist >= b.dist ? a : b)); if (victim.dist < dist && def.prio < 8) { dropped++; return null; } }   // farthest remote, only if the new one is nearer
+      lst.splice(lst.indexOf(victim), 1); victim.stop(0.03); dropped++;
+    }
     const inG = g(def.gain * (o.gain ?? 1));
     const rr = o.rr ?? (rrc[name] = ((rrc[name] | 0) + 1) & 1023);
     const seed = o.seed ?? (offline ? 0x9e3779b1 ^ (name.length * 2654435761) ^ (rr * 40503) : rand32() ^ (seedCtr++ * 2654435761));
     const V = { ac, t, out: inG, r: mulberry32(seed), fp, o: { ...o, rr, dist }, end: 0.05, name };
     if (o.pitch && o.pitch !== 1) V.o.pitch = o.pitch;
     try { def.fn(V, V.o); } catch (e) { if (!play._warned) { play._warned = true; console.error('[audio] sound failed', name, e); (window.__errors ||= []).push('audio ' + name + ': ' + (e?.stack || e)); } try { inG.disconnect(); } catch {} return null; }
-    const nodes = [inG]; let panner = null, lp = null, dgN = null, sendN = null, pan2 = null;
+    const nodes = [inG]; let pres = null, ild = null, panner = null, lp = null, dgN = null, sendN = null, pan2 = null;
     const dest = bus[o.bus || def.bus]?.in || bus.sfx.in;
     if (has3d) {
       lp = bq('lowpass', 22000, 0.6); dgN = g(1); panner = ac.createPanner();
       panner.panningModel = 'HRTF'; panner.distanceModel = 'inverse'; panner.refDistance = 1; panner.rolloffFactor = 0; panner.maxDistance = 20000;
       panner.coneInnerAngle = 360; panner.coneOuterAngle = 360;
       if (panner.positionX) { panner.positionX.value = sx; panner.positionY.value = sy; panner.positionZ.value = sz; } else panner.setPosition(sx, sy, sz);
-      inG.connect(lp); lp.connect(dgN); dgN.connect(panner); panner.connect(dest);
-      nodes.push(lp, dgN, panner);
+      pres = bq('highshelf', 2800, 0.7, 10 + (def.presence ?? 0)); inG.connect(pres); pres.connect(lp); lp.connect(dgN); dgN.connect(panner);   // pres: makes up the HRTF's HF loss so weapon/footstep identity survives distance ild = ac.createStereoPanner ? ac.createStereoPanner() : null;
+      if (ild) { panner.connect(ild); ild.connect(dest); nodes.push(ild); } else panner.connect(dest);
+      nodes.push(pres, lp, dgN, panner);
       if (def.send > 0) { sendN = g(0); dgN.connect(sendN); sendN.connect(rv.send); nodes.push(sendN); }
     } else {
       let n = inG;
@@ -116,25 +126,30 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
     const geo = (v) => {   // (re)apply distance / air / occlusion to node params
       const d = has3d ? Math.hypot(v.x - L.x, v.y - L.y, v.z - L.z) : 0;
       const dgv = d <= def.ref ? 1 : def.ref / (def.ref + def.roll * (d - def.ref));
-      const air = clamp(19000 / (1 + d / 13), 1300, 20000);
+      const air = clamp(19000 * (def.airK ?? 1) / (1 + d / 13), 1300, 20000);
       const og = occGain(occV), of = occFc(occV);
+      if (ild && d > 0.3) ild.pan.setValueAtTime(clamp(((v.x - L.x) * L.rx + (v.z - L.z) * L.rz) / d, -1, 1) * 0.5, Math.max(t - 0.001, ac.currentTime));
       const cutoff = Math.min(air, of), gain = dgv * og;
       const tt = ac.currentTime;
       lp.frequency.setValueAtTime(cutoff, Math.max(t - 0.001, tt)); dgN.gain.setValueAtTime(gain, Math.max(t - 0.001, tt));
       if (sendN) sendN.gain.setValueAtTime(def.send * ctl.reverb * clamp(0.9 + d / 12, 0.9, 4.5) * dgv * Math.sqrt(og) * (o.send ?? 1), Math.max(t - 0.001, tt));
     };
-    if (has3d) { occV = o.occ ?? occlusion(sx, sy, sz, now); geo({ x: sx, y: sy, z: sz }); spatialActive++; }
+    if (has3d) { occV = o.occ ?? occlusion(sx, sy, sz, now) * (def.occK ?? 1); geo({ x: sx, y: sy, z: sz }); spatialActive++; }
     active++; counts[name] = (counts[name] | 0) + 1; played++;
     let dead = false;
     const dispose = () => { if (dead) return; dead = true; active--; counts[name]--; if (has3d) spatialActive--; for (const n of nodes) { try { n.disconnect(); } catch {} } };
     if (!offline) setTimeout(dispose, (V.end + (o.delay || 0) + 0.6) * 1000);
     log?.(name, o, dist, occV);
-    return {
+    const entry = { fp, t0: t, dist, expire: now + (o.delay || 0) + Math.min(V.end, def.countDur ?? 1.0) + 0.1, stop: null };
+    lst.push(entry);
+    const handle = {
       name, def, dist, occ: occV, end: t + V.end,
       setPos(x, y, z) { if (dead || !has3d) return; if (panner.positionX) { panner.positionX.value = x; panner.positionY.value = y; panner.positionZ.value = z; } geo({ x, y, z }); },
       setGain(v) { if (!dead) inG.gain.setTargetAtTime(def.gain * v, ac.currentTime, 0.03); },
       stop(fade = 0.05) { if (dead) return; const n = ac.currentTime; inG.gain.cancelScheduledValues(n); inG.gain.setTargetAtTime(0.0001, n, fade / 3); setTimeout(dispose, fade * 1000 + 200); },
     };
+    entry.stop = handle.stop;
+    return handle;
   }
 
   // ---- dynamics / effects ----
@@ -164,7 +179,7 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
     const now = ac.currentTime, pz = paused ? 0.12 : 1;
     master.gain.setTargetAtTime(vols.master, now, 0.02);
     bus.sfx.vol.gain.setTargetAtTime(vols.sfx * pz, now, 0.05); bus.ui.vol.gain.setTargetAtTime(Math.min(1, vols.sfx), now, 0.02);
-    bus.music.vol.gain.setTargetAtTime(vols.music * 0.13 * (paused ? 0.5 : 1), now, 0.05); bus.voice.vol.gain.setTargetAtTime(0.95 * vols.voice * pz, now, 0.05);
+    bus.music.vol.gain.setTargetAtTime(vols.music * 0.2 * (paused ? 0.5 : 1), now, 0.05); bus.voice.vol.gain.setTargetAtTime(0.95 * vols.voice * pz, now, 0.05);
   }
   function setVolumes(v) { Object.assign(vols, Object.fromEntries(Object.entries(v).filter(([, x]) => x != null))); applyVols(); }
   function setPaused(p) { paused = !!p; applyVols(); }

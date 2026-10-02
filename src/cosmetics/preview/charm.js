@@ -11,7 +11,7 @@ export function buildCharmObject(c, scale = 1) {
   chainMat ||= new THREE.MeshStandardMaterial({ color: 0xaab0bd, roughness: 0.3, metalness: 0.9 });
   const pivot = new THREE.Group(); group.add(pivot); group.scale.setScalar(scale);
   const chain = new THREE.Mesh(g('chain', () => new THREE.CylinderGeometry(0.004, 0.004, 0.09, 4)), chainMat); chain.position.y = -0.045; pivot.add(chain);
-  const cm = new THREE.MeshStandardMaterial({ color: mix(c.color, 0x000000, 0.25), emissive: c.color, emissiveIntensity: 1.6, roughness: 0.3, metalness: 0.1, flatShading: true });
+  const cm = new THREE.MeshStandardMaterial({ color: mix(c.color, 0x000000, 0.25), emissive: c.color, emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.1, flatShading: true });
   const item = new THREE.Group(); item.position.y = -0.13; pivot.add(item);
   const add = (geo, mat = cm, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); item.add(m); return m; };
   switch (c.model) {

@@ -29,3 +29,10 @@ Constants in `flow.js TUNE` and `economy.js ECON`. Gaps: no 3D announcer/UI (hud
 * Economy: each half starts at loss level 1 (pistol loser +1900); surviving Ember on a time-out get no loss bonus; lost-after-plant gives each Ember +800 (`credits` reason `plantloss`). Buy grace in live is 20 s.
 * New announce ids: `match_point {teams}`, `last_round_of_half`, `last_round`, `clutch {team,actor,vs}`, `beacon_dropped`/`beacon_picked_up` (`teams:['ember']`); `round:start` carries `matchPoint, lastRoundOfHalf, lastRound`. First `beacon:beep` fires at the moment of arming.
 * Test mode: spawn pin is off in `?test=1` (`?freeze=1` or `debug.pin(true)` restores); `?match=1&phase=live` starts live and sticks.
+
+## Round 3 changes
+* `match:end` payload is complete and documented (also `ctx.match.matchResult`): `{winner, winnerSquad, scores, playerTeam, playerWon, mvp, teams:{ember[],tide[]} (actors with actor.stats.{tags,outs,assists,damage,score} mirrored from flow), history:[{n,winner,reason,scores,mvp,credits,plant,time,ot,econ}], econLog:[{n,ember,tide}], scoreboard, rounds, ot, otIndex, winTarget}`. Verified with the real menu: end screen builds, no errors. Menu must call `ctx.match.quit()` / `startMatch()` to leave matchEnd.
+* OT state for HUD: getters `winTarget, roundTotal, half, halfLabel, roundLabel, otRoundOf`, `scoringOpen`.
+* Beacon drops to the floor with an unbounded ray (fallback: carrier's last grounded spot); pickup |dy|<=2.2.
+* Clutch voice only for the local player on 1v2/1v3; `spectate` event once per switch.
+* Balance (src/match/timing.js, 6 seeds x 8 real bot rounds): live 105->100 s, fuse 35->40 s. Ember wins 65% -> ~42-50%, time-outs 0 -> ~5%. Requests for bots in docs/requests/bots-from-flow-2.md.

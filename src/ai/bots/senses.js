@@ -11,7 +11,7 @@ export function createSenses(B) {
 
   function memOf(bot, e) {
     const mm = bot.ai.mem; let m = mm.get(e.id);
-    if (!m) { m = { id: e.id, actor: e, pos: new THREE.Vector3(), vel: new THREE.Vector3(), t: -99, seenT: -99, heardT: -99, conf: 0, vis: 0, visSince: 0, spotted: false, react: 0.3, src: '', lostT: -99, called: false, hitT: -99, firstSeen: -1 }; mm.set(e.id, m); }
+    if (!m) { m = { id: e.id, actor: e, pos: new THREE.Vector3(), vel: new THREE.Vector3(), t: -99, seenT: -99, heardT: -99, conf: 0, vis: 0, visSince: 0, spotted: false, react: 0.3, src: '', lostT: -99, called: false, hitT: -99, firstSeen: -1, g: new THREE.Vector3(), gT: -99, hasSpot: false, spotT: -99 }; mm.set(e.id, m); }
     return m;
   }
 
@@ -57,14 +57,16 @@ export function createSenses(B) {
         if (d < K.closeSense || dot >= cosFov) bits = visBits(bot, e);
       }
       if (bits) {
-        if (!m.vis) { m.visSince = now; m.react = reaction(bot, m, d, bits, now); if (m.firstSeen < 0) m.firstSeen = now; }
-        // velocity estimate
-        const dt = now - m.seenT;
-        if (dt > 0 && dt < 0.6 && m.vis) { m.vel.set((e.pos.x - m.pos.x) / dt, 0, (e.pos.z - m.pos.z) / dt); }
-        else m.vel.set(e.vel?.x || 0, 0, e.vel?.z || 0);
-        m.vis = bits; m.pos.copy(e.pos); m.seenT = m.t = now; m.conf = 1; m.src = 'vis';
+        if (!m.vis) { m.visSince = now; m.react = reaction(bot, m, d, bits, now); if (m.firstSeen < 0) m.firstSeen = now; if (now - m.spotT > 3) m.hasSpot = false; }
+        // glimpse tracking (private until the reaction window has elapsed: unnoticed sightings must not leak position or move the aim)
+        const dt = now - m.gT;
+        if (dt > 0 && dt < 0.6 && m.vis) m.vel.set((e.pos.x - m.g.x) / dt, 0, (e.pos.z - m.g.z) / dt); else m.vel.set(e.vel?.x || 0, 0, e.vel?.z || 0);
+        m.g.copy(e.pos); m.gT = now; m.vis = bits;
         const was = m.spotted; m.spotted = now - m.visSince >= m.react;
-        if (m.spotted && !was) B.onSpotted(bot, m, now);
+        if (m.spotted) {
+          m.pos.copy(e.pos); m.seenT = m.t = now; m.conf = 1; m.src = 'vis'; m.spotT = now; m.hasSpot = true;
+          if (!was) B.onSpotted(bot, m, now);
+        }
         any = true;
       } else {
         if (m.vis) { m.vis = 0; m.lostT = now; }

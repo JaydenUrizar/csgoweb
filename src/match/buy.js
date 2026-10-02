@@ -1,5 +1,5 @@
 // Buy system: catalogue, purchase rules (team / time / zone / credits / limits), same-tick rebuy/refund/undo/drop, bot auto-buy.
-import { MATCH } from '../core/config.js';
+import { TIMING as MATCH } from './timing.js';
 import { CATALOG, BY_ID, MAX_UTILITY } from './catalog.js';
 
 export function installBuy(env) {

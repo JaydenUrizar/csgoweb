@@ -1,6 +1,7 @@
 // ?scene=match-lab — dummy actors + scripted director; on-screen debug text of the state machine and economy table.
 import * as THREE from 'three';
-import { TEAMS, MATCH } from '../core/config.js';
+import { TEAMS } from '../core/config.js';
+import { TIMING as MATCH } from './timing.js';
 import { ECON, lossBonus } from './economy.js';
 
 const pad = (s, n) => String(s).padEnd(n).slice(0, n);

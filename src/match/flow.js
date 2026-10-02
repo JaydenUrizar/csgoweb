@@ -3,7 +3,8 @@
 // (with every other piece stubbed) and inside tools/match_test.mjs with a sandbox ctx.
 import * as THREE from 'three';
 import { createActor } from '../core/actor.js';
-import { MATCH, TEAMS } from '../core/config.js';
+import { TEAMS } from '../core/config.js';
+import { TIMING as MATCH } from './timing.js';
 import { rng as coreRng } from '../core/rng.js';
 import { ECON, lossBonus, nextLossLevel, clampCredits, KILL_REWARD } from './economy.js';
 import { installBuy } from './buy.js';
@@ -69,6 +70,27 @@ export function createMatch(ctx, o = {}) {
   M.sideOf = (team) => (team === 'ember' ? 'attack' : 'defend');
   M.squadOf = (team) => (M.swapped ? (team === 'ember' ? 'B' : 'A') : (team === 'ember' ? 'A' : 'B'));
   M.other = other;
+
+  /** mirror our per-match counters into actor.stats (the menu / other pieces read actor.stats.{tags,outs,assists,damage,score}) */
+  function syncStats(a) {
+    const t = ms(a).total, st = a.stats || (a.stats = { tags: 0, outs: 0, assists: 0, score: 0, damage: 0, crowns: 0 });
+    st.tags = t.tags; st.outs = t.outs; st.assists = t.assists; st.damage = Math.round(t.damage); st.score = Math.round(t.score);
+  }
+  M.syncStats = syncStats;
+  const avgCredits = (team) => { const l = M.teams[team]; return l.length ? Math.round(l.reduce((x, a) => x + a.credits, 0) / l.length) : 0; };
+  M.econLog = [];
+  // OT-aware labels for HUD / menu
+  const half = () => (!M.ot ? (M.history.length < M.regulationRounds / 2 ? 1 : 2) : ((M.otRound % (TUNE.otHalfRounds * 2)) < TUNE.otHalfRounds ? 1 : 2));
+  Object.defineProperties(M, {
+    /** phases in which tag damage should land (CS2 allows exit frags during the round-end card; flow pays them) */
+    scoringOpen: { get: () => M.phase === 'live' || M.phase === 'armed' || M.phase === 'roundEnd' || M.phase === 'warmup' },
+    winTarget: { get: () => (M.ot ? M.otTarget : M.roundsToWin) },
+    half: { get: half },
+    roundTotal: { get: () => (M.ot ? null : M.regulationRounds) },
+    otRoundOf: { get: () => (M.ot ? (M.otRound % (TUNE.otHalfRounds * 2)) + 1 : null) },
+    halfLabel: { get: () => `${M.ot ? `OVERTIME ${M.otIndex} · ` : ''}${half() === 1 ? 'FIRST' : 'SECOND'} HALF` },
+    roundLabel: { get: () => `ROUND ${M.round}${M.ot ? ` · OVERTIME ${M.otIndex}` : ''}` },
+  });
 
   // ------------------------------------------------------------------ credits
   function addCredits(a, want, reason) {
@@ -214,6 +236,7 @@ export function createMatch(ctx, o = {}) {
     clearWorld();
     placeTeam('ember'); placeTeam('tide');
     for (const a of ctx.actors) if (TEAMS[a.team]) resetActor(a, wipeAll);
+    M.econLog.push({ n, ember: avgCredits('ember'), tide: avgCredits('tide'), ot: M.ot });
     M.roundEcon = { ember: { kills: 0, plant: 0, disarm: 0, teamTag: 0 }, tide: { kills: 0, plant: 0, disarm: 0, teamTag: 0 } };
     M.mvp = null; M.armedThisRound = false; M.next = null;
     M.beaconApi.reset();
@@ -275,7 +298,7 @@ export function createMatch(ctx, o = {}) {
     // ---- MVP
     const { mvp } = pickMvp(winner, reason);
     if (mvp) { const s = ms(mvp); s.total.mvps++; }
-    for (const a of ctx.actors) if (TEAMS[a.team]) { const r = ms(a).round; const s = ms(a); s.total.score += r.tags * 10 + r.assists * 3 + r.damage / 100 + r.objective * 4 + (a === mvp ? 10 : 0); s.survived = a.alive; }
+    for (const a of ctx.actors) if (TEAMS[a.team]) { const r = ms(a).round; const s = ms(a); s.total.score += r.tags * 10 + r.assists * 3 + r.damage / 100 + r.objective * 4 + (a === mvp ? 10 : 0); s.survived = a.alive; syncStats(a); }
     for (const t of ['ember', 'tide']) for (const a of M.teams[t]) rows[t].push({ actor: a, id: a.id, name: a.name, alive: a.alive, tags: ms(a).round.tags, income: ms(a).round.income, credits: a.credits, before: before.get(a) });
     const econ = {
       winner, loser, reason,
@@ -290,7 +313,7 @@ export function createMatch(ctx, o = {}) {
     // ---- score
     M.scores[winner]++;
     M.mvp = mvp;
-    const entry = { n, winner, winnerSquad: M.squadOf(winner), reason, plant: M.armedThisRound, scores: { ...M.scores }, mvp: mvp?.name || null, mvpId: mvp?.id ?? null, ot: M.ot, aliveAtEnd: { ember: aliveOf('ember'), tide: aliveOf('tide') }, time: M.clock - M.roundStartClock };
+    const entry = { n, winner, winnerSquad: M.squadOf(winner), reason, plant: M.armedThisRound, scores: { ...M.scores }, mvp: mvp?.name || null, mvpId: mvp?.id ?? null, ot: M.ot, credits: { ember: avgCredits('ember'), tide: avgCredits('tide') }, aliveAtEnd: { ember: aliveOf('ember'), tide: aliveOf('tide') }, time: M.clock - M.roundStartClock };
     M.history.push(entry);
     // ---- what comes next
     const done = M.history.length;
@@ -357,7 +380,16 @@ export function createMatch(ctx, o = {}) {
     const w = M.winner; let best = null, bs = -1;
     for (const a of M.teams[w] || []) { const t = ms(a).total; const sc = t.score + t.mvps * 5 + a.isPlayer * 0.001; if (sc > bs) { bs = sc; best = a; } }
     M.matchMvp = best; M.playerWon = local() ? local().team === w : null;
-    emit('match:end', { winner: w, winnerSquad: M.squadOf(w), scores: { ...M.scores }, mvp: best, playerWon: M.playerWon, history: M.history, playerTeam: M.playerTeam, ot: M.ot });
+    for (const a of ctx.actors) if (TEAMS[a.team]) syncStats(a);
+    const payload = {
+      winner: w, winnerSquad: M.squadOf(w), scores: { ...M.scores }, mvp: best, playerWon: M.playerWon, playerTeam: M.playerTeam,
+      teams: { ember: M.teams.ember.slice(), tide: M.teams.tide.slice() },          // actors, each with actor.stats.{tags,outs,assists,damage,score}
+      history: M.history.map((h) => ({ ...h })),                                       // [{n,winner,reason,scores,mvp,credits:{ember,tide},plant,time,ot,econ}]
+      econLog: M.econLog.map((e) => ({ ...e })),                                       // [{n, ember, tide}] average credits per player at the start of each round
+      scoreboard: M.scoreboard(), rounds: M.history.length, ot: M.ot, otIndex: M.otIndex, winTarget: M.winTarget,
+    };
+    M.matchResult = payload;
+    emit('match:end', payload);
     announce(M.playerWon === false ? 'match_lost' : 'match_won', { winner: w });
   }
 
@@ -381,11 +413,12 @@ export function createMatch(ctx, o = {}) {
     if (s.outRound === M.round) return;           // idempotent per round
     s.outRound = M.round; s.deadAt = M.clock; s.round.outs++; s.total.outs++;
     if (!exit) clutchCheck();
+    syncStats(v);
     const a = e.attacker;
     if (a && a !== v && TEAMS[a.team]) {
       const as = ms(a);
       if (a.team !== v.team) {
-        as.round.tags++; as.total.tags++;
+        as.round.tags++; as.total.tags++; syncStats(a);
         const amt = killReward(taggerId(e.tagger));
         addCredits(a, amt, 'tag');
         M.roundEcon[a.team].kills += amt;
@@ -409,7 +442,8 @@ export function createMatch(ctx, o = {}) {
     for (const t of ['ember', 'tide']) {
       if (M.clutchDone[t]) continue;
       const mine = M.teams[t].filter((a) => a.alive), foes = aliveOf(other(t));
-      if (mine.length === 1 && foes >= 2) { M.clutchDone[t] = true; announce('clutch', { team: t, actor: mine[0], vs: foes }); }
+      // only a genuine, winnable-looking 1v2 / 1v3 and only for the viewer's own team (voice line, not noise)
+      if (mine.length === 1 && foes >= 2 && foes <= 3 && mine[0] === local() && !M.armedThisRound) { M.clutchDone[t] = true; announce('clutch', { team: t, actor: mine[0], vs: foes }); }
     }
   }
   env.clutchCheck = clutchCheck;
@@ -418,9 +452,13 @@ export function createMatch(ctx, o = {}) {
   function setSpectate(a) {
     if (M.spectating === a) return;
     M.spectating = a;
-    if (TUNE.spectate && (a || (local() && !local().alive))) safe('player.spectate', () => ctx.player?.spectate?.(a));
-    emit('spectate', { actor: a });
+    const pl = ctx.player;
+    if (TUNE.spectate && pl?.spectate && (a || (local() && !local().alive))) {
+      M._specGuard = true; safe('player.spectate', () => pl.spectate(a)); M._specGuard = false;
+      if (!a) emit('spectate', { actor: null });          // ctx.player emits for non-null targets itself: one event per switch
+    } else emit('spectate', { actor: a });
   }
+  ctx.events.on('spectate', (e) => { if (!M._specGuard && (e?.actor ?? null) !== M.spectating) M.spectating = e?.actor ?? null; });
   function nextAlive(from, dir = 1) {
     const me = local(); if (!me) return null;
     const pool = M.teams[me.team].filter((a) => a.alive && a !== me);
@@ -524,7 +562,7 @@ export function createMatch(ctx, o = {}) {
     }
     for (const a of ctx.actors) if (TEAMS[a.team]) { a.credits = ECON.start; a.hasKit = false; a.stats = { tags: 0, outs: 0, assists: 0, score: 0, damage: 0, crowns: 0 }; a.match = newMs(); }
     M.scores.ember = M.scores.tide = 0; M.lossStreak.ember = M.lossStreak.tide = ECON.startLevel;
-    M.history.length = 0; M.round = 0; M.winner = null; M.matchMvp = null; M.playerWon = null; M.mvp = null; M.lastRound = null;
+    M.history.length = 0; M.econLog.length = 0; M.round = 0; M.winner = null; M.matchMvp = null; M.playerWon = null; M.mvp = null; M.lastRound = null;
     M.ot = false; M.otIndex = 0; M.otBase = 0; M.otTarget = 0; M.otRound = 0; M.swapped = false; M.halfKind = null;
     M.needReset = true; M.resetCredits = ECON.start; M.active = true; M.paused = false; M.playerTeam = team;
     syncTeams();

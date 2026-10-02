@@ -48,7 +48,7 @@ const cl = (v, a, b) => Math.min(b, Math.max(a, v));
 export function teamBase(color, team) {
   const [h, s, l] = hsl(color); const th = TEAM_H[team] ?? TEAM_H.ember;
   const grey = s < 0.08;
-  const nl = 0.34 + 0.18 * cl((l - 0.06) / 0.62, 0, 1), ns = 0.6 + 0.3 * cl(s, 0, 1);
+  const nl = 0.36 + 0.11 * cl((l - 0.06) / 0.62, 0, 1), ns = 0.6 + 0.3 * cl(s, 0, 1);
   return fromHsl(th + (grey ? 0 : cl(wrapH(h - th), -0.03, 0.03)), ns, nl);
 }
 export function teamAccent(color) { const [h, s, l] = hsl(color); return fromHsl(h, Math.min(s, 0.55), Math.max(l, 0.72)); }
@@ -56,6 +56,19 @@ export const teamHelmet = (color) => { const [h, s, l] = hsl(color); return from
 export const teamBack = (color) => { const [h, s, l] = hsl(color); return fromHsl(h, Math.min(s, 0.7), cl(l, 0.3, 0.55)); };
 export const teamGuardColor = (c, team) => teamBase(c, team);
 
+const toLin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4), toSrgb = (c) => c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+const TEAM_HEX = { ember: 0xff7a2f, tide: 0x2fd0ff };
+/** characters lerps the visor glow 50% toward the team colour; pre-compensate so the visor you picked is the visor you see (clamped to gamut). */
+export function visorCompensate(color, team) {
+  const t = TEAM_HEX[team] ?? TEAM_HEX.ember; let out = 0;
+  for (const sh of [16, 8, 0]) { const d = toLin(((color >> sh) & 255) / 255), tc = toLin(((t >> sh) & 255) / 255); const v = Math.min(1, Math.max(0, 2 * d - tc)); out |= Math.round(toSrgb(v) * 255) << sh; }
+  return out;
+}
+/** Pattern colour with strong contrast against the (team-banded) suit body so patterns read in game. */
+export function patternContrast(color, baseL) {
+  const [h, s] = hsl(color); const l = baseL < 0.44 ? 0.9 : 0.12;
+  return fromHsl(h, Math.max(0.35, Math.min(0.9, s)), l);
+}
 // ---- resolve -> CosmeticSpec (docs/ARCHITECTURE.md) ------------------------------------------------------
 const specCache = new Map();
 export function resolve(loadout, opt) {
@@ -66,12 +79,14 @@ export function resolve(loadout, opt) {
   const it = {}; for (const c of SLOT_CATS) it[c] = BY_ID[l[c]];
   const suit = it.suit, pat = it.pattern;
   const patKind = pat.pattern === 'auto' ? suit.pattern : pat.pattern;
-  const patColor = pat.pattern === 'auto' || pat.color == null ? suit.accent : pat.color;
+  let patColor = pat.pattern === 'auto' || pat.color == null ? suit.accent : pat.color;
   const rarityRank = Math.max(...SLOT_CATS.map((c) => it[c].rarityInfo.rank));
+  const sBase = guard ? teamBase(suit.base, l.team) : suit.base;
+  if (guard && patKind !== 'solid') patColor = patternContrast(patColor, hsl(sBase)[2]);
   spec = {
-    suit: { base: guard ? teamBase(suit.base, l.team) : suit.base, accent: guard ? teamAccent(suit.accent) : suit.accent, pattern: patKind, patternColor: patColor, material: suit.material },
+    suit: { base: sBase, accent: guard ? teamAccent(suit.accent) : suit.accent, pattern: patKind, patternColor: patColor, material: suit.material },
     helmet: { shape: it.helmet.shape, color: guard ? teamHelmet(it.helmet.color) : it.helmet.color, accent: it.helmet.accent },
-    visor: { shape: it.visor.shape, color: it.visor.color, glow: it.visor.glow },
+    visor: { shape: it.visor.shape, color: it.visor.color, glow: guard ? visorCompensate(it.visor.glow, l.team) : it.visor.glow },
     back: { model: it.back.model, color: guard ? teamBack(it.back.color) : it.back.color },
     trail: { type: it.trail.type, color: it.trail.color, color2: it.trail.color2 },
     tagOutEffect: it.tagOut.effect,

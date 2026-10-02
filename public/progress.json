@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-02T10:57:15.375Z",
+ "updated": "2026-10-02T14:27:21.412Z",
  "wave": 3,
  "phase": "Round 2 critics — blind comparison vs CS2 again",
  "pieces": [
@@ -7,10 +7,10 @@
    "id": "render",
    "name": "Rendering, lighting & post-FX",
    "group": "look",
-   "status": "judging",
-   "round": 3,
-   "score": 6.3,
-   "gap": "Global exposure and shade fill are far too low, so the whole game reads as dusk or overcast and shadowed areas crush. Measured on 11 HUD-off gameplay frames vs 8 CS2 frames: median luminance 0.19 vs 0.40, p5 0.06 vs 0.17, pixels b",
+   "status": "building",
+   "round": 4,
+   "score": 6.8,
+   "gap": "The interior ambient (skyocc) now floods roofed spaces, so interiors are brighter than sunlit exteriors. To reproduce: ?test=1&seed=7&match=1&phase=live, hide #ui, then ctx.map.debug.setView('b-tunnel'). The median luminance of th",
    "history": [
     {
      "t": "2026-10-02T01:29:37.047Z",
@@ -25,18 +25,25 @@
      "winner": "ref",
      "score": 6.3,
      "gap": "Global exposure and shade fill are far too low, so the whole game reads as dusk or overcast and shadowed areas crush. Measured on 11 HUD-off gameplay frames vs 8 CS2 frames: median luminance 0.19 vs 0.40, p5 0.06 vs 0.17, pixels b"
+    },
+    {
+     "t": "2026-10-02T14:27:20.612Z",
+     "round": 4,
+     "winner": "ref",
+     "score": 6.8,
+     "gap": "The interior ambient (skyocc) now floods roofed spaces, so interiors are brighter than sunlit exteriors. To reproduce: ?test=1&seed=7&match=1&phase=live, hide #ui, then ctx.map.debug.setView('b-tunnel'). The median luminance of th"
     }
    ],
-   "updated": "2026-10-02T10:57:14.832Z"
+   "updated": "2026-10-02T14:27:20.612Z"
   },
   {
    "id": "map",
    "name": "Map — Crux Station",
    "group": "world",
-   "status": "judging",
-   "round": 3,
-   "score": 6.4,
-   "gap": "Material and colour monotony in the big spaces. The Round 2 facade kit shows up in the lanes (Mid Lane, Outer Long, Tide Spawn look good) but not in the largest surfaces. (1) The tunnels are all one dim brown brick with the same b",
+   "status": "building",
+   "round": 4,
+   "score": 6.6,
+   "gap": "Lighting has no value hierarchy, so interiors and exteriors read the same. All tunnels (Tunnel Approach (-26,0,43), Lower (-34,0,0), Upper (-33,0,-6)), the Mid Doors arch and B Connector are lit almost as brightly as the open site",
    "history": [
     {
      "t": "2026-10-02T01:29:37.124Z",
@@ -51,18 +58,25 @@
      "winner": "ref",
      "score": 6.4,
      "gap": "Material and colour monotony in the big spaces. The Round 2 facade kit shows up in the lanes (Mid Lane, Outer Long, Tide Spawn look good) but not in the largest surfaces. (1) The tunnels are all one dim brown brick with the same b"
+    },
+    {
+     "t": "2026-10-02T14:27:20.687Z",
+     "round": 4,
+     "winner": "ref",
+     "score": 6.6,
+     "gap": "Lighting has no value hierarchy, so interiors and exteriors read the same. All tunnels (Tunnel Approach (-26,0,43), Lower (-34,0,0), Upper (-33,0,-6)), the Mid Doors arch and B Connector are lit almost as brightly as the open site"
     }
    ],
-   "updated": "2026-10-02T10:57:14.895Z"
+   "updated": "2026-10-02T14:27:20.687Z"
   },
   {
    "id": "nav",
    "name": "Navigation & pathing",
    "group": "ai",
-   "status": "judging",
-   "round": 2,
-   "score": 6.8,
-   "gap": "Tactical and path query cost tails will stall the main thread. On the real map (load avg ~28 on 4 cores) holdSpots(A site, toward Long Ramp, 12) took 176 ms and holdSpots(B, toward Tunnel Mouth) 350 ms per call. coverPoints took 5",
+   "status": "building",
+   "round": 3,
+   "score": 7.3,
+   "gap": "holdSpots picks exposed open-ground spots, and what it picks depends on query history. (1) The ~1031 spot sight profiles are never precomputed after a synchronous build: NavSystem.build() sets this.bg=null after _buildGen queues p",
    "history": [
     {
      "t": "2026-10-02T06:28:18.336Z",
@@ -70,18 +84,25 @@
      "winner": "ref",
      "score": 6.8,
      "gap": "Tactical and path query cost tails will stall the main thread. On the real map (load avg ~28 on 4 cores) holdSpots(A site, toward Long Ramp, 12) took 176 ms and holdSpots(B, toward Tunnel Mouth) 350 ms per call. coverPoints took 5"
+    },
+    {
+     "t": "2026-10-02T14:27:21.296Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 7.3,
+     "gap": "holdSpots picks exposed open-ground spots, and what it picks depends on query history. (1) The ~1031 spot sight profiles are never precomputed after a synchronous build: NavSystem.build() sets this.bg=null after _buildGen queues p"
     }
    ],
-   "updated": "2026-10-02T08:15:19.991Z"
+   "updated": "2026-10-02T14:27:21.296Z"
   },
   {
    "id": "move",
    "name": "Movement & camera feel",
    "group": "feel",
-   "status": "judging",
-   "round": 2,
-   "score": 7.2,
-   "gap": "Wedge phantom velocity. On the movement course, goto('vcrease') and hold W for 2 s. The player wedges in the 30-degree V and stays wedged. actor.move.speed reads 0.62 m/s indefinitely, the position oscillates on a 3-tick cycle (ab",
+   "status": "building",
+   "round": 3,
+   "score": 5.6,
+   "gap": "REGRESSION: walking and crouch-walking from rest do not work. In-game repro: ?test=1&seed=1&scene=movement-course&station=flat, inject {forward:true, walk:true} for 1.2 s. actor.move.speed stays 0.00 and the player creeps 0.3 m (a",
    "history": [
     {
      "t": "2026-10-02T01:29:37.209Z",
@@ -89,18 +110,25 @@
      "winner": "ours",
      "score": 7.2,
      "gap": "Wedge phantom velocity. On the movement course, goto('vcrease') and hold W for 2 s. The player wedges in the 30-degree V and stays wedged. actor.move.speed reads 0.62 m/s indefinitely, the position oscillates on a 3-tick cycle (ab"
+    },
+    {
+     "t": "2026-10-02T14:27:20.912Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 5.6,
+     "gap": "REGRESSION: walking and crouch-walking from rest do not work. In-game repro: ?test=1&seed=1&scene=movement-course&station=flat, inject {forward:true, walk:true} for 1.2 s. actor.move.speed stays 0.00 and the player creeps 0.3 m (a"
     }
    ],
-   "updated": "2026-10-02T08:15:19.788Z"
+   "updated": "2026-10-02T14:27:20.913Z"
   },
   {
    "id": "tagger",
    "name": "Tagger ballistics, recoil & inventory",
    "group": "feel",
-   "status": "judging",
-   "round": 2,
-   "score": 6.4,
-   "gap": "The accuracy model is far too forgiving compared with CS2, which flattens skill. Measured in the range (?scene=range, overlay, or ctx.combat.inaccuracy): Arc standing first-shot error is 0.10 deg (CS2 AK: inaccuracy_stand 6.41 + s",
+   "status": "building",
+   "round": 3,
+   "score": 7.3,
+   "gap": "The AK (Arc) spray shape does not match CS2's signature, and its top half is hard to learn. Repro: ?test=1&seed=1&scene=range&bay=wall&tagger=arc, hold fire for 30 shots. The pattern keys in taggers.js:48 go straight up to bullet ",
    "history": [
     {
      "t": "2026-10-02T01:29:37.292Z",
@@ -108,18 +136,25 @@
      "winner": "ref",
      "score": 6.4,
      "gap": "The accuracy model is far too forgiving compared with CS2, which flattens skill. Measured in the range (?scene=range, overlay, or ctx.combat.inaccuracy): Arc standing first-shot error is 0.10 deg (CS2 AK: inaccuracy_stand 6.41 + s"
+    },
+    {
+     "t": "2026-10-02T14:27:20.982Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 7.3,
+     "gap": "The AK (Arc) spray shape does not match CS2's signature, and its top half is hard to learn. Repro: ?test=1&seed=1&scene=range&bay=wall&tagger=arc, hold fire for 30 shots. The pattern keys in taggers.js:48 go straight up to bullet "
     }
    ],
-   "updated": "2026-10-02T08:15:19.835Z"
+   "updated": "2026-10-02T14:27:20.982Z"
   },
   {
    "id": "viewmodel",
    "name": "First-person viewmodels & animation",
    "group": "feel",
-   "status": "judging",
-   "round": 3,
-   "score": 5.3,
-   "gap": "Framing: long arms sit far too central and too big, so the muzzle and muzzle flash land on the crosshair. Repro: ?test=1&seed=3&match=1&phase=live, combat.debug.give(localActor,'arc'), hold fire (shots/critic-viewmodel/r2/fire_she",
+   "status": "building",
+   "round": 4,
+   "score": 5.9,
+   "gap": "Sidearms were left out of the r3 framing fix: they are oversized and central, so their flash blinds the crosshair on every shot. Repro: ?test=1&seed=3&match=1&phase=live, combat.give(localActor,'judge'), press slot2, fire (shots/c",
    "history": [
     {
      "t": "2026-10-02T06:28:18.606Z",
@@ -134,9 +169,16 @@
      "winner": "ref",
      "score": 5.3,
      "gap": "Framing: long arms sit far too central and too big, so the muzzle and muzzle flash land on the crosshair. Repro: ?test=1&seed=3&match=1&phase=live, combat.debug.give(localActor,'arc'), hold fire (shots/critic-viewmodel/r2/fire_she"
+    },
+    {
+     "t": "2026-10-02T14:27:20.843Z",
+     "round": 4,
+     "winner": "ref",
+     "score": 5.9,
+     "gap": "Sidearms were left out of the r3 framing fix: they are oversized and central, so their flash blinds the crosshair on every shot. Repro: ?test=1&seed=3&match=1&phase=live, combat.give(localActor,'judge'), press slot2, fire (shots/c"
     }
    ],
-   "updated": "2026-10-02T10:57:15.169Z",
+   "updated": "2026-10-02T14:27:20.843Z",
    "note": "Builder was stopped mid-work; awaiting go-ahead to relaunch"
   },
   {
@@ -169,10 +211,10 @@
    "id": "avatars",
    "name": "Characters & animation",
    "group": "look",
-   "status": "judging",
-   "round": 3,
-   "score": 6.2,
-   "gap": "The team lock covers only the suit hue, so Ember still camouflages on the sand map and secondary colours carry the wrong team. Repro: ?test=1&seed=7&match=1&phase=live, advance(8), then dump ctx.characters.model(a).u. Tide #6 helm",
+   "status": "building",
+   "round": 4,
+   "score": 6.6,
+   "gap": "Ember still camouflages at range on this warm map. Repro: ?test=1&seed=3&match=1&phase=live, advance(6), set ctx.ai.enabled=false, put 2 Ember and 2 Tide at (-0.2,0,44.2) facing +z… then place the camera 30 m and 50 m down the lin",
    "history": [
     {
      "t": "2026-10-02T01:29:37.379Z",
@@ -187,18 +229,25 @@
      "winner": "ref",
      "score": 6.2,
      "gap": "The team lock covers only the suit hue, so Ember still camouflages on the sand map and secondary colours carry the wrong team. Repro: ?test=1&seed=7&match=1&phase=live, advance(8), then dump ctx.characters.model(a).u. Tide #6 helm"
+    },
+    {
+     "t": "2026-10-02T14:27:20.760Z",
+     "round": 4,
+     "winner": "ref",
+     "score": 6.6,
+     "gap": "Ember still camouflages at range on this warm map. Repro: ?test=1&seed=3&match=1&phase=live, advance(6), set ctx.ai.enabled=false, put 2 Ember and 2 Tide at (-0.2,0,44.2) facing +z… then place the camera 30 m and 50 m down the lin"
     }
    ],
-   "updated": "2026-10-02T10:57:14.957Z"
+   "updated": "2026-10-02T14:27:20.761Z"
   },
   {
    "id": "cosmetics",
    "name": "Cosmetics & locker",
    "group": "look",
-   "status": "judging",
-   "round": 2,
-   "score": 5.8,
-   "gap": "The locker preview is not what you get in game. The preview is a stand-in blocky rig with the raw suit colours. In game, characters.refreshCosmetics recolours the suit to the team: an Ember player who equips Neon Drift Skin (shown",
+   "status": "building",
+   "round": 3,
+   "score": 6.6,
+   "gap": "The locker preview does not show what you equipped, most of all on the Tide side. The Tide athlete renders as a blown-out cyan-white bloom blob, so the item you are inspecting cannot be seen. Repro: ?test=1&seed=1&scene=locker at ",
    "history": [
     {
      "t": "2026-10-02T06:28:18.472Z",
@@ -206,9 +255,16 @@
      "winner": "ref",
      "score": 5.8,
      "gap": "The locker preview is not what you get in game. The preview is a stand-in blocky rig with the raw suit colours. In game, characters.refreshCosmetics recolours the suit to the team: an Ember player who equips Neon Drift Skin (shown"
+    },
+    {
+     "t": "2026-10-02T14:27:21.370Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 6.6,
+     "gap": "The locker preview does not show what you equipped, most of all on the Tide side. The Tide athlete renders as a blown-out cyan-white bloom blob, so the item you are inspecting cannot be seen. Repro: ?test=1&seed=1&scene=locker at "
     }
    ],
-   "updated": "2026-10-02T08:15:20.062Z"
+   "updated": "2026-10-02T14:27:21.370Z"
   },
   {
    "id": "vfx",
@@ -240,10 +296,10 @@
    "id": "audio",
    "name": "Audio & music",
    "group": "feel",
-   "status": "judging",
-   "round": 2,
-   "score": 5.4,
-   "gap": "Gunfire is dull, tonal and buried under foley/UI. Offline FP renders (node tools/audio_dump.mjs): spectral centroid in the first 100 ms is 145-600 Hz for every tagger (judge 144 Hz, lance 146 Hz, low_ratio 0.93-0.95; >4 kHz energy",
+   "status": "building",
+   "round": 3,
+   "score": 6,
+   "gap": "Your own gunfire goes silent mid-spray. In mixer.js:80 the per-sound voice cap (tagger.<id>.fire voices=8, or MAXV) has no voice stealing: a new instance is simply dropped, even first-person prio-3 shots. setTimeout disposal keeps",
    "history": [
     {
      "t": "2026-10-02T01:29:37.701Z",
@@ -251,29 +307,44 @@
      "winner": "ref",
      "score": 5.4,
      "gap": "Gunfire is dull, tonal and buried under foley/UI. Offline FP renders (node tools/audio_dump.mjs): spectral centroid in the first 100 ms is 145-600 Hz for every tagger (judge 144 Hz, lance 146 Hz, low_ratio 0.93-0.95; >4 kHz energy"
+    },
+    {
+     "t": "2026-10-02T14:27:21.119Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 6,
+     "gap": "Your own gunfire goes silent mid-spray. In mixer.js:80 the per-sound voice cap (tagger.<id>.fire voices=8, or MAXV) has no voice stealing: a new instance is simply dropped, even first-person prio-3 shots. setTimeout disposal keeps"
     }
    ],
-   "updated": "2026-10-02T08:15:19.940Z"
+   "updated": "2026-10-02T14:27:21.119Z"
   },
   {
    "id": "bots",
    "name": "Bot AI",
    "group": "ai",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-02T08:15:20.121Z"
+   "status": "building",
+   "round": 2,
+   "score": 5.4,
+   "gap": "Bots aim before they have reacted. In brain.js the aim intent (around line 428) picks the most recently SEEN memory entry by seenT. Perception updates seenT on the first visible tick, long before the reaction window marks the enem",
+   "history": [
+    {
+     "t": "2026-10-02T14:27:21.210Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 5.4,
+     "gap": "Bots aim before they have reacted. In brain.js the aim intent (around line 428) picks the most recently SEEN memory entry by seenT. Perception updates seenT on the first visible tick, long before the reaction window marks the enem"
+    }
+   ],
+   "updated": "2026-10-02T14:27:21.210Z"
   },
   {
    "id": "flow",
    "name": "Match flow & economy",
    "group": "systems",
-   "status": "judging",
-   "round": 2,
-   "score": 6.5,
-   "gap": "Exit frags are broken. Combat allows tags during roundEnd, but flow.onTagOut returns early outside live/armed: the killer gets no reward or stat, and the victim's match.survived stays true. Combat has already dropped the victim's ",
+   "status": "building",
+   "round": 3,
+   "score": 6,
+   "gap": "Every real match ends in a soft-lock. When flow enters matchEnd, the menu's showEnd calls buildEnd, which falls back to A.econLog() because the match:end data has no econLog. That throws 'ReferenceError: econLog is not defined' (s",
    "history": [
     {
      "t": "2026-10-02T01:29:37.537Z",
@@ -281,9 +352,16 @@
      "winner": "ref",
      "score": 6.5,
      "gap": "Exit frags are broken. Combat allows tags during roundEnd, but flow.onTagOut returns early outside live/armed: the killer gets no reward or stat, and the victim's match.survived stays true. Combat has already dropped the victim's "
+    },
+    {
+     "t": "2026-10-02T14:27:21.053Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 6,
+     "gap": "Every real match ends in a soft-lock. When flow enters matchEnd, the menu's showEnd calls buildEnd, which falls back to A.econLog() because the match:end data has no econLog. That throws 'ReferenceError: econLog is not defined' (s"
     }
    ],
-   "updated": "2026-10-02T08:15:19.884Z"
+   "updated": "2026-10-02T14:27:21.053Z"
   },
   {
    "id": "hud",
@@ -349,6 +427,11 @@
   }
  ],
  "log": [
+  {
+   "t": "2026-10-02T14:27:21.411Z",
+   "text": "Critic round 2/3 verdicts for 11 more pieces (move 5.6, flow 6.0, audio 6.0, bots 5.4 …). Builders sent back in; urgent regressions: walking from rest, match-end crash, audio voice dropping.",
+   "kind": "critic"
+  },
   {
    "t": "2026-10-02T10:57:15.374Z",
    "text": "Round 2 critics: scores rose (render 6.3, map 6.4, avatars 6.2, vfx 6.6, HUD 7.6, viewmodel 5.3, utility 6.3, menu 7.4) but none pass. Round 3 builders done; critics re-judging.",

@@ -21,21 +21,21 @@ export function create(ctx) {
     intel: { ember: new Map(), tide: new Map() }, pending: [], enabled: true,
     tel: null,
   };
-  B.lastPing = -9; B.rng = B.rngMain; B.diffTable = DIFF; B.simBudget = 1;
+  B.lastPing = -9; B.lastCall = {}; B.rng = B.rngMain; B.diffTable = DIFF; B.simBudget = 1;
   const events = ctx.events;
   const offs = [];
   const on = (t, f) => offs.push(events.on(t, f));
 
   // ------------------------------------------------------------------------------------------------ telemetry
   B.tel = {
-    rounds: [], cur: null, kills: { byWeapon: {}, byDist: { '0-8': 0, '8-20': 0, '20-40': 0, '40+': 0 }, head: 0, total: 0, wallbang: 0 }, stuckTime: 0, teleports: 0, stuckIncidents: 0, log: [], reactions: [], paths: 0, exceptions: 0, cpu: { ms: 0, ticks: 0, max: 0 },
+    rounds: [], cur: null, kills: { byWeapon: {}, byDist: { '0-8': 0, '8-20': 0, '20-40': 0, '40+': 0 }, head: 0, total: 0, wallbang: 0 }, stuckTime: 0, teleports: 0, stuckIncidents: 0, log: [], callouts: 0, mv: { moving: 0, run: 0, slow: 0, still: 0 }, reactions: [], paths: 0, exceptions: 0, cpu: { ms: 0, ticks: 0, max: 0 },
     shots: 0, hits: 0, plants: 0, disarms: 0, wins: { ember: 0, tide: 0 }, reasons: {}, contacts: [],
     onFirstShot(ai, now) { const c = this.cur; if (c && c.firstShotT < 0) c.firstShotT = now - c.t0; },
     onStuck(ai, now) { this.stuckIncidents++; const c = this.cur; if (c) c.stuck.add(ai.actor.id); const a = ai.actor; this.log.push({ k: 'stuck', t: +(now - (c?.t0 ?? 0)).toFixed(1), n: c?.n, who: a.name, pos: a.pos.toArray().map((v) => +v.toFixed(1)), goal: ai.mv.goal.toArray().map((v) => +v.toFixed(1)), order: ai.order ? ai.order.kind + ':' + (ai.order.role || '') : '-', stage: ai.mv.stage, path: ai.mv.path ? ai.mv.pi + '/' + ai.mv.path.length : '-', area: ctx.nav?.areaAt?.(a.pos) }); },
     onContact(now, bot, m) { const c = this.cur; if (c && c.contactT < 0) { c.contactT = now - c.t0; if (bot) { const a = bot.actor, e = m.actor; this.log.push({ k: 'contact', n: c.n, t: +c.contactT.toFixed(1), who: a.name + '(' + a.team + ')', area: ctx.nav?.areaAt?.(a.pos), enemy: e.name, earea: ctx.nav?.areaAt?.(e.pos), d: +Math.hypot(a.pos.x - e.pos.x, a.pos.z - e.pos.z).toFixed(1), order: bot.ai.order ? bot.ai.order.kind + ':' + (bot.ai.order.role || '') : '-', src: m.src }); } } },
     startRound(n, now) { this.cur = { n, t0: now, len: 0, contactT: -1, firstShotT: -1, firstTagT: -1, tags: 0, planted: false, plantT: -1, stuck: new Set(), winner: null, reason: '' }; },
     endRound(e, now) { const c = this.cur; if (!c) return; c.len = now - c.t0; c.winner = e.winner; c.reason = e.reason; this.rounds.push({ n: c.n, len: +c.len.toFixed(1), contactT: +c.contactT.toFixed(1), firstTagT: +c.firstTagT.toFixed(1), tags: c.tags, planted: c.planted, plantT: +c.plantT.toFixed(1), stuck: c.stuck.size, winner: e.winner, reason: e.reason }); this.wins[e.winner] = (this.wins[e.winner] || 0) + 1; this.reasons[e.reason] = (this.reasons[e.reason] || 0) + 1; this.cur = null; },
-    reset() { this.rounds.length = 0; this.log.length = 0; this.reactions.length = 0; this.cur = null; this.kills = { byWeapon: {}, byDist: { '0-8': 0, '8-20': 0, '20-40': 0, '40+': 0 }, head: 0, total: 0, wallbang: 0 }; this.stuckTime = 0; this.teleports = 0; this.stuckIncidents = 0; this.paths = 0; this.exceptions = 0; this.cpu = { ms: 0, ticks: 0, max: 0 }; this.shots = 0; this.hits = 0; this.plants = 0; this.disarms = 0; this.wins = { ember: 0, tide: 0 }; this.reasons = {}; },
+    reset() { this.rounds.length = 0; this.log.length = 0; this.reactions.length = 0; this.callouts = 0; this.mv = { moving: 0, run: 0, slow: 0, still: 0 }; this.cur = null; this.kills = { byWeapon: {}, byDist: { '0-8': 0, '8-20': 0, '20-40': 0, '40+': 0 }, head: 0, total: 0, wallbang: 0 }; this.stuckTime = 0; this.teleports = 0; this.stuckIncidents = 0; this.paths = 0; this.exceptions = 0; this.cpu = { ms: 0, ticks: 0, max: 0 }; this.shots = 0; this.hits = 0; this.plants = 0; this.disarms = 0; this.wins = { ember: 0, tide: 0 }; this.reasons = {}; },
   };
 
   // ------------------------------------------------------------------------------------------------ team intel / callouts
@@ -54,7 +54,7 @@ export function create(ctx) {
     const a = bot?.actor; if (!a) return;
     const area = pos ? ctx.nav?.areaAt?.(pos) : null;
     const payload = { actor: a, team: a.team, kind, text: text || kind, pos: pos ? pos.clone() : null, area, t: B.now };
-    events.emit('bot:callout', payload);
+    events.emit('bot:callout', payload); if (kind === 'enemy') { B.tel.callouts++; const c = B.tel.cur; if (c) c.callouts = (c.callouts || 0) + 1; }
     // teammates of the human see a ping marker for enemy callouts (rate limited; the enemy team's callouts stay private)
     if (pos && kind === 'enemy' && a.team === ctx.localActor?.team && !ctx.localActor?.ai && B.now - B.lastPing > 2.2) { B.lastPing = B.now; events.emit('ping', { actor: a, pos: pos.clone(), kind: 'enemy', text: area ? `${area}` : '', team: a.team }); }
   };
@@ -62,7 +62,8 @@ export function create(ctx) {
     const ai = bot.ai;
     if (m.called || now - ai.lastCall < 0.4) return; m.called = true; ai.lastCall = now;
     const delay = 0.3 + (1 - ai.diff.tactics) * 0.6 + B.rng() * 0.5;
-    B.pending.push({ at: now + delay, team: bot.team, id: m.id, pos: m.pos.clone(), by: bot, conf: 0.85, src: 'vis', kind: 'enemy' });
+    const e = m.actor, w = ctx.combat?.equipped?.(e)?.id || '';
+    B.pending.push({ at: now + delay, team: bot.team, id: m.id, pos: m.pos.clone(), by: bot, conf: 0.85, src: 'vis', kind: 'enemy', weapon: w, low: e.hp < 45 && now - (m.shotT || -99) < 4 });
   };
   B.onHeard = (bot, m, kind, now) => { /* gunfire heard: no callout, teammates hear it themselves */ };
   B.onTargetChange = (bot, from, to, now) => { if (to && !from) { B.tel.onContact(now, bot, to); bot.ai.fp.phase = 'stop'; bot.ai.fp.until = now + 0.15; bot.ai.fp.styleT = 0; } };
@@ -74,7 +75,13 @@ export function create(ctx) {
       if (!it.by.actor.alive && now - it.at > 0) { /* dead men tell no tales, but the death callout covers it */ }
       const mp = B.intel[it.team], cur = mp.get(it.id);
       if (!cur || cur.t < it.at - 0.2) { const rec = cur || { pos: new THREE.Vector3() }; rec.pos.copy(it.pos); rec.t = it.at; rec.src = it.src; rec.by = it.by; rec.conf = it.conf; mp.set(it.id, rec); }
-      B.callout(it.by, 'enemy', it.pos, 'enemy');
+      // team-level dedupe: one callout per area per 4 s, at most one per 1.2 s; location specific text (area, count, weapon, low)
+      const area = ctx.nav?.areaAt?.(it.pos) || '', L = B.lastCall[it.team] || (B.lastCall[it.team] = { t: -9, area: '', areas: new Map() });
+      if (it.src !== 'vis' || now - L.t < 1.2 || now - (L.areas.get(area) ?? -9) < 4) continue;
+      L.t = now; L.areas.set(area, now);
+      let n = 0; for (const o of mp.values()) if (now - o.t < 3 && Math.hypot(o.pos.x - it.pos.x, o.pos.z - it.pos.z) < 9) n++;
+      const wn = it.weapon === 'lance' ? 'AWP' : it.weapon === 'storm' ? 'LMG' : '';
+      B.callout(it.by, 'enemy', it.pos, `${area}${n > 1 ? ' x' + n : ''}${wn ? ' ' + wn : ''}${it.low ? ' (low)' : ''}`.trim());
     }
     p.length = w;
   }
@@ -202,7 +209,7 @@ export function create(ctx) {
     ctx.nav?.danger?.add?.(v.pos, 2.5, 6, v.team);
   });
   on('round:phase', (e) => { if (e.phase === 'live') { B.tel.startRound(ctx.match?.round ?? 0, B.now); } });
-  on('round:reset', () => { B.intel.ember.clear(); B.intel.tide.clear(); B.pending.length = 0; B.team.onRound(); for (const b of B.bots) resetBot(b); });
+  on('round:reset', () => { B.lastCall = {}; B.intel.ember.clear(); B.intel.tide.clear(); B.pending.length = 0; B.team.onRound(); for (const b of B.bots) resetBot(b); });
   on('round:end', (e) => {
     if (e.reason === 'time' || e.reason === 'disarmed') B.tel.log.push({ k: 'end-' + e.reason, n: B.tel.cur?.n, t: +(B.now - (B.tel.cur?.t0 ?? 0)).toFixed(0), goAt: B.T?.ember ? +(B.T.ember.goAt - B.T.ember.liveStart).toFixed(0) : 0, go: B.T?.ember?.go, entryGo: B.T?.ember?.entryGo, style: B.T?.ember?.style, site: B.T?.ember?.site, bots: B.bots.map((b) => `${b.actor.name}/${b.team[0]}${b.actor.alive ? '' : ' xx'} ${ctx.nav?.areaAt?.(b.actor.pos) || ''} ${b.ai.order ? b.ai.order.kind + ':' + (b.ai.order.role || '') + (b.ai.order.waiting ? '(w)' : '') : '-'} u${b.ai.util?.orders?.length || 0}`) });
     B.tel.endRound(e, B.now);
@@ -236,7 +243,9 @@ export function create(ctx) {
     } catch (e) {
       B.tel.exceptions++; if (B.tel.exceptions < 6) { console.error('[bots]', e); (ctx.errors ||= []).push('bots: ' + (e?.stack || e)); }
     }
+    if ((B.tickN & 63) === 0 && (phase === 'live' || phase === 'armed')) for (const b of B.bots) { const a = b.actor; if (!a.alive) continue; const sp = a.move?.speed || 0; if (sp > 0.5) { B.tel.mv.moving++; if (sp > 5.5) B.tel.mv.run++; else B.tel.mv.slow++; } else B.tel.mv.still++; }
     const el = cpuT() - t0; const c = B.tel.cpu; c.ms += el; c.ticks++; if (el > c.max) c.max = el;
+    c.win = (c.win || 0) + el; if ((c.wn = (c.wn || 0) + 1) >= 120) { (c.wins ||= []).push(c.win / c.wn); if (c.wins.length > 400) c.wins.shift(); c.win = 0; c.wn = 0; }
     B.dbg?.fixed?.(dt);
   }
   function stand(b, dt) {

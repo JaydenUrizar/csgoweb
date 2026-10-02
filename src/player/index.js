@@ -43,7 +43,7 @@ export function create(ctx) {
     deathEye: new THREE.Vector3(), deathDrop: 0, specCooldown: 0,
     lookDx: 0, lookDy: 0, hist: new Float32Array(600 * 8), histN: 0, tick: 0, snap: true,
   };
-  const viewInfo = { speed: 0, hspeed: 0, onGround: true, crouch: false, walking: false, sliding: false, aimPunch: { x: 0, y: 0 }, lookDelta: { x: 0, y: 0 }, roll: 0, landDip: 0 };
+  const viewInfo = { speedFx: 0, speed: 0, hspeed: 0, onGround: true, crouch: false, walking: false, sliding: false, aimPunch: { x: 0, y: 0 }, lookDelta: { x: 0, y: 0 }, roll: 0, landDip: 0 };
 
   const api = {
     actor, simulate: sim.simulate, tune: TUNE, view: viewInfo,
@@ -81,10 +81,10 @@ export function create(ctx) {
   };
 
   // ---- events ----------------------------------------------------------------------------------
-  ctx.events.on('land', (e) => { if (e.actor !== actor) return; S.landV -= Math.min(3.2, e.speed * 0.42); S.tiltV -= Math.min(0.5, e.speed * 0.02); });
-  ctx.events.on('jump', (e) => { if (e.actor !== actor) return; S.tiltV += 0.5; S.landV += 0.5; });
+  ctx.events.on('land', (e) => { if (e.actor !== actor) return; S.landV -= Math.min(3.6, e.speed * 0.5); });
+  ctx.events.on('jump', (e) => { if (e.actor !== actor) return; S.landV += 0.5; });
   ctx.events.on('mantle', (e) => { if (e.actor === actor) S.landV -= 1.2; });
-  ctx.events.on('slide', (e) => { if (e.actor === actor) { S.landV -= 1.6; S.tiltV -= 0.35; } });
+  ctx.events.on('slide', (e) => { if (e.actor === actor) { S.landV -= 1.6; S.rollV += 0.2 * (e.side || 1); } });
   ctx.events.on('footstep', (e) => { if (e.actor === actor && !e.walk && !e.crouch) S.landV -= 0.42 * clamp(e.speed / TUNE.runSpeed, 0, 1.3); });
   ctx.events.on('tag:out', (e) => { if (e?.victim === actor) { S.killer = e.attacker || null; } });
 
@@ -121,20 +121,19 @@ export function create(ctx) {
     S.bobAmt += (gaitOn - S.bobAmt) * (1 - Math.exp(-10 * dt));
     const bobScale = ctx.settings.get('headBob') ?? 1;
     const ph = m.gait, bob = S.bobAmt * bobScale;
-    const bobY = -Math.abs(Math.cos(ph)) * 0.030 * bob + 0.015 * bob;      // dips at foot-fall
-    const bobX = Math.sin(ph) * 0.012 * bob;
-    const bobRoll = Math.sin(ph) * 0.0065 * bob, bobPitch = Math.abs(Math.cos(ph)) * -0.0035 * bob;
+    const bobY = -Math.abs(Math.cos(ph)) * 0.042 * bob + 0.021 * bob;      // dips at foot-fall
+    const bobX = Math.sin(ph) * 0.016 * bob;
+    const bobRoll = Math.sin(ph) * 0.0025 * bob;   // the world never tilts more than ~0.15°; no pitch offsets at all (aim stays honest)
     // strafe roll (tiny): velocity along camera-right
     const cy = Math.cos(actor.yaw), sy = Math.sin(actor.yaw);
     const side = actor.vel.x * cy - actor.vel.z * sy;                      // +right
-    let rollT = -clamp(side, -9, 9) * 0.0016;
+    let rollT = -clamp(side, -9, 9) * 0.00045;
     // slide roll
-    const slideTarget = m.sliding ? 0.06 * m.slideSide : 0;
+    const slideTarget = m.sliding ? 0.0035 * m.slideSide : 0;
     S.slideRoll += (slideTarget - S.slideRoll) * (1 - Math.exp(-9 * dt));
     rollT -= S.slideRoll;
     r = spring(S.roll, S.rollV, rollT, 16, 1, dt); S.roll = r[0]; S.rollV = r[1];
     // airborne pitch lean (very small)
-    const airP = m.onGround ? 0 : clamp(actor.vel.y * 0.0007, -0.012, 0.01);
     // fov kick
     const sm = clamp((hs - 4.5) / (11 - 4.5), 0, 1); let fovT = (ctx.settings.get('fovKick') ?? 0) * DEG * ((sm * sm * (3 - 2 * sm)) + m.slideK * 0.5);   // off by default: world FOV stays fixed for aiming
     r = spring(S.fov, S.fovV, fovT, 9, 1, dt); S.fov = r[0]; S.fovV = r[1];
@@ -142,7 +141,7 @@ export function create(ctx) {
     critical(S.recoil, S.recoilV, S.recoilW, dt); critical(S.flinch, S.flinchV, S.flinchW, dt);
     S.co.y = bobY + S.landY; S.co.x = bobX;
     S.co.roll = bobRoll + S.roll + S.recoil[2] + S.flinch[2];
-    S.co.pitch = bobPitch + S.tiltP + airP + m.slideK * -0.035 + S.recoil[0] + S.flinch[0];
+    S.co.pitch = S.recoil[0] + S.flinch[0];
     S.co.fov = S.fov;
     api.aimPunch.x = S.recoil[0]; api.aimPunch.y = S.recoil[1]; api.aimPunch.z = S.recoil[2];
     S.camYawOff = S.recoil[1] + S.flinch[1];
@@ -201,7 +200,7 @@ export function create(ctx) {
 
   // ---- per-frame camera -----------------------------------------------------------------------------
   const _e = new THREE.Euler(0, 0, 0, 'YXZ'), _cp = { pitch: 0, yaw: 0 };
-  let lastFov = -1, lastAspect = -1;
+  let lastFov = -1, lastAspect = -1, speedFx = 0;
   function update(dt, alpha) {
     applyLook();
     const cam = ctx.render?.camera; if (!cam) return;
@@ -239,6 +238,7 @@ export function create(ctx) {
     viewInfo.speed = m.speed3; viewInfo.hspeed = m.speed; viewInfo.onGround = m.onGround; viewInfo.crouch = m.crouching; viewInfo.walking = m.walking; viewInfo.sliding = m.sliding;
     viewInfo.aimPunch.x = S.recoil[0]; viewInfo.aimPunch.y = S.recoil[1];
     viewInfo.lookDelta.x = S.lookDx; viewInfo.lookDelta.y = S.lookDy; S.lookDx = S.lookDy = 0;
+    { const m2 = actor.move, run = TUNE.runSpeed, fx = clamp((m2.speed - run * 0.92) / (run * 0.5), 0, 1); speedFx += ((Math.max(fx, m2.slideK * 0.8)) - speedFx) * (1 - Math.exp(-6 * dt)); viewInfo.speedFx = speedFx; }
     viewInfo.roll = roll; viewInfo.landDip = S.landY;
   }
 

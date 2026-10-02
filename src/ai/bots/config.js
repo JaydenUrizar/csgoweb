@@ -4,12 +4,12 @@
 // tolM = how close (m at target) the bullet line must be before the trigger is pulled, cs = counter-strafe discipline 0..1,
 // tactics = quality of team play 0..1 (utility, timing, rotations), util = utility use probability, hear = hearing range multiplier.
 export const DIFF = {
-  rookie: { id: 'rookie', engage: 30, react: [0.40, 0.65], omega: 13, zeta: 0.50, maxVel: 380, errM: 0.40, errMove: 0.6, rcs: 0.30, headP: 0.03, tolM: 0.55, cs: 0.30, sprayDist: 14, burstMul: 1.3,
-    tactics: 0.30, util: 0.30, hear: 0.65, visHz: 6, fov: 100, strafe: 0.55, peekSkill: 0.2, crouchP: 0.05, coverP: 0.5, panic: 0.5, execDelay: 0.0 },
-  pro:    { id: 'pro', engage: 42, react: [0.22, 0.38], omega: 21, zeta: 0.68, maxVel: 900, errM: 0.17, errMove: 0.35, rcs: 0.72, headP: 0.15, tolM: 0.36, cs: 0.80, sprayDist: 18, burstMul: 1.0,
-    tactics: 0.70, util: 0.70, hear: 0.9, visHz: 10, fov: 104, strafe: 0.9, peekSkill: 0.6, crouchP: 0.25, coverP: 0.8, panic: 0.2, execDelay: 0.5 },
-  elite:  { id: 'elite', engage: 55, react: [0.15, 0.26], omega: 30, zeta: 0.78, maxVel: 1500, errM: 0.075, errMove: 0.2, rcs: 0.93, headP: 0.30, tolM: 0.26, cs: 1.0, sprayDist: 22, burstMul: 0.85,
-    tactics: 1.0, util: 0.95, hear: 1.1, visHz: 14, fov: 108, strafe: 1.0, peekSkill: 0.95, crouchP: 0.4, coverP: 1.0, panic: 0.05, execDelay: 1.0 },
+  rookie: { id: 'rookie', engage: 36, react: [0.28, 0.46], motor: 0.09, flickDeg: 5, omega: 16, zeta: 0.50, maxVel: 450, errM: 0.45, errMove: 0.6, rcs: 0.35, headP: 0.03, tolM: 0.8, cs: 0.30, sprayDist: 14, burstMul: 1.3,
+    tactics: 0.30, util: 0.30, hear: 0.65, visHz: 5, fov: 100, strafe: 0.55, peekSkill: 0.2, crouchP: 0.05, coverP: 0.5, panic: 0.5, execDelay: 0.0 },
+  pro:    { id: 'pro', engage: 42, react: [0.17, 0.27], motor: 0.06, flickDeg: 2.8, omega: 21, zeta: 0.66, maxVel: 900, errM: 0.28, errMove: 0.35, rcs: 0.72, headP: 0.15, tolM: 0.55, cs: 0.80, sprayDist: 18, burstMul: 1.0,
+    tactics: 0.70, util: 0.70, hear: 0.9, visHz: 8, fov: 104, strafe: 0.9, peekSkill: 0.6, crouchP: 0.25, coverP: 0.8, panic: 0.2, execDelay: 0.5 },
+  elite:  { id: 'elite', engage: 55, react: [0.13, 0.22], motor: 0.03, flickDeg: 1.4, omega: 27, zeta: 0.76, maxVel: 1400, errM: 0.13, errMove: 0.2, rcs: 0.93, headP: 0.30, tolM: 0.40, cs: 1.0, sprayDist: 22, burstMul: 0.85,
+    tactics: 1.0, util: 0.95, hear: 1.1, visHz: 11, fov: 108, strafe: 1.0, peekSkill: 0.95, crouchP: 0.4, coverP: 1.0, panic: 0.05, execDelay: 1.0 },
 };
 export const diffOf = (d) => DIFF[String(d || 'pro').toLowerCase()] || DIFF.pro;
 

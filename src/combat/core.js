@@ -6,7 +6,7 @@ import { DEG, MATERIALS, inaccuracyDeg, crosshairFrac, rawDamage, armourSplit, n
 import { mulberry32 } from '../core/rng.js';
 
 const UTIL_PRICE = { haze: 300, strobe: 200, pulse: 300 };
-const SCORE_PHASES = new Set(['warmup', 'live', 'armed', 'practice']);   // no tags once the round is decided (roundEnd/halftime/matchEnd)
+const SCORE_PHASES = new Set(['warmup', 'live', 'armed', 'roundEnd', 'practice']);   // exit frags (roundEnd) count like CS2; halftime/matchEnd refuse damage (and block firing)
 const NO_FIRE_PHASES = new Set(['freeze', 'halftime', 'matchEnd']);
 const TWO_PI = Math.PI * 2;
 const _v = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
@@ -356,10 +356,11 @@ export function createCore(ctx) {
     if (att) { att.stats.tags++; if (ev.headshot) att.stats.crowns++; }
     victim.stats.outs++;
     if (assist) assist.stats.assists++;
-    // drop primary & current
-    const i = inv(victim); const c = cur(victim);
-    if (i.slots[1]) { const w = i.slots[1]; i.slots[1] = null; spawnDrop(victim, w, false); }
-    else if (c && !c.def.melee && i.slots[c.def.slot]) { const w = i.slots[c.def.slot]; i.slots[c.def.slot] = null; spawnDrop(victim, w, false); }
+    // drop the best gun (primary, else sidearm); current points at what is left
+    const i = inv(victim);
+    const bk = i.slots[1] ? 1 : i.slots[2] ? 2 : 0;
+    if (bk) { const w = i.slots[bk]; i.slots[bk] = null; spawnDrop(victim, w, false); }
+    if (!i.slots[i.current]) i.current = i.slots[2] ? 2 : 3;
     unscope(victim, vcb, cur(victim), true); vcb.burstLeft = 0; vcb.melee = null;
     const dir = ev.dir;
     if (victim.model) ctx.characters?.tagOut?.(victim, dir);
@@ -442,7 +443,7 @@ export function createCore(ctx) {
   }
   function currentInacc(actor, cb, w) {
     const speed = Math.hypot(actor.vel.x, actor.vel.z);
-    return inaccuracyDeg(w.def, { speed, maxSpeed: maxRun(actor, w), shots: cb.recoilIdx, onGround: actor.onGround !== false, crouch: !!actor.crouching, vy: actor.vel.y, fire: cb.inaccFire, land: cb.landT, scopeLevel: w.scopeLevel });
+    return inaccuracyDeg(w.def, { speed, maxSpeed: maxRun(actor, w), shots: cb.recoilIdx, onGround: actor.onGround !== false, crouch: !!actor.crouching, vy: actor.vel.y, fire: cb.inaccFire, land: cb.landT, scopeLevel: w.scopeLevel, scopeT: w.scopeT });
   }
   function shoot(actor, cb, w, dirOverride) {
     const def = w.def, i0 = cb.recoilIdx;
@@ -490,8 +491,8 @@ export function createCore(ctx) {
       } else if (last && last.point.distanceToSquared(res.end) < 1e-6) {
         hits.push({ point: last.point.clone(), normal: last.normal.clone(), surface: last.surface });
       } else {
-        // bullet ended in open air / after a wall-bang with no victim: tracer only (vfx skips impacts for entries that carry an actor)
-        hits.push({ point: res.end.clone(), normal: null, actor });
+        // bullet ended in open air / after a wall-bang with no victim: tracer only (surface 'body' = vfx draws no impact)
+        hits.push({ point: res.end.clone(), normal: null, surface: 'body', miss: true });
       }
       if (p === 0) { firstEnd = res.end.clone(); firstDir = _d.clone(); }
       for (const f of core.hooks.shot) f({ actor, def, origin: _o, dir: _d, end: res.end, hit: res.hit, pellet: p, shot: cb.shots, inacc, pattern: [pyaw / DEG, ppit / DEG], idx: i0 });
@@ -644,6 +645,7 @@ export function createCore(ctx) {
     else if (W.state === 'fire') { W.t += dt; if (W.t >= Math.min(0.14, def.cycle)) { W.state = 'idle'; W.t = 0; } }
     else if (W.state === 'reload') reloadTick(actor, cb, W, dt);
     else W.t += dt;
+    W.scopeT = W.scopeLevel ? (W.scopeT || 0) + dt : 0;
     if (eInsp && W.state === 'idle' && isLocal(actor)) vm()?.event?.('inspect', { id: W.id });
     if (def.melee) { meleeTick(actor, cb, W, c, eFire, eAim, blocked); decay(actor, cb, dt, W); return; }
     // scope

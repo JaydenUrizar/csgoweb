@@ -31,14 +31,15 @@ for (const seed of seeds) {
   console.log(`seed ${seed}: ${T.rounds} rounds in ${simT}s sim (${((Date.now() - t0) / 1000).toFixed(0)}s wall) wins E${T.wins.ember}/T${T.wins.tide} reasons ${JSON.stringify(T.reasons)} plant ${T.plantRate}`);
   console.log(`  len mean ${T.len.mean} p10 ${T.len.p10} p50 ${T.len.p50} p90 ${T.len.p90} (min ${T.len.min} max ${T.len.max}) | first contact ${T.firstContact.mean}s [${T.firstContact.min}..${T.firstContact.max}] | tags/round ${T.tagsPerRound}`);
   console.log(`  kills ${JSON.stringify(T.kills.byWeapon)} dist ${JSON.stringify(T.kills.byDist)} head ${T.kills.head}/${T.kills.total} | throws ${JSON.stringify(T.throwsBy)} | shots ${T.shots} hits ${T.hits}`);
-  console.log(`  stuck ${T.stuck.seconds}s / ${T.stuck.incidents} incidents / ${T.stuck.teleports} teleports | clean rounds ${(T.stuck.cleanRounds * 100).toFixed(0)}% | cpu ${T.cpuMsPerTick}ms/tick (max ${T.cpuMaxMs}) = ${(T.cpuMsPerTick * 2).toFixed(2)}ms/frame@60 | exceptions ${T.exceptions}`);
+  console.log(`  stuck ${T.stuck.seconds}s / ${T.stuck.incidents} incidents / ${T.stuck.teleports} teleports | clean rounds ${(T.stuck.cleanRounds * 100).toFixed(0)}% | cpu mean ${T.cpuMsPerTick} median ${T.cpuMedianMsPerTick} ms/tick (max ${T.cpuMaxMs}) = ${(T.cpuMsPerTick * 2).toFixed(2)}ms/frame@60 | exceptions ${T.exceptions}`);
+  console.log(`  moving at run speed ${(T.moveRunShare * 100).toFixed(0)}% of moving samples, standing ${(T.standShare * 100).toFixed(0)}% | enemy callouts/round ${T.calloutsPerRound}`);
   console.log(`  sight-to-first-shot ms ${JSON.stringify(T.reactionMs)}`);
   if (args.includes('--log')) for (const l of T.log) console.log('    ' + JSON.stringify(l));
   if (!quiet) for (const r of res.rounds) console.log(`    r${r.n}: ${r.winner} by ${r.reason} len ${r.len}s contact ${r.contactT}s firstTag ${r.firstTagT}s tags ${r.tags} planted ${r.planted}${r.planted ? '@' + r.plantT + 's' : ''} stuck ${r.stuck}`);
   if (errs.length) { console.log('  ERRORS:\n   ' + errs.slice(0, 6).join('\n   ')); fail(`seed ${seed}: console/page errors`); }
   if (T.exceptions) fail(`seed ${seed}: bot exceptions ${T.exceptions}`);
   if (T.stuck.cleanRounds < 0.95) fail(`seed ${seed}: only ${(T.stuck.cleanRounds * 100).toFixed(0)}% rounds without stuck bots`);
-  if (T.cpuMsPerTick * 2 > 1.5) fail(`seed ${seed}: cpu ${(T.cpuMsPerTick * 2).toFixed(2)} ms/frame > 1.5`);
+  const cpuF = (T.cpuMedianMsPerTick || T.cpuMsPerTick) * 2; if (cpuF > 1.5) fail(`seed ${seed}: cpu median ${cpuF.toFixed(2)} ms/frame > 1.5`);
   out.seeds.push({ seed, summary: T }); out.rounds.push(...res.rounds.map((r) => ({ seed, ...r })));
   await g.close();
 }

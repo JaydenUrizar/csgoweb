@@ -74,13 +74,12 @@ export function buildTagger(kind, skin, mats) {
   return g;
 }
 
-export function makeSkinnedTagger(kind, sk) {
-  const tex = skinTexture(sk.pattern, sk.primary, sk.accent, sk.wear);
-  const mats = {
-    body: new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 0.3 + sk.wear * 0.55, metalness: 0.5 - sk.wear * 0.3, flatShading: true }),
-    dark: stdMat(mix(sk.primary, 0x0a0b10, 0.8), { rough: 0.4 + sk.wear * 0.3, metal: 0.55 }),
-    glow: glowMat(sk.glow, 1.3), accent: stdMat(sk.accent, { rough: 0.35 + sk.wear * 0.4, metal: 0.4 }),
-  };
+export function makeSkinnedTagger(kind, sk, meta = {}) {
+  const tex = skinTexture(sk.pattern, sk.primary, sk.accent, sk.wear, meta.decal, sk.glow); const fin = meta.finish ?? 'matte', w = sk.wear;
+  const P = { matte: [0.85, 0.05], gloss: [0.14, 0.25], metal: [0.22, 0.92], holo: [0.2, 0.55], carbon: [0.38, 0.65] }[fin] ?? [0.5, 0.2];
+  const bodyMat = fin === 'holo' ? new THREE.MeshPhysicalMaterial({ map: tex, color: 0xffffff, roughness: P[0] + w * 0.5, metalness: P[1] - w * 0.3, iridescence: 1 - w * 0.6, iridescenceIOR: 1.8, iridescenceThicknessRange: [180, 700], flatShading: true, clearcoat: 0.6 - w })
+    : new THREE.MeshPhysicalMaterial({ map: tex, color: 0xffffff, roughness: Math.min(1, P[0] + w * 0.55), metalness: Math.max(0, P[1] - w * 0.35), flatShading: true, clearcoat: fin === 'gloss' ? 1 - w * 1.2 : 0, clearcoatRoughness: 0.12 });
+  const mats = { body: bodyMat, dark: stdMat(mix(sk.primary, 0x0a0b10, 0.8), { rough: 0.4 + w * 0.3, metal: 0.55 }), glow: glowMat(sk.glow, 1.3), accent: stdMat(sk.accent, { rough: 0.3 + w * 0.4, metal: fin === 'metal' ? 0.9 : 0.4 }) };
   return buildTagger(kind, sk, mats);
 }
 // ------------------------------------------------------------------------------------------ rig

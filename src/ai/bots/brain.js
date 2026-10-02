@@ -40,7 +40,7 @@ export function createBrain(B) {
   const aimHeight = (ai, e, m, d) => {
     // choose head / chest per bot: crown for good aimers up close, chest when far or only the body is exposed
     if (!(m.vis & 1)) return e.crouching ? 0.7 : K.stomachY + 0.1;
-    if (ai.aimHead === undefined || now_() - ai.aimHeadT > 1.2) { ai.aimHeadT = now_(); const hp = ai.diff.headP * (d > 30 ? 0.5 : 1) * (ai.wi.klass === 'sniper' || ai.wi.klass === 'shotgun' ? 0 : 1); ai.aimHead = ai.rng() < hp; }
+    if (ai.aimHead === undefined || now_() - ai.aimHeadT > 1.2) { ai.aimHeadT = now_(); const hp = ai.diff.headP * (d > 30 ? 0.5 : 1) * (ai.wi.klass === 'sniper' || ai.wi.klass === 'shotgun' ? 0 : ai.wi.klass === 'pistol' && d > 12 ? 0.15 : 1); ai.aimHead = ai.rng() < hp; }
     return ai.aimHead ? (e.crouching ? K.headYCrouch : K.headY) : (e.crouching ? 0.8 : K.chestY);
   };
   let _now = 0; const now_ = () => _now;
@@ -66,7 +66,8 @@ export function createBrain(B) {
       A.exactYaw = yawTo(e.pos.x - _eye.x, e.pos.z - _eye.z); A.exactPitch = pitchTo(e.pos.y + hy - _eye.y, d); A.dist = d; A.hy = hy;
       om = df.omega * (a.move?.sliding ? 0.6 : 1); ze = df.zeta; vmax = df.maxVel * DEG;
       // first flick of an acquisition lands with a bigger error that is then corrected
-      if (now_() - A.acqT < 0.04 && !A.acqSet) { A.nx = randn(ai.rng) * df.errM * 1.8; A.ny = randn(ai.rng) * df.errM * 1.2; A.acqSet = true; }
+      if (!A.acqSet) { const ang = df.flickDeg * DEG * (0.6 + ai.rng() * 0.8), az = ai.rng() * 6.283; A.nx = Math.cos(az) * ang * d; A.ny = Math.sin(az) * ang * d * 0.8; A.acqSet = true; }
+      if (now_() - A.acqT < df.motor) om = 0;     // motor latency: crosshair static until the hand starts moving
     } else if (it.kind === 1) {
       const dx = it.x - _eye.x, dz = it.z - _eye.z, dy = it.y - _eye.y;
       ty = yawTo(dx, dz); tp = pitchTo(dy, Math.hypot(dx, dz)); om = it.fast ? df.omega * 0.55 : A.lookOmega; ze = it.fast ? 0.9 : 1; vmax = (it.fast ? df.maxVel * 0.6 : 360) * DEG;
@@ -105,6 +106,19 @@ export function createBrain(B) {
   }
   const maxIdxFor = (ai, d) => { const k = ai.wi.klass; if (k === 'sniper') return 99; if (d > 30) return 1.2; if (d > ai.diff.sprayDist) return 3; return 99; };
 
+  /** hold fire while a teammate stands in the line of fire (bullets pass them, but it reads as shooting through your friend) */
+  function teammateInLine(ai, m) {
+    const a = ai.actor, e = m.actor, acts = ctx.actors, tx = e.pos.x - a.pos.x, tz = e.pos.z - a.pos.z, L2 = tx * tx + tz * tz;
+    if (L2 < 1) return false;
+    for (let i = 0; i < acts.length; i++) {
+      const o = acts[i]; if (o === a || o === e || !o.alive || o.team !== a.team) continue;
+      const ox = o.pos.x - a.pos.x, oz = o.pos.z - a.pos.z, u = (ox * tx + oz * tz) / L2;
+      if (u < 0.05 || u > 1) continue;
+      const px = ox - tx * u, pz = oz - tz * u; if (px * px + pz * pz < 0.36) return true;
+    }
+    return false;
+  }
+
   function fireControl(ai, now, dt) {
     const c = ai.cmd, a = ai.actor, fp = ai.fp, wi = ai.wi, it = ai.aim.it;
     c.fire = false; c.aim = false;
@@ -126,6 +140,7 @@ export function createBrain(B) {
       if (!wi.scoped && d > 9) return;
     }
     if (!wi.ready) { if (fp.burstLeft > 0) fp.burstLeft = 0; return; }
+    if (teammateInLine(ai, m)) return;
     const tol = ai.diff.tolM * (m.vis & 1 && A.hy > 1.4 ? 0.7 : 1) + (d < 6 ? 0.25 : 0);
     const inacc = ctx.combat?.inaccuracy?.(a) ?? 0;
     const spreadM = Math.tan(inacc * DEG) * d;
@@ -214,8 +229,10 @@ export function createBrain(B) {
     for (let i = 0; i < acts.length; i++) {
       const o = acts[i]; if (o === a || !o.alive || o.team !== a.team) continue;
       const dx = o.pos.x - a.pos.x, dz = o.pos.z - a.pos.z, d = Math.hypot(dx, dz);
-      if (d > 1.05 || d < 1e-3 || Math.abs(o.pos.y - a.pos.y) > 1.6) continue;
-      const k = (1.05 - d) / 1.05, front = (dx * s.x + dz * s.z) / d;
+      if (d > 2.2 || d < 1e-3 || Math.abs(o.pos.y - a.pos.y) > 1.6) continue;
+      const front = (dx * s.x + dz * s.z) / d;
+      if (d > 1.05) { if (front > 0.8) s.mag = Math.min(s.mag, 0.55); continue; }   // keep convoy spacing
+      const k = (1.05 - d) / 1.05;
       rx -= (dx / d) * k * 1.4; rz -= (dz / d) * k * 1.4;
       if (front > 0.4) { const sd = ((a.id + o.id) & 1) ? 1 : -1; rx += -s.z * sd * k * 1.2; rz += s.x * sd * k * 1.2; }   // slip past on a consistent side
       n++;
@@ -361,7 +378,9 @@ export function createBrain(B) {
         let pos = o.pos, r = o.r ?? (o.kind === 'hold' ? K.arriveHold : K.arrive);
         if (o.pickup) { r = Math.min(r, 0.5); }   // integration: Beacon pickup range is 1.6 m: no crowd offset / 1.5 m arrival slack, or the bot parks 2.4 m away and the round times out
         else if (o.kind === 'goto' || o.kind === 'push') { pos = crowdOffset(ai, o); r = Math.max(r, 1.5); }
-        goTo(ai, pos, r, o.walk ? 'walk' : 'run');
+        const gd = Math.hypot(pos.x - ai.actor.pos.x, pos.z - ai.actor.pos.z), quiet = ai.diff.tactics > 0.5;
+        const walk = o.walk || (quiet && (o.sneak || (o.kind === 'hold' && gd < 9) || (o.lurk && ai.actor.pos.z < 12 && (o.seqIdx || 0) >= 1)));
+        goTo(ai, pos, r, walk ? 'walk' : 'run');
         break;
       }
       case 'plant': {
@@ -425,15 +444,16 @@ export function createBrain(B) {
     if (tgt) { A.it.kind = 2; A.it.m = tgt; }
     else {
       let rec = null;
-      for (const m of ai.mem.values()) { if (!m.actor.alive) continue; if (now - m.seenT < 1.6 && (!rec || m.seenT > rec.seenT)) rec = m; }
+      for (const m of ai.mem.values()) { if (!m.actor.alive) continue; if (m.hasSpot && now - m.seenT < 1.6 && (!rec || m.seenT > rec.seenT)) rec = m; }
       if (rec && ai.blind < 0.45) { A.it.kind = 1; A.it.x = rec.pos.x + rec.vel.x * 0.25; A.it.z = rec.pos.z + rec.vel.z * 0.25; A.it.y = rec.pos.y + K.headY; A.it.fast = true; }
-      else if (ai.heard && now - ai.heard.t < 1.2 && ai.blind < 0.45) { A.it.kind = 1; A.it.x = ai.heard.x; A.it.z = ai.heard.z; A.it.y = ai.heard.y + K.headY; A.it.fast = true; }
+      else if (ai.heard && ai.heard.kind !== 'step' && now - ai.heard.t < 1.2 && now - ai.heard.t > ai.diff.react[0] * 0.8 && ai.blind < 0.45) { A.it.kind = 1; A.it.x = ai.heard.x; A.it.z = ai.heard.z; A.it.y = ai.heard.y + K.headY; A.it.fast = true; }
+      else if ((ai.planting || ai.defusing) && ai.order?.yaw !== undefined && ai.order.yaw !== null) { A.it.kind = 3; A.it.yaw = ai.order.yaw; A.it.pitch = 0; }
       else if (ai.lookAt) { A.it.kind = 1; A.it.x = ai.lookAt.x; A.it.y = ai.lookAt.y; A.it.z = ai.lookAt.z; A.it.fast = false; }
       else if (ai.hasLookAhead && ai.mv.has && !ai.mv.arrived) { A.it.kind = 1; A.it.x = ai.lookAhead.x; A.it.y = ai.lookAhead.y; A.it.z = ai.lookAhead.z; A.it.fast = false; }
       else if (ai.order?.yaw !== undefined && ai.order.yaw !== null) { A.it.kind = 3; A.it.yaw = ai.order.yaw; A.it.pitch = 0; }
       else A.it.kind = 0;
     }
-    if (tgt && !ai.lastTarget) { A.acqT = now; A.acqSet = false; }
+    if (tgt && tgt !== ai.lastTarget) { A.acqT = now; A.acqSet = false; }
     ai.lastTarget = tgt;
     orderTick(ai, now);
   }
@@ -476,7 +496,7 @@ export function createBrain(B) {
       mvc.forward = (-sy * s.x - cy * s.z) * s.mag; mvc.right = (cy * s.x - sy * s.z) * s.mag;
     } else { mvc.forward = 0; mvc.right = 0; }
     mvc.jump = s.jump; mvc.crouch = ai.crouchWant || ai.defusing && false;
-    const alertWalk = ai.heard && now - ai.heard.t < 2.5 && !tgt && ai.diff.tactics > 0.5 && ai.order?.sneak;
+    const alertWalk = ai.heard && now - ai.heard.t < 2.5 && !tgt && ai.diff.tactics > 0.5 && ai.order && !ai.order.rush && ai.order.kind !== 'plant' && ai.order.kind !== 'defuse' && ai.order.kind !== 'roam';
     mvc.walk = (ai.mv.mode === 'walk' || alertWalk) && !tgt && ai.mv.has;
     if (ai.planting || ai.defusing) { mvc.walk = true; }
     sim(a, mvc, dt);

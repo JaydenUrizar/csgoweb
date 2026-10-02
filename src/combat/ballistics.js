@@ -15,6 +15,14 @@ export function moveFrac(speed, maxSpeed) {
  * s = { speed, onGround, crouch, vy, fire (accumulated fire inaccuracy), land (0..1 landing penalty), scopeLevel }
  */
 export function inaccuracyDeg(def, s) {
+  // zoom has to settle: right after scoping the cone is mostly the unscoped one (no free quick-scope)
+  if (s.scopeLevel > 0 && def.scope && s.scopeT != null && s.scopeT < 0.3 && !s._u) {
+    const k = clamp(s.scopeT / 0.3, 0, 1), a = inaccuracyDeg(def, { ...s, scopeLevel: 0, _u: 1 }), b = inaccuracyDeg(def, { ...s, _u: 1 });
+    return a + (b - a) * k * k;
+  }
+  return inaccuracyCore(def, s);
+}
+function inaccuracyCore(def, s) {
   const t = def.inacc, sc = def.scope;
   const scoped = s.scopeLevel > 0 && sc;
   let base, move, air;

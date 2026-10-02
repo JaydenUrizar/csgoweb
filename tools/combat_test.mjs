@@ -182,6 +182,9 @@ function csChecks() {
   check('accuracy: AK standing first shot ~0.4° (CS2)', near(inaccuracyDeg(d, s), 0.4, 0.05), inaccuracyDeg(d, s).toFixed(2));
   check('accuracy: AK full-speed run ~10° (CS2)', near(runI, 10.4, 1.5), runI.toFixed(2));
   check('Pip one-taps an unarmoured head at 30 m (CS2 USP-S)', dmg('pip', 'head', 30) >= 100, String(dmg('pip', 'head', 30)));
+  check('AWP quick-scope: 20 ms after zoom still >3° (CS2 flick-scope penalty)', inaccuracyDeg(TAGGERS.lance, { ...s, scopeLevel: 1, scopeT: 0.02 }) > 3, inaccuracyDeg(TAGGERS.lance, { ...s, scopeLevel: 1, scopeT: 0.02 }).toFixed(2));
+  check('AWP settled scope < 0.1°', inaccuracyDeg(TAGGERS.lance, { ...s, scopeLevel: 1, scopeT: 0.4 }) < 0.1);
+  check('Deagle 53 dmg, Negev 800 rpm', TAGGERS.judge.damage === 53 && Math.round(TAGGERS.storm.rpm) === 800);
   check('AK recovery_time_stand 0.43 s', TAGGERS.arc.recover.stand === 0.43);
   check('Negev tightens when sustained', inaccuracyDeg(TAGGERS.storm, { ...s, shots: 12 }) < 0.4 * inaccuracyDeg(TAGGERS.storm, { ...s, shots: 0 }));
   check('accuracy: crouched tighter than standing', inaccuracyDeg(d, { ...s, crouch: true }) < inaccuracyDeg(d, s));
@@ -276,7 +279,8 @@ function functional() {
     a.ai.cmd.aim = true; step(core, 2); a.ai.cmd.aim = false; step(core, 2); a.ai.cmd.fire = true; step(core, 1); a.ai.cmd.fire = false; secs(core, 1.6);
     check('weapon:scope events: in, out (bolt), in (resume)', JSON.stringify(sc) === '[true,false,true]', JSON.stringify(sc));
     const v = mkActor(ctx, 'v', 'tide', 0, -12, false); readyWeapon(core, a, 'arc'); a.pitch = -0.03; ctx.match = { phase: 'roundEnd' }; a.ai.cmd.fire = true; step(core, 1); a.ai.cmd.fire = false;
-    check('no tags during roundEnd (damage refused)', v.hp === 100 && ctx.log.hit.length === 0);
+    check('exit frags: tags allowed during roundEnd (CS2)', v.hp < 100);
+    v.hp = 100; ctx.log.hit.length = 0; ctx.match = { phase: 'halftime' }; secs(core, 0.3); a.ai.cmd.fire = true; step(core, 1); a.ai.cmd.fire = false; check('no firing/tags during halftime', v.hp === 100);
     ctx.match = { phase: 'live' }; secs(core, 0.3); a.ai.cmd.fire = true; step(core, 1); a.ai.cmd.fire = false; check('tags resume when live', v.hp < 100);
   }
   { // human path (ctx.input): semi-auto held through draw fires exactly once; releasing and clicking fires again
