@@ -10,7 +10,7 @@ function VB_stripe(VB, x0, z0, x1, z1, y, hh, col, alongX) { VB.box('plain', x0 
 export class Dress {
   constructor(VB, VBroof, CB, grid) {
     this.VB = VB; this.VBroof = VBroof; this.CB = CB; this.g = grid;
-    this.thinWalls = []; this.objects = []; this.lamps = []; this.decals = []; this.contacts = []; this.waters = []; this.roofBoxes = [];
+    this.thinWalls = []; this.objects = []; this.lamps = []; this.pools = []; this.decals = []; this.contacts = []; this.waters = []; this.roofBoxes = [];
   }
   ground(x, z) { return heightAt(this.g, x, z); }
   /** min ground over footprint */
@@ -187,8 +187,8 @@ export class Dress {
     // four plinths with lanterns on the diagonals
     for (const [dx, dz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) { const px = cx + dx * (r + 1.1), pz = cz + dz * (r + 1.1);
       this.solid({ x0: px - 0.35, x1: px + 0.35, z0: pz - 0.35, z1: pz + 0.35, y0, y1: y0 + 1.0, mat: 'wall', color: 0xe8d6ac, surf: 'stone', name: 'fountain-plinth', cover: true, kind: 'plinth', ao: 0.85 });
-      VB.box('wall', px - 0.45, y0 + 1.0, pz - 0.45, px + 0.45, y0 + 1.12, pz + 0.45, mulc(c, 1.06), { ao: 1 }); VB.box('emissive', px - 0.2, y0 + 1.12, pz - 0.2, px + 0.2, y0 + 1.6, pz + 0.2, mulc(rgb(0xffd9a0), 2.4), { ao: 1 }); this.lamps.push({ pos: [px, y0 + 1.4, pz], color: 0xffd9a0, intensity: 1 }); }
-    this.lamps.push({ pos: [cx, y0 + h + 3, cz], color: o.glow ?? 0x62e6d8, intensity: 1.2 });
+      VB.box('wall', px - 0.45, y0 + 1.0, pz - 0.45, px + 0.45, y0 + 1.12, pz + 0.45, mulc(c, 1.06), { ao: 1 }); VB.box('emissive', px - 0.2, y0 + 1.12, pz - 0.2, px + 0.2, y0 + 1.6, pz + 0.2, mulc(rgb(0xffd9a0), 2.4), { ao: 1 }); this.lamps.push({ pos: [px, y0 + 1.4, pz], color: 0xffd9a0, intensity: 1, radius: 4, kind: 'plinth' }); this.pool(px, pz, 1.8, 0xffd9a0, 0.2, y0); }
+    this.lamps.push({ pos: [cx, y0 + h + 3, cz], color: o.glow ?? 0x62e6d8, intensity: 1.2, radius: 7, kind: 'fountain' });
   }
   /** sloped cloth awning (visual only) */
   awning(x0, z0, x1, z1, y, drop = 0.5, o = {}) {
@@ -224,7 +224,8 @@ export class Dress {
     this.VB.box('plain', x - 0.2, y0, z - 0.2, x + 0.2, y0 + 0.3, z + 0.2, c, { ao: 0.9 });
     this.VB.box('plain', x - 0.2, y0 + h, z - 0.2, x + 0.2, y0 + h + 0.08, z + 0.2, c, { ao: 1 });
     this.VB.box('emissive', x - 0.16, y0 + h - 0.32, z - 0.16, x + 0.16, y0 + h, z + 0.16, mulc(rgb(color), 2.6), { ao: 1 });
-    this.lamps.push({ pos: [x, y0 + h - 0.15, z], color, intensity: 1 });
+    this.lamps.push({ pos: [x, y0 + h - 0.15, z], color, intensity: 1.1, radius: 7, kind: 'post' });
+    this.pool(x, z, 3.2, color, 0.22, y0);
   }
   /** wall lantern on a wall face: n = outward normal [nx,nz] */
   wallLamp(x, y, z, nx, nz, color = 0xffc880) {
@@ -232,7 +233,8 @@ export class Dress {
     const x0 = x + (nx > 0 ? 0 : nx < 0 ? -t : -0.1), x1 = x + (nx > 0 ? t : nx < 0 ? 0 : 0.1), z0 = z + (nz > 0 ? 0 : nz < 0 ? -t : -0.1), z1 = z + (nz > 0 ? t : nz < 0 ? 0 : 0.1);
     VB.box('plain', x0, y - 0.22, z0, x1, y + 0.22, z1, c, { ao: 1 });
     const e = 0.025; VB.box('emissive', x0 + (nx ? (nx > 0 ? 0.04 : e) : e), y - 0.17, z0 + (nz ? (nz > 0 ? 0.04 : e) : e), x1 - (nx ? (nx > 0 ? e : 0.04) : e), y + 0.17, z1 - (nz ? (nz > 0 ? e : 0.04) : e), mulc(rgb(color), 2.8), { ao: 1, top: false });
-    this.lamps.push({ pos: [x + nx * 0.3, y, z + nz * 0.3], color, intensity: 1 });
+    this.lamps.push({ pos: [x + nx * 0.3, y, z + nz * 0.3], color, intensity: 1, radius: 4.5, kind: 'wall' });
+    if (y < 4.2) this.pool(x + nx * 1.3, z + nz * 1.3, 2.0, color, 0.2, this.ground(x + nx * 1.3, z + nz * 1.3));
   }
   /** hanging banner. facing normal axis: 'x'|'z' with sign */
   banner(x, y, z, nx, nz, w, h, color, o = {}) {
@@ -251,7 +253,7 @@ export class Dress {
   }
 
   /** Barrel-vaulted/arched gateway block. axis 'z': passage runs along z (opening width along x). */
-  arch({ axis, cx, cz, w, depth, floorY = 0, spring = 2.6, rise = 1.2, topY = 8, margin = 0.7, color = 0xe6cfa0, protrude = 0.04, roof = false }) {
+  arch({ axis, cx, cz, w, depth, floorY = 0, spring = 2.6, rise = 1.2, topY = 8, margin = 0.7, color = 0xe6cfa0, protrude = 0.04, roof = false, dark = 1 }) {
     const hw = w / 2 - 0.04, W = w / 2 + margin, N = 10;
     const sh = new THREE.Shape();
     sh.moveTo(-W, floorY); sh.lineTo(-hw, floorY); sh.lineTo(-hw, spring);
@@ -264,7 +266,7 @@ export class Dress {
     geo.computeVertexNormals();
     const base = rgb(color);
     const VB = roof ? this.VBroof : this.VB;
-    VB.geometry('wall', geo, (x, y, z, nx, ny, nz) => { const k = 0.72 + 0.28 * Math.min(1, Math.max(0, (y - floorY) / 2.6)); const up = ny < -0.5 ? 0.82 : 1; return mulc(base, k * up); });
+    VB.geometry('wall', geo, (x, y, z, nx, ny, nz) => { const k = 0.72 + 0.28 * Math.min(1, Math.max(0, (y - floorY) / 2.6)); const up = ny < -0.5 ? 0.82 : 1; const front = axis === 'z' ? nz : nx; const inner = Math.abs(front) < 0.5 ? dark : 1; return mulc(base, k * up * inner); });
     this.CB.geometry(geo, 0);
     geo.dispose();
   }
@@ -272,5 +274,7 @@ export class Dress {
   slab({ x0, z0, x1, z1, y0, y1, color = 0xcfb184, mat = 'wall', roof = false, surf = 'stone', name = 'slab' }) {
     this.solid({ x0, x1, z0, z1, y0, y1, mat, color, surf, name, ao: 0.8, bottom: true, builder: roof ? this.VBroof : null });
   }
+  /** soft light pool painted on the floor (rendered with the contact layer) */
+  pool(x, z, r, color, a = 0.26, y = null) { this.pools.push({ x, z, r, color, a, y: y ?? this.ground(x, z) }); }
   decal(d) { this.decals.push(d); }
 }

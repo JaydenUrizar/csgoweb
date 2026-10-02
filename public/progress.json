@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-02T14:27:21.412Z",
+ "updated": "2026-10-02T15:56:13.754Z",
  "wave": 3,
  "phase": "Round 2 critics — blind comparison vs CS2 again",
  "pieces": [
@@ -7,7 +7,7 @@
    "id": "render",
    "name": "Rendering, lighting & post-FX",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 4,
    "score": 6.8,
    "gap": "The interior ambient (skyocc) now floods roofed spaces, so interiors are brighter than sunlit exteriors. To reproduce: ?test=1&seed=7&match=1&phase=live, hide #ui, then ctx.map.debug.setView('b-tunnel'). The median luminance of th",
@@ -34,13 +34,13 @@
      "gap": "The interior ambient (skyocc) now floods roofed spaces, so interiors are brighter than sunlit exteriors. To reproduce: ?test=1&seed=7&match=1&phase=live, hide #ui, then ctx.map.debug.setView('b-tunnel'). The median luminance of th"
     }
    ],
-   "updated": "2026-10-02T14:27:20.612Z"
+   "updated": "2026-10-02T15:56:13.296Z"
   },
   {
    "id": "map",
    "name": "Map — Crux Station",
    "group": "world",
-   "status": "building",
+   "status": "judging",
    "round": 4,
    "score": 6.6,
    "gap": "Lighting has no value hierarchy, so interiors and exteriors read the same. All tunnels (Tunnel Approach (-26,0,43), Lower (-34,0,0), Upper (-33,0,-6)), the Mid Doors arch and B Connector are lit almost as brightly as the open site",
@@ -67,13 +67,13 @@
      "gap": "Lighting has no value hierarchy, so interiors and exteriors read the same. All tunnels (Tunnel Approach (-26,0,43), Lower (-34,0,0), Upper (-33,0,-6)), the Mid Doors arch and B Connector are lit almost as brightly as the open site"
     }
    ],
-   "updated": "2026-10-02T14:27:20.687Z"
+   "updated": "2026-10-02T15:56:13.343Z"
   },
   {
    "id": "nav",
    "name": "Navigation & pathing",
    "group": "ai",
-   "status": "building",
+   "status": "judging",
    "round": 3,
    "score": 7.3,
    "gap": "holdSpots picks exposed open-ground spots, and what it picks depends on query history. (1) The ~1031 spot sight profiles are never precomputed after a synchronous build: NavSystem.build() sets this.bg=null after _buildGen queues p",
@@ -93,13 +93,13 @@
      "gap": "holdSpots picks exposed open-ground spots, and what it picks depends on query history. (1) The ~1031 spot sight profiles are never precomputed after a synchronous build: NavSystem.build() sets this.bg=null after _buildGen queues p"
     }
    ],
-   "updated": "2026-10-02T14:27:21.296Z"
+   "updated": "2026-10-02T15:56:13.713Z"
   },
   {
    "id": "move",
    "name": "Movement & camera feel",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 3,
    "score": 5.6,
    "gap": "REGRESSION: walking and crouch-walking from rest do not work. In-game repro: ?test=1&seed=1&scene=movement-course&station=flat, inject {forward:true, walk:true} for 1.2 s. actor.move.speed stays 0.00 and the player creeps 0.3 m (a",
@@ -119,13 +119,13 @@
      "gap": "REGRESSION: walking and crouch-walking from rest do not work. In-game repro: ?test=1&seed=1&scene=movement-course&station=flat, inject {forward:true, walk:true} for 1.2 s. actor.move.speed stays 0.00 and the player creeps 0.3 m (a"
     }
    ],
-   "updated": "2026-10-02T14:27:20.913Z"
+   "updated": "2026-10-02T15:56:13.486Z"
   },
   {
    "id": "tagger",
    "name": "Tagger ballistics, recoil & inventory",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 3,
    "score": 7.3,
    "gap": "The AK (Arc) spray shape does not match CS2's signature, and its top half is hard to learn. Repro: ?test=1&seed=1&scene=range&bay=wall&tagger=arc, hold fire for 30 shots. The pattern keys in taggers.js:48 go straight up to bullet ",
@@ -145,13 +145,13 @@
      "gap": "The AK (Arc) spray shape does not match CS2's signature, and its top half is hard to learn. Repro: ?test=1&seed=1&scene=range&bay=wall&tagger=arc, hold fire for 30 shots. The pattern keys in taggers.js:48 go straight up to bullet "
     }
    ],
-   "updated": "2026-10-02T14:27:20.982Z"
+   "updated": "2026-10-02T15:56:13.530Z"
   },
   {
    "id": "viewmodel",
    "name": "First-person viewmodels & animation",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 4,
    "score": 5.9,
    "gap": "Sidearms were left out of the r3 framing fix: they are oversized and central, so their flash blinds the crosshair on every shot. Repro: ?test=1&seed=3&match=1&phase=live, combat.give(localActor,'judge'), press slot2, fire (shots/c",
@@ -178,17 +178,17 @@
      "gap": "Sidearms were left out of the r3 framing fix: they are oversized and central, so their flash blinds the crosshair on every shot. Repro: ?test=1&seed=3&match=1&phase=live, combat.give(localActor,'judge'), press slot2, fire (shots/c"
     }
    ],
-   "updated": "2026-10-02T14:27:20.843Z",
+   "updated": "2026-10-02T15:56:13.440Z",
    "note": "Builder was stopped mid-work; awaiting go-ahead to relaunch"
   },
   {
    "id": "utility",
    "name": "Utility (Haze / Strobe / Pulse)",
    "group": "feel",
-   "status": "judging",
-   "round": 3,
-   "score": 6.3,
-   "gap": "Bot Strobes blind their own team far more often than the enemy. I ran 2 rich bot-lab matches (test=1&scene=bot-lab&view=none, seeds 2 and 5, credits 9000, 4 rounds each) and logged util:blind. There were 11 bot strobes. Only 3 bli",
+   "status": "building",
+   "round": 4,
+   "score": 6.5,
+   "gap": "Haze still looks like a cotton-wool impostor, not volumetric smoke. Repro: test=1&seed=1, debug.spawn('haze',{x:38,y:.07,z:6}), wait 6 s. Viewed from (38,1.62,24) (N_far) it is a near-white cumulus of equal round lobes with a cris",
    "history": [
     {
      "t": "2026-10-02T06:28:18.405Z",
@@ -203,15 +203,22 @@
      "winner": "ref",
      "score": 6.3,
      "gap": "Bot Strobes blind their own team far more often than the enemy. I ran 2 rich bot-lab matches (test=1&scene=bot-lab&view=none, seeds 2 and 5, credits 9000, 4 rounds each) and logged util:blind. There were 11 bot strobes. Only 3 bli"
+    },
+    {
+     "t": "2026-10-02T15:56:13.188Z",
+     "round": 4,
+     "winner": "ref",
+     "score": 6.5,
+     "gap": "Haze still looks like a cotton-wool impostor, not volumetric smoke. Repro: test=1&seed=1, debug.spawn('haze',{x:38,y:.07,z:6}), wait 6 s. Viewed from (38,1.62,24) (N_far) it is a near-white cumulus of equal round lobes with a cris"
     }
    ],
-   "updated": "2026-10-02T10:57:15.234Z"
+   "updated": "2026-10-02T15:56:13.188Z"
   },
   {
    "id": "avatars",
    "name": "Characters & animation",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 4,
    "score": 6.6,
    "gap": "Ember still camouflages at range on this warm map. Repro: ?test=1&seed=3&match=1&phase=live, advance(6), set ctx.ai.enabled=false, put 2 Ember and 2 Tide at (-0.2,0,44.2) facing +z… then place the camera 30 m and 50 m down the lin",
@@ -238,13 +245,13 @@
      "gap": "Ember still camouflages at range on this warm map. Repro: ?test=1&seed=3&match=1&phase=live, advance(6), set ctx.ai.enabled=false, put 2 Ember and 2 Tide at (-0.2,0,44.2) facing +z… then place the camera 30 m and 50 m down the lin"
     }
    ],
-   "updated": "2026-10-02T14:27:20.761Z"
+   "updated": "2026-10-02T15:56:13.393Z"
   },
   {
    "id": "cosmetics",
    "name": "Cosmetics & locker",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 3,
    "score": 6.6,
    "gap": "The locker preview does not show what you equipped, most of all on the Tide side. The Tide athlete renders as a blown-out cyan-white bloom blob, so the item you are inspecting cannot be seen. Repro: ?test=1&seed=1&scene=locker at ",
@@ -264,16 +271,16 @@
      "gap": "The locker preview does not show what you equipped, most of all on the Tide side. The Tide athlete renders as a blown-out cyan-white bloom blob, so the item you are inspecting cannot be seen. Repro: ?test=1&seed=1&scene=locker at "
     }
    ],
-   "updated": "2026-10-02T14:27:21.370Z"
+   "updated": "2026-10-02T15:56:13.754Z"
   },
   {
    "id": "vfx",
    "name": "VFX & juice",
    "group": "look",
-   "status": "judging",
-   "round": 3,
-   "score": 6.6,
-   "gap": "FP muzzle flash covers the aim point during automatic fire. Repro: ?test=1&seed=1&match=1&phase=live, combat.debug.give(null,'arc'), hold fire for 1.6s (shots/critic-vfx/h_crop.png, z_f00-03, pair1.png). The Arc muzzle sits about ",
+   "status": "building",
+   "round": 4,
+   "score": 7,
+   "gap": "Other actors' tracers are too loud and clutter the duel. Repro: ?test=1&seed=1&match=1&phase=live. Put the local player at ember spawn 0 facing an enemy 12-15m away; teammates spawn behind you (shots/critic-vfx/b/f06, b/f08, i/fp0",
    "history": [
     {
      "t": "2026-10-02T01:29:37.614Z",
@@ -288,15 +295,22 @@
      "winner": "ref",
      "score": 6.6,
      "gap": "FP muzzle flash covers the aim point during automatic fire. Repro: ?test=1&seed=1&match=1&phase=live, combat.debug.give(null,'arc'), hold fire for 1.6s (shots/critic-vfx/h_crop.png, z_f00-03, pair1.png). The Arc muzzle sits about "
+    },
+    {
+     "t": "2026-10-02T15:56:13.039Z",
+     "round": 4,
+     "winner": "ref",
+     "score": 7,
+     "gap": "Other actors' tracers are too loud and clutter the duel. Repro: ?test=1&seed=1&match=1&phase=live. Put the local player at ember spawn 0 facing an enemy 12-15m away; teammates spawn behind you (shots/critic-vfx/b/f06, b/f08, i/fp0"
     }
    ],
-   "updated": "2026-10-02T10:57:15.028Z"
+   "updated": "2026-10-02T15:56:13.039Z"
   },
   {
    "id": "audio",
    "name": "Audio & music",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 3,
    "score": 6,
    "gap": "Your own gunfire goes silent mid-spray. In mixer.js:80 the per-sound voice cap (tagger.<id>.fire voices=8, or MAXV) has no voice stealing: a new instance is simply dropped, even first-person prio-3 shots. setTimeout disposal keeps",
@@ -316,13 +330,13 @@
      "gap": "Your own gunfire goes silent mid-spray. In mixer.js:80 the per-sound voice cap (tagger.<id>.fire voices=8, or MAXV) has no voice stealing: a new instance is simply dropped, even first-person prio-3 shots. setTimeout disposal keeps"
     }
    ],
-   "updated": "2026-10-02T14:27:21.119Z"
+   "updated": "2026-10-02T15:56:13.621Z"
   },
   {
    "id": "bots",
    "name": "Bot AI",
    "group": "ai",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 5.4,
    "gap": "Bots aim before they have reacted. In brain.js the aim intent (around line 428) picks the most recently SEEN memory entry by seenT. Perception updates seenT on the first visible tick, long before the reaction window marks the enem",
@@ -335,13 +349,13 @@
      "gap": "Bots aim before they have reacted. In brain.js the aim intent (around line 428) picks the most recently SEEN memory entry by seenT. Perception updates seenT on the first visible tick, long before the reaction window marks the enem"
     }
    ],
-   "updated": "2026-10-02T14:27:21.210Z"
+   "updated": "2026-10-02T15:56:13.669Z"
   },
   {
    "id": "flow",
    "name": "Match flow & economy",
    "group": "systems",
-   "status": "building",
+   "status": "judging",
    "round": 3,
    "score": 6,
    "gap": "Every real match ends in a soft-lock. When flow enters matchEnd, the menu's showEnd calls buildEnd, which falls back to A.econLog() because the match:end data has no econLog. That throws 'ReferenceError: econLog is not defined' (s",
@@ -361,16 +375,16 @@
      "gap": "Every real match ends in a soft-lock. When flow enters matchEnd, the menu's showEnd calls buildEnd, which falls back to A.econLog() because the match:end data has no econLog. That throws 'ReferenceError: econLog is not defined' (s"
     }
    ],
-   "updated": "2026-10-02T14:27:21.053Z"
+   "updated": "2026-10-02T15:56:13.580Z"
   },
   {
    "id": "hud",
    "name": "HUD",
    "group": "ui",
-   "status": "judging",
-   "round": 3,
-   "score": 7.6,
-   "gap": "Death to spectate is the weakest HUD moment. Reproduce with ?test=1&seed=3&match=1&phase=live: give the local actor 'arc', place it at (0,y,-28) and let Zed/Tango tag you (shots/critic-hud/1280/12_after.png and 1920/12_after.png).",
+   "status": "building",
+   "round": 4,
+   "score": 7.9,
+   "gap": "Death to spectate still cuts hard and then blocks the screen. Reproduce: ?test=1&seed=2&match=1&phase=live at 1920x1080, then let Tango one-tap you (shots/critic-hud-r3/death_1920_s2/03_death_0.png, 05_death_2.2.png; also fb/07_de",
    "history": [
     {
      "t": "2026-10-02T01:29:37.459Z",
@@ -385,18 +399,25 @@
      "winner": "tie",
      "score": 7.6,
      "gap": "Death to spectate is the weakest HUD moment. Reproduce with ?test=1&seed=3&match=1&phase=live: give the local actor 'arc', place it at (0,y,-28) and let Zed/Tango tag you (shots/critic-hud/1280/12_after.png and 1920/12_after.png)."
+    },
+    {
+     "t": "2026-10-02T15:56:13.120Z",
+     "round": 4,
+     "winner": "ref",
+     "score": 7.9,
+     "gap": "Death to spectate still cuts hard and then blocks the screen. Reproduce: ?test=1&seed=2&match=1&phase=live at 1920x1080, then let Tango one-tap you (shots/critic-hud-r3/death_1920_s2/03_death_0.png, 05_death_2.2.png; also fb/07_de"
     }
    ],
-   "updated": "2026-10-02T10:57:15.096Z"
+   "updated": "2026-10-02T15:56:13.121Z"
   },
   {
    "id": "menu",
    "name": "Menus, settings & onboarding",
    "group": "ui",
-   "status": "judging",
-   "round": 3,
-   "score": 7.4,
-   "gap": "The settings sheet is the screen players use most, and it is not up to CS2. (1) At 1280x720 the Crosshair tab's Length, Gap and Thickness sliders shrink to 42px tracks (measured with getBoundingClientRect; 149px at 1920), so they ",
+   "status": "building",
+   "round": 4,
+   "score": 7,
+   "gap": "LEAVE MATCH IS IMPOSSIBLE. In pause, Leave match opens the 'Leave match?' confirm. confirmLeave() appends the box INSIDE pause.el and then sets pause.el.inert=true, and box.inert=false cannot un-inert a descendant of an inert pare",
    "history": [
     {
      "t": "2026-10-02T06:28:18.542Z",
@@ -411,9 +432,16 @@
      "winner": "ref",
      "score": 7.4,
      "gap": "The settings sheet is the screen players use most, and it is not up to CS2. (1) At 1280x720 the Crosshair tab's Length, Gap and Thickness sliders shrink to 42px tracks (measured with getBoundingClientRect; 149px at 1920), so they "
+    },
+    {
+     "t": "2026-10-02T15:56:13.252Z",
+     "round": 4,
+     "winner": "ref",
+     "score": 7,
+     "gap": "LEAVE MATCH IS IMPOSSIBLE. In pause, Leave match opens the 'Leave match?' confirm. confirmLeave() appends the box INSIDE pause.el and then sets pause.el.inert=true, and box.inert=false cannot un-inert a descendant of an inert pare"
     }
    ],
-   "updated": "2026-10-02T10:57:15.320Z"
+   "updated": "2026-10-02T15:56:13.252Z"
   },
   {
    "id": "perf",

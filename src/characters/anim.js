@@ -97,7 +97,7 @@ export function animate(ctx, m, dt, alpha) {
   const speed = m.speed;
   const moving = speed > (m.moving ? 0.3 : 0.6);
   m.moving = moving;
-  const onGround = dbg && dbg.air ? false : a.onGround !== false;
+  const onGround = dbg && dbg.air ? false : (a.onGround !== false && !(m.vy > 2.8 || m.vy < -4.5));
   // ground height (smoothed for stairs)
   if (onGround && Math.abs(rp.y - m.gy) < 0.7) m.gy += (rp.y - m.gy) * (1 - Math.exp(-dt * 22)); else m.gy = rp.y;
   const gy = m.gy;
@@ -176,6 +176,10 @@ export function animate(ctx, m, dt, alpha) {
       f.airPose = true; continue;
     }
     if (f.airPose) { f.airPose = false; f.mode = 1; f.t = 0.35; f.sp.copy(f.p); f.yawStart = f.yaw; f.landing = true; }
+    if (plantW > 0.5 && moving === false) {
+      const lead = i === 0, lx = sg * 0.15, lz = lead ? -0.34 : 0.3, ly = lead ? 0.0 : 0.2;
+      f.p.set(rp.x + lx * ch + lz * sh, gy, rp.z - lx * sh + lz * ch); f.lift = ly; f.mode = 1; f.t = 0.5; f.sp.copy(f.p); f.yaw = lerpAngle(f.yaw, hy, 0.3); f.pitch = lead ? 0 : -1.0; f.airPose = true; continue;
+    }
     if (slideW > 0.5) {
       const lead = i === 0, lx = sg * 0.13, lz = lead ? -0.6 : -0.12, ly = lead ? 0.05 : 0.03;
       f.p.set(rp.x + lx * ch + lz * sh, gy, rp.z - lx * sh + lz * ch); f.lift = ly; f.mode = 1; f.t = 0.5; f.sp.copy(f.p); f.yaw = lerpAngle(f.yaw, hy, 0.3); f.pitch = lead ? 0.5 : 0.0; f.airPose = true; continue;
@@ -214,16 +218,16 @@ export function animate(ctx, m, dt, alpha) {
   const pel = bones[B.pelvis];
   pel.position.set(0, hipY, 0.11 * cr + 0.05 * slideW);
   const gw = m.gaitW, sPh = Math.sin(TAU * ph);
-  let pPitch = clamp(0.024 * vlz, -0.16, 0.12) * (1 - airW * 0.5) - 0.3 * cr + 0.5 * slideW - 0.25 * plantW + sp.land[0] * 0.8;
-  const pRoll = -0.013 * vlx * (1 - airW) + 0.028 * sPh * gw * (0.5 + run) - 0.12 * airW * clamp(vlx / 5, -1, 1);
-  const pYaw = -0.07 * sPh * gw * (0.4 + run);
+  let pPitch = clamp(0.042 * vlz, -0.26, 0.14) * (1 - airW * 0.5) - 0.3 * cr + 0.5 * slideW - 0.6 * plantW + sp.land[0] * 0.8;
+  const pRoll = -0.02 * vlx * (1 - airW) + 0.045 * sPh * gw * (0.5 + run) - 0.12 * airW * clamp(vlx / 5, -1, 1);
+  const pYaw = -0.11 * sPh * gw * (0.4 + run);
   _e.set(pPitch, pYaw, pRoll, 'YXZ'); pel.quaternion.setFromEuler(_e);
   const twist = clamp(wrap(a.yaw - hy), -1.3, 1.3);
   const pit = clamp(a.pitch, -1.35, 1.35), br = 0.5 + 0.5 * Math.sin(m.time * 1.7 + m.id), breath = (1 - m.gaitW) * 0.6 + 0.4;
   const spine = bones[B.spine], chest = bones[B.chest], neck = bones[B.neck], head = bones[B.head];
   _e.set(-0.5 * pPitch + pit * 0.24 + 0.008 * br * breath + 0.12 * plantW, (twist - pYaw) * 0.38, -0.5 * pRoll, 'YXZ'); spine.quaternion.setFromEuler(_e);
   chest.position.y = 0.2 + 0.0035 * br * breath;
-  _e.set(pit * 0.34 + sp.fp[0] + sp.recoilChest[0] - 0.14 * (m.reloadW || 0), (twist - pYaw) * 0.62 + sp.fy[0] + 0.04 * sPh * gw * run, -0.35 * pRoll + sp.fr[0], 'YXZ'); chest.quaternion.setFromEuler(_e);
+  _e.set(pit * 0.34 + sp.fp[0] + sp.recoilChest[0] - 0.14 * (m.reloadW || 0), (twist - pYaw) * 0.62 + sp.fy[0] + 0.1 * sPh * gw * run, -0.35 * pRoll + sp.fr[0] - 0.03 * sPh * gw * run, 'YXZ'); chest.quaternion.setFromEuler(_e);
   _e.set(pit * 0.2 + sp.hp[0], 0, sp.hr[0], 'YXZ'); neck.quaternion.setFromEuler(_e);
   _e.set(pit * 0.2 - 0.3 * (m.reloadW || 0) - 0.12 * (m.aimW ?? 1) * 0, 0.08 * (m.reloadW || 0), 0.06 * (m.aimW ?? 1), 'YXZ'); head.quaternion.setFromEuler(_e);
   m.root.position.set(rp.x, gy, rp.z); m.root.rotation.y = hy;
@@ -281,7 +285,7 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
   const heavy = cls === 'melee' || cls === 'grenade' || cls === 'none' ? 0.3 : 1;
   py -= 0.05 * low * heavy; pz += 0.03 * low * heavy; rx -= 0.3 * low * heavy;
   // gait sway
-  px += 0.012 * sPh * gw * (0.4 + run); py += 0.009 * Math.sin(2 * TAU * ph) * gw * (0.4 + run);
+  px += 0.022 * sPh * gw * (0.4 + run); py += 0.016 * Math.sin(2 * TAU * ph) * gw * (0.4 + run); pz += 0.02 * Math.cos(TAU * ph) * gw * run;
   const br = Math.sin(m.time * 1.7 + m.id) * 0.5 + 0.5; py += 0.003 * br * (1 - gw);
   // ---- fire kick
   pz += sp.kz[0]; rx += sp.kp[0]; rz += sp.kr[0];
@@ -337,6 +341,7 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
   _e.set(rx, ry, rz, 'YXZ'); _qHold.setFromEuler(_e);
   _pv.set(px, py, pz).applyQuaternion(_qAim);
   _p.set(0, 0.22, 0).applyQuaternion(_cQ).add(_cPos).add(_pv);                 // pivot world
+  if (plantW > 0.01) { const fy = -Math.sin(a.yaw), fz2 = -Math.cos(a.yaw); _p.lerp(_p2.set(m.rp.x + fy * 0.42, m.gy + 0.3 + Math.sin(m.time * 9) * 0.012, m.rp.z + fz2 * 0.42), plantW); }
   _pl.copy(_p).sub(_cPos).applyQuaternion(_cQi);                               // chest space
   _qPL.copy(_cQi).multiply(_qAim).multiply(_qHold);
   m.pivot.position.copy(_pl); m.pivot.quaternion.copy(_qPL);
@@ -373,7 +378,7 @@ const _hq = new THREE.Quaternion();
 function solveArm(m, sg, wrist, handQ, run, cr) {
   const B_ = m.bones, uA = B_[sg < 0 ? B.uArmL : B.uArmR], fA = B_[sg < 0 ? B.fArmL : B.fArmR], hA = B_[sg < 0 ? B.handL : B.handR];
   _J.set(sg * SEG.shoulderX, 0.22, 0);
-  _pole.set(sg * 0.45, -1.0, sg > 0 ? 0.1 : 0.3);
+  _pole.set(sg * (sg > 0 ? 0.35 : 0.15), -1.0, sg > 0 ? 0.1 : 0.35);
   ik2(_J, wrist, SEG.arm1, SEG.arm2, _pole, _qU, _qL);
   uA.quaternion.copy(_qU); fA.quaternion.copy(_qL);
   _hq.copy(_qU).multiply(_qL).invert().multiply(handQ); hA.quaternion.copy(_hq);

@@ -18,6 +18,7 @@ const KIT = {
   longramp: { pan: [0xe9c98e, 0xf3dfae, 0xefe0b8], brick: 0.05, awn: AWN, shop: 0.1, balc: 0.25, win: 0.4, mural: 0.1, bays: 4 },
   a:        { pan: [0xf1dba6, 0xe6c58a, 0xf8ecc8, 0xe9d3a0, 0xd9a07a], arc: 0.45, band: 0x2a9d9f, brick: 0.12, awn: [0x2a9d9f, 0xe8dcc0, 0xd9a441], shop: 0.15, balc: 0.35, win: 0.4, mural: 0.12, bays: 4.2 },
   aplat:    { pan: [0xf4dfac, 0xf8ecc8], arc: 0.3, band: 0x2a9d9f, brick: 0, awn: [0x2a9d9f, 0xe8dcc0], shop: 0, balc: 0.2, win: 0.4, mural: 0.2, bays: 4 },
+  aconn:    { pan: [0xe6c793, 0xf1dcae], brick: 0.1, awn: AWN, shop: 0, balc: 0.1, win: 0.5, mural: 0.2, bays: 3.4 },
   adoor:    { pan: [0xe6c793, 0xf1dcae], brick: 0.1, awn: AWN, shop: 0.1, balc: 0.1, win: 0.5, mural: 0.1, bays: 3.4 },
   midapp:   { pan: [0xdfba8a, 0xcf8a5a, 0xe8d0a0, 0xb9654a], brick: 0.3, awn: AWN, shop: 0.45, balc: 0.2, win: 0.3, mural: 0.1, bays: 3.4 },
   doors:    { pan: [0xd9b283, 0xc99a68], brick: 0.2, awn: AWN, shop: 0.0, balc: 0.0, win: 0.2, mural: 0.0, bays: 3 },
@@ -44,9 +45,9 @@ function tunnelWall(D, VB, s, h) {
   while (t < s.s1 - 1.4) {
     let bw = 4.2 * (0.8 + 0.4 * H0(t, s.line, 41 + bi)); if (t + bw > s.s1 - 0.1 || s.s1 - (t + bw) < 1.5) bw = s.s1 - 0.1 - t; if (bw < 1.6) break;
     const t0 = t, t1 = t + bw, tc = (t0 + t1) / 2, r = H0(tc, s.line, 43), r2 = H0(tc, s.line, 44); t = t1; bi++;
-    const pc = rgb(k.pc[Math.floor(r2 * 97) % k.pc.length]);
+    const pc = mulc(rgb(k.pc[Math.floor(r2 * 97) % k.pc.length]), 0.74);
     panelQuad(t0 + 0.1, t1 - 0.1, low + k.wh, low + CEIL, k.pm, k.pm === 'brick' ? mulc(pc, 0.95 + 0.1 * r) : pc);
-    panelQuad(t0 + 0.1, t1 - 0.1, low, low + k.wh, k.wm, mulc(rgb(k.wc), 0.92 + 0.12 * r2), 0.03);
+    panelQuad(t0 + 0.1, t1 - 0.1, low, low + k.wh, k.wm, mulc(rgb(k.wc), 0.74 * (0.92 + 0.12 * r2)), 0.03);
     box(t0 + 0.1, t1 - 0.1, low + k.wh, low + k.wh + 0.1, 0, 0.1, 'wall', rgb(0xe8d6ac), { ao: 1 });   // rail cap
     // posts
     box(t0 - 0.05, t0 + 0.3, low, low + CEIL, 0, 0.2, 'wood', rgb(k.post), { ao: 0.85, top: false });
@@ -154,14 +155,14 @@ export function dressFacades(D, walls) {
     if (Hh >= 5.2) {
       const eaveTile = H0(s.s0, s.line, 31) < 0.6;
       if (eaveTile) {
-        const A = pos(s.s0, high - 0.3, 0.0), B = pos(s.s1, high - 0.3, 0.0), C = pos(s.s1, high + 0.0, 0.9), Dd = pos(s.s0, high + 0.0, 0.9);
+        const A = pos(s.s0, high - 0.3, 0.0), B = pos(s.s1, high - 0.3, 0.0), C = pos(s.s1, high + 0.0, 1.3), Dd = pos(s.s0, high + 0.0, 1.3);
         const col = rgb([0xc4673d, 0xb85a3a, 0xd0794a][Math.floor(H0(s.s0, s.line, 32) * 3)]);
         // underside + top slope strip; drop towards outside
-        const A2 = pos(s.s0, high - 0.1, 0.9), B2 = pos(s.s1, high - 0.1, 0.9);
+        const A2 = pos(s.s0, high - 0.1, 1.3), B2 = pos(s.s1, high - 0.1, 1.3);
         if (s.d === 0 || s.d === 3) VB.quad('roof', B, A, A2, B2, [mulc(col, 0.85), mulc(col, 0.85), col, col]); else VB.quad('roof', A, B, B2, A2, [mulc(col, 0.85), mulc(col, 0.85), col, col]);
-        const U0 = pos(s.s0, high - 0.1, 0.9), U1 = pos(s.s1, high - 0.1, 0.9), U2 = pos(s.s1, high - 0.3, 0.0), U3 = pos(s.s0, high - 0.3, 0.0);
+        const U0 = pos(s.s0, high - 0.1, 1.3), U1 = pos(s.s1, high - 0.1, 1.3), U2 = pos(s.s1, high - 0.3, 0.0), U3 = pos(s.s0, high - 0.3, 0.0);
         if (s.d === 0 || s.d === 3) VB.quad('wall', U1, U0, U3, U2, mulc(rgb(0xb59470), 0.7)); else VB.quad('wall', U0, U1, U2, U3, mulc(rgb(0xb59470), 0.7));
-        box(s.s0, s.s1, high - 0.3, high - 0.1, 0.86, 0.94, 'wall', rgb(0xefe0b8), { ao: 1 });
+        box(s.s0, s.s1, high - 0.3, high - 0.1, 1.26, 1.34, 'wall', rgb(0xefe0b8), { ao: 1 });
       }
     }
   }
@@ -173,7 +174,7 @@ function awning(D, VB, s, t0, t1, y, proj, color, pos, nrm) {
   const A = pos(t0, y + 0.45, 0.02), B = pos(t1, y + 0.45, 0.02), C = pos(t1, y, proj), Dd = pos(t0, y, proj);
   const tint = (k) => mulc(rgb(0xffffff), k);
   if (s.d === 0 || s.d === 3) { VB.quad('cloth', B, A, Dd, C, tint(1), { uv: [[(t1 - t0) / 2, 0], [0, 0], [0, 1], [(t1 - t0) / 2, 1]] }); } else { VB.quad('cloth', A, B, C, Dd, tint(1), { uv: [[0, 0], [(t1 - t0) / 2, 0], [(t1 - t0) / 2, 1], [0, 1]] }); }
-  { const u = (P) => [P[0], P[1] - 0.025, P[2]]; const uc = mulc(mixc(c, rgb(0xe8dcc0), 0.5), 0.62);
+  { const u = (P) => [P[0], P[1] - 0.025, P[2]]; const uc = mulc(mixc(c, rgb(0xe8dcc0), 0.5), 0.74);
     if (s.d === 0 || s.d === 3) VB.quad('emissive', u(A), u(B), u(C), u(Dd), uc); else VB.quad('emissive', u(B), u(A), u(Dd), u(C), uc); }
   // valance + side triangles + support posts
   const V0 = pos(t0, y, proj), V1 = pos(t1, y, proj), V2 = pos(t1, y - 0.22, proj), V3 = pos(t0, y - 0.22, proj);

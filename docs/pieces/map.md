@@ -37,3 +37,11 @@ Rooftops are plain; facades repeat windows; no instanced foliage variety; murals
 - A/B/Palace facades: arcades with engaged columns (arcade decal), colour bands, 2 m checker paving in big courts, long ramp stripes; A east loggia with trellis, north gallery, 3-tier ziggurat cover with lantern pillar; Hub stage + pillar; B stage; Palace fountain is now tiered (basin, pedestal, upper bowl, jets, four lantern plinths).
 - Landmarks are unique: Palace clock tower (only one with a clock), A teal dome, B terracotta minaret, Mid red-brick campanile, tunnel-approach lighthouse, Outer Long water tower.
 - Fixes: balcony side rails were solid black panels (now open bars); parasol undersides; containers get stripe + door bars and metalness 0; Window Room/East Room have no shopfronts, lower west wall + lamps; canal lamps/glow; spawn<->spawn LOS 3/9216 (was 13/6084); `rotate-a-to-b-palace` now walks the short ramp (generator forbids drops > 0.6 m).
+
+## Round 4 changes
+- Value hierarchy: tunnel zones darkened (x0.72 walls/floors, much darker ceilings/ribs), arch vault interiors darkened per passage (`dark`), floor light pools under lamps (alpha fans in the contact layer). `ctx.map.lamps` = `[{pos,color,intensity,radius,kind: wall|lantern|post|plinth|fountain}]` (125 entries).
+- Hard shade: overhead arches across Long (z=21, z=-1) and Mid lane (z=26), 1.3 m tile eaves, Long portico with roof slab, loggia/gallery, gazebo.
+- Tunnel floors per bend (teal tile / dark brick / grey stone / terracotta brick).
+- Signature pieces: A lantern gazebo over the default + ziggurat; B lantern-market pergola with stalls; Mid market stall (breaks the straight spawn peek, spawn<->spawn LOS 0/9216).
+- Mid rotation: new A Connector (Palace east end -> A, ramp x17..22). A<->B via Palace 63 m (~9.7 s at 6.5 m/s), via Tide Spawn 72 m. Paths `rotate-a-to-b-palace` / `rotate-b-to-a-palace`.
+- `heightAt(x,z,y)` with `y` returns the floor under that height (null inside solid); `floorAt(x,z,y)`; `heightAt(x,z)` still terrain/rooftop for solid cells. `calloutAt` prefers the floor-zone callout (Tide Mid vs Tide Spawn fixed).

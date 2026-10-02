@@ -159,11 +159,11 @@ void main(){
   col = toSRGB(col);
   // grade (display space): saturation, contrast around a filmic pivot, split-toning
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
-  col = mix(vec3(l), col, uSat);
+  col = mix(vec3(l), col, uSat) * vec3(0.965, 1.0, 1.045);
   col = (col - 0.46) * uContrast + 0.46;
-  col = col * 0.95 + 0.045;
+  col = col * 0.93 + 0.065;
   col = mix(col, vec3(l), (1.0 - smoothstep(0.0, 0.55, l)) * 0.4);
-  col += mix(uShadowTint, uHighTint, smoothstep(0.1, 0.9, l)) * 0.07;
+  col += mix(uShadowTint, uHighTint, smoothstep(0.1, 0.9, l)) * 0.04;
   // vignette
   col *= 1.0 - uVig * smoothstep(0.18, 0.85, r2 * 1.7);
   // damage: directional red edge pulse
@@ -194,7 +194,7 @@ export function createPost(renderer) {
 
   const ssaoMat = mk(SSAO_FS, { tDepth: T(), uProjInv: T(new THREE.Matrix4()), uProj11: T(1), uAsp: T(1), uRadius: T(1.2), uIntensity: T(0.8), uBias: T(0.2), uTexel: V2(), uSamples: T(12) });
   const blurMat = mk(BLUR_FS, { tAO: T(), tDepth: T(), uDir: V2(), uNear: T(0.05), uFar: T(400) });
-  const preMat = mk(PRE_FS, { tWorld: T(), tVM: T(), uTexel: V2(), uThr: T(2.0), uKnee: T(0.6), uClamp: T(40) });
+  const preMat = mk(PRE_FS, { tWorld: T(), tVM: T(), uTexel: V2(), uThr: T(2.4), uKnee: T(0.6), uClamp: T(40) });
   const downMat = mk(DOWN_FS, { tSrc: T(), uTexel: V2() });
   const upMat = mk(UP_FS, { tSrc: T(), uTexel: V2(), uWeight: T(1) }, { blending: THREE.AdditiveBlending, transparent: true });
   const shaftMat = mk(SHAFT_FS, { tWorld: T(), tDepth: T(), uSunUV: V2(), uAsp: T(1) });
@@ -255,7 +255,7 @@ export function createPost(renderer) {
     // viewmodel
     let vmTex = clearTex;
     if (hasVM) {
-      renderer.setRenderTarget(vmRT); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, true); renderer.render(viewScene, viewCamera); vmTex = vmRT.texture;
+      stats.beforeVM?.(); renderer.setRenderTarget(vmRT); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, true); renderer.render(viewScene, viewCamera); vmTex = vmRT.texture; stats.afterVM?.();
     }
     stats.calls = info.render.calls; stats.tris = info.render.triangles;
     // bloom

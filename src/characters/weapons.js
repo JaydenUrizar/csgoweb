@@ -19,12 +19,12 @@ export function classOf(id, def) {
 // pos/rot: pivot (weapon grip) in aim frame, L: left-hand target in pivot space, lroll/rroll: hand roll about the forearm,
 // len: fallback model length, kick: [z back (m), pitch up (rad)], reach: preferred foregrip slide toward grip when too far.
 export const HOLD = {
-  rifle:   { pos: [0.15, -0.12, -0.2], rot: [0, 0, 0], L: [0.0, -0.05, -0.36], lroll: 1.25, rroll: 0.15, kick: [0.045, 0.05], len: 0.98 },
-  smg:     { pos: [0.14, -0.14, -0.2], rot: [0, 0, 0], L: [0.0, -0.05, -0.28], lroll: 1.25, rroll: 0.15, kick: [0.03, 0.035], len: 0.68 },
-  shotgun: { pos: [0.15, -0.13, -0.2], rot: [0, 0, 0], L: [0.0, -0.055, -0.4], lroll: 1.25, rroll: 0.15, kick: [0.07, 0.09], len: 0.95 },
-  sniper:  { pos: [0.15, -0.11, -0.2], rot: [0, 0, 0], L: [0.0, -0.05, -0.42], lroll: 1.25, rroll: 0.15, kick: [0.09, 0.13], len: 1.2 },
-  lmg:     { pos: [0.13, -0.16, -0.22], rot: [0, 0, 0], L: [0.0, -0.065, -0.4], lroll: 1.25, rroll: 0.15, kick: [0.035, 0.04], len: 1.05 },
-  pistol:  { pos: [0.05, -0.09, -0.5], rot: [0, 0, 0], L: [-0.058, -0.052, -0.004], lroll: -0.15, rroll: 0.0, kick: [0.05, 0.11], len: 0.32 },
+  rifle:   { pos: [0.09, -0.17, -0.2], rot: [0, 0, 0], L: [0.0, -0.05, -0.32], lroll: 1.25, rroll: 0.15, kick: [0.045, 0.05], len: 1.12 },
+  smg:     { pos: [0.09, -0.18, -0.19], rot: [0, 0, 0], L: [0.0, -0.05, -0.28], lroll: 1.25, rroll: 0.15, kick: [0.03, 0.035], len: 0.78 },
+  shotgun: { pos: [0.09, -0.17, -0.2], rot: [0, 0, 0], L: [0.0, -0.055, -0.4], lroll: 1.25, rroll: 0.15, kick: [0.07, 0.09], len: 1.08 },
+  sniper:  { pos: [0.09, -0.16, -0.2], rot: [0, 0, 0], L: [0.0, -0.05, -0.42], lroll: 1.25, rroll: 0.15, kick: [0.09, 0.13], len: 1.35 },
+  lmg:     { pos: [0.08, -0.2, -0.22], rot: [0, 0, 0], L: [0.0, -0.065, -0.4], lroll: 1.25, rroll: 0.15, kick: [0.035, 0.04], len: 1.2 },
+  pistol:  { pos: [0.05, -0.09, -0.5], rot: [0, 0, 0], L: [-0.058, -0.052, -0.004], lroll: -0.15, rroll: 0.0, kick: [0.05, 0.11], len: 0.36 },
   melee:   { pos: [0.27, -0.44, -0.18], rot: [-0.85, 0.0, 0.12], L: null, lroll: 0, rroll: 0.0, kick: [0.0, 0.0], len: 0.8 },
   grenade: { pos: [0.24, -0.26, -0.24], rot: [0, 0, 0], L: null, lroll: 0, rroll: 0, kick: [0.0, 0.0], len: 0.11 },
   carry:   { pos: [0.0, -0.3, -0.27], rot: [0.0, 0, 0], L: [-0.12, -0.02, 0.0], lroll: 1.4, rroll: -1.4, kick: [0, 0], len: 0.26, bothSides: true },

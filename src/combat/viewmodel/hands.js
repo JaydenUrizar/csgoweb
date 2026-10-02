@@ -47,10 +47,10 @@ function bake(acc, fn, off, bone, mirror) {
   }
 }
 
-const seg = (len, w, h, tip) => (p) => {
-  p.box('glove', [0, 0, -len / 2], [w, h, len], { bevel: 0.45 });
-  p.box('pad', [0, h / 2 + 0.05, -len / 2], [w * 0.72, 0.4, len * 0.7], { bevel: 0.12 });
-  if (tip) p.box('gloveLight', [0, -h * 0.05, -len + 0.15], [w * 0.92, h * 0.9, 0.6], { bevel: 0.2 });
+const seg = (len, w, h, tip) => (p) => {   // rounded finger segment: 8-sided tapered tube + knuckle pad + fingertip cap
+  p.cyl('glove', [0, 0, -len / 2], w * 0.52, w * 0.46, len, 8, { sy: h / w });
+  p.box('pad', [0, h / 2 + 0.02, -len / 2], [w * 0.6, 0.35, len * 0.7], { bevel: 0.12 });
+  if (tip) p.ball('gloveLight', [0, -h * 0.02, -len + 0.15], w * 0.46, { sy: h / w * 0.9, sz: 0.8 });
 };
 const palm = (p) => {
   p.box('glove', [0, 0, 0], [8.6, 3.4, 8.8], { bevel: 1.0 });
@@ -64,7 +64,7 @@ const palm = (p) => {
   p.cyl('team', [0, 0, 8.35], 4.15, 4.15, 0.4, 8);
 };
 const tube = (p) => {   // sleeve tube along +Z, length 100 (scaled to the shoulder); 12 facets, accent panel on top, shaded underside
-  const sides = 12, r0 = 3.1, r1 = 4.8, verts = [], faces = [], mats = [], shades = [];
+  const sides = 12, r0 = 2.9, r1 = 4.0, verts = [], faces = [], mats = [], shades = [];
   for (let i = 0; i < sides; i++) { const a = (i / sides) * Math.PI * 2 + Math.PI / sides; verts.push([Math.cos(a) * r0, Math.sin(a) * r0, 0]); }
   for (let i = 0; i < sides; i++) { const a = (i / sides) * Math.PI * 2 + Math.PI / sides; verts.push([Math.cos(a) * r1, Math.sin(a) * r1, 100]); }
   for (let i = 0; i < sides; i++) {
@@ -75,17 +75,17 @@ const tube = (p) => {   // sleeve tube along +Z, length 100 (scaled to the shoul
   faces.forEach((f, i) => p._build(mats[i], verts, [f], [0, 0, 0], { shade: shades[i] }));
 };
 const ring = (p) => {
-  p.cyl('sleeveDark', [0, 0, 1.0], 4.3, 4.6, 2.0, 12);                               // flared gauntlet cuff over the glove
-  p.cyl('cuff', [0, 0, 2.6], 4.1, 4.1, 1.2, 12);
-  p.cyl('team', [0, 0, 3.4], 4.15, 4.15, 0.35, 12);
-  p.cyl('sleeveTrim', [0, 0, 4.1], 4.1, 4.1, 0.8, 12);
-  p.box('pad', [0, 4.15, 9], [4.4, 1.0, 11], { bevel: 0.45, tz: [0.8, 1, 1, 1] });  // forearm armour plate
-  p.box('team', [0, 4.72, 9], [0.45, 0.16, 10]);
-  for (const sx of [-1, 1]) { p.box('pad', [sx * 3.5, 2.4, 8.5], [0.9, 2.8, 7], { bevel: 0.3 }); p.box('gloveLight', [sx * 3.62, 2.4, 13.5], [0.5, 1.0, 1.4], { bevel: 0.15 }); }
-  p.cyl('sleeveDark', [0, 0, 15.5], 3.95, 4.05, 1.6, 12);                            // strap
-  p.box('cuff', [0, 4.1, 15.5], [1.4, 0.5, 1.8], { bevel: 0.15 });                    // buckle
-  p.cyl('sleeveDark', [0, 0, 23], 4.2, 4.3, 1.4, 12);
-  p.cyl('sleeveTrim', [0, 0, 24.2], 4.25, 4.25, 0.5, 12);
+  p.cyl('sleeveDark', [0, 0, 1.0], 3.8, 4.1, 2.0, 12);                               // flared gauntlet cuff over the glove
+  p.cyl('cuff', [0, 0, 2.6], 3.7, 3.7, 1.2, 12);
+  p.cyl('team', [0, 0, 3.4], 3.75, 3.75, 0.35, 12);
+  p.cyl('sleeveTrim', [0, 0, 4.1], 3.7, 3.7, 0.8, 12);
+  p.box('pad', [0, 3.5, 9], [3.8, 0.9, 11], { bevel: 0.45, tz: [0.8, 1, 1, 1] });  // forearm armour plate
+  p.box('team', [0, 3.98, 9], [0.4, 0.16, 10]);
+  for (const sx of [-1, 1]) { p.box('pad', [sx * 3.0, 2.0, 8.5], [0.8, 2.4, 7], { bevel: 0.3 }); p.box('gloveLight', [sx * 3.1, 2.0, 13.5], [0.5, 1.0, 1.4], { bevel: 0.15 }); }
+  p.cyl('sleeveDark', [0, 0, 15.5], 3.6, 3.7, 1.6, 12);                            // strap
+  p.box('cuff', [0, 3.6, 15.5], [1.4, 0.5, 1.8], { bevel: 0.15 });                    // buckle
+  p.cyl('sleeveDark', [0, 0, 23], 3.8, 3.9, 1.4, 12);
+  p.cyl('sleeveTrim', [0, 0, 24.2], 3.85, 3.85, 0.5, 12);
 };
 
 const FINGER_X = [-3.05, -1.02, 1.02, 3.05], FINGER_Z = [-4.3, -4.5, -4.3, -3.9], PROX = [3.9, 4.3, 3.9, 3.3];

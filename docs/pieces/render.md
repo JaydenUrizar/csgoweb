@@ -85,3 +85,9 @@ Inspect: `?test=1&seed=1&scene=render-gallery`, `?scene=render-fx` (`__game.ctx.
 * Global hook also adds world-space macro/micro value variation + roughness variation to every lit material (breaks up flat floors).
 * Damage effect: directional edge pulse (pow 3 around hit direction), faster decay, smaller CA.
 * Stats tool: `node shots/render/game.mjs <prefix>` (11 real-match HUD-off frames) then `python3 shots/render/stats.py shots/render/<prefix>_*.png` (mine: median ~0.47, p5 ~0.15, dark<0.06 ~1%; CS2 refs `reference/cs2/ss_*.jpg`: median 0.42, p5 0.18, dark 0.6%).
+
+## Round 4 changes
+* Roofed spaces: occluded ambient capped (<=0.40x, floor 0.12), lamp contribution is now a tight 3.3 m quadratic pool (k=1.0); solid cells (pillars) borrow neighbour ambient. Viewmodel pass bypasses the sky-occlusion hook.
+* Warm ground bounce gradient low on walls (hook); micro-contrast up; shadow radius 1.1 (sharper).
+* Grade: sat 0.80, slight cool gain, less warm highlight tint, sun 0xffecd4/5.0, bloom 0.08 thr 2.4, shafts 0.08, contrast 1.12, toe lift. Viewmodel lights softened (key 1.5).
+* Stats (11 real-match frames): median 0.38 (CS2 0.42), p5 0.13 (0.18), p95 0.79 (0.75), sat 0.27 (0.28), warm 0.10 (0.07), clipped 0.3% (1.2%).

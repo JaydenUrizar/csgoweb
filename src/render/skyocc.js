@@ -25,7 +25,7 @@ float mvar_ = 0.5;
   vec3 q_ = wv_ * vec3(1.0, 1.0, 1.0);
   float big_ = vn_(q_ * 0.22) * 0.65 + vn_(q_ * 0.9) * 0.35, fine_ = vn_(q_ * 4.1);
   mvar_ = big_;
-  float v_ = (big_ - 0.5) * (0.20 + 0.14 * up_) + (fine_ - 0.5) * 0.07;
+  float v_ = (big_ - 0.5) * (0.20 + 0.14 * up_) + (fine_ - 0.5) * 0.10;
   diffuseColor.rgb *= 1.0 + v_;
 }
 `;
@@ -40,9 +40,14 @@ if (uSkyOccOn > 0.5) {
     float occ = mix(1.0, uSkyOccMin + (1.0 - uSkyOccMin) * so.r, cov);
     // everywhere: partial occlusion by nearby walls, stronger when roofed
     vec3 tintc = mix(vec3(1.0), uSkyWarm, cov * (1.0 - so.r));
-    reflectedLight.indirectDiffuse *= occ * tintc;
+    reflectedLight.indirectDiffuse *= min(occ, mix(1.0, 0.40, cov)) * tintc;
     reflectedLight.indirectSpecular *= occ;
-    reflectedLight.indirectDiffuse += diffuseColor.rgb * uLampCol * (so.a * so.a * uLampK);
+    reflectedLight.indirectDiffuse += diffuseColor.rgb * uLampCol * (so.a * uLampK);
+  }
+  {
+    vec3 fnb_ = normalize(cross(dFdx(wp_), dFdy(wp_)));
+    float wall_ = 1.0 - smoothstep(0.35, 0.8, abs(fnb_.y));
+    reflectedLight.indirectDiffuse *= 1.0 + wall_ * 0.55 * exp(-max(wp_.y, 0.0) * 0.45) * vec3(1.0, 0.86, 0.66);   // warm ground bounce low on walls
   }
 }
 `;
@@ -51,7 +56,7 @@ export function createSkyOcc() {
   const U = {
     tSkyOcc: { value: null }, uSkyRect: { value: new THREE.Vector4(0, 0, 1, 1) }, uSkyDim: { value: new THREE.Vector2(1, 1) },
     uSkyWarm: { value: new THREE.Color(1.0, 0.86, 0.70) }, uLampCol: { value: new THREE.Color(1.0, 0.72, 0.42) },
-    uSkyOccOn: { value: 0 }, uSkyOccMin: { value: 0.34 }, uLampK: { value: 2.2 },
+    uSkyOccOn: { value: 0 }, uSkyOccMin: { value: 0.12 }, uLampK: { value: 1.0 },
   };
   const hook = (sh) => {
     if (!sh.fragmentShader || !sh.fragmentShader.includes('#include <lights_fragment_end>')) return;
@@ -77,8 +82,8 @@ export function createSkyOcc() {
           for (let i = 0; i < nx; i++) {
             const x = x0 + (i + 0.5) * CELL, z = z0 + (row + 0.5) * CELL, fy = map.heightAt ? map.heightAt(x, z) : 0, k = (row * nx + i) * 4;
             _o.set(x, fy + 0.3, z); const hu = map.raycast(_o, _up, 60);
-            let r = 1, g = 0, a = 0;
-            if (hu && hu.distance < 0.25) { r = 1; g = 0; }                         // inside solid: leave unoccluded
+            let r = 1, g = 0, a = 0, solid = 0;
+            if (hu && hu.distance < 0.25) { r = 1; g = 0; solid = 1; }                         // inside solid: filled from neighbours below
             else {
               const ceil = hu ? _o.y + hu.distance : 63.9; g = Math.min(1, ceil / 64);
               const oy = hu ? Math.min(fy + 1.5, _o.y + hu.distance * 0.5) : fy + 1.5; _o.set(x, oy, z);
@@ -86,16 +91,27 @@ export function createSkyOcc() {
               for (const d of dirs) { _d.set(d[0], d[1], d[2]); const h = map.raycast(_o, _d, 16); w += d[3]; if (h) occ += d[3] * (1 - 0.55 * h.distance / 16); }
               r = 1 - occ / w;
               for (const l of lamps) {
-                const dx = l.p.x - x, dz = l.p.z - z, d2 = dx * dx + dz * dz; if (d2 > 49) continue;
+                const dx = l.p.x - x, dz = l.p.z - z, d2 = dx * dx + dz * dz; if (d2 > 11) continue;
                 _a.set(x, fy + 1.2, z); if (!map.visible(_a, l.p)) continue;
-                a += l.k * Math.max(0, 1 - Math.sqrt(d2) / 7);
+                { const t = Math.max(0, 1 - Math.sqrt(d2) / 3.3); a += l.k * t * t; }
               }
-              a = Math.min(1, a * 0.9);
+              a = Math.min(1, a);
             }
-            data[k] = Math.round(r * 255); data[k + 1] = Math.round(g * 255); data[k + 2] = 0; data[k + 3] = Math.round(a * 255);
+            data[k] = Math.round(r * 255); data[k + 1] = Math.round(g * 255); data[k + 2] = solid ? 255 : 0; data[k + 3] = Math.round(a * 255);
           }
           row++; if (performance.now() - t0 > ms) return false;
         }
+        // solid cells (pillars, walls) borrow the neighbouring open cells' ambient so they receive the same fill
+        for (let pass = 0; pass < 3; pass++) {
+          const cp = data.slice();
+          for (let j = 1; j < nz - 1; j++) for (let i = 1; i < nx - 1; i++) {
+            const k = (j * nx + i) * 4; if (cp[k + 2] !== 255) continue;
+            let sr = 0, sg = 0, sa = 0, c = 0;
+            for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const kk = ((j + dj) * nx + i + di) * 4; if (cp[kk + 2] !== 255) { sr += cp[kk]; sg += cp[kk + 1]; sa += cp[kk + 3]; c++; } }
+            if (c) { data[k] = sr / c; data[k + 1] = sg / c; data[k + 3] = sa / c; data[k + 2] = 254; }
+          }
+        }
+        for (let k = 2; k < data.length; k += 4) if (data[k] >= 254) data[k] = 0;
         // smooth openness a little (3x3, only between cells of equal cover state) to soften stair-steps
         const src = data.slice();
         for (let j = 1; j < nz - 1; j++) for (let i = 1; i < nx - 1; i++) {

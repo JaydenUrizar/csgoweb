@@ -12,11 +12,13 @@ const vnoise = (x, z) => {
 };
 export { hash2, vnoise };
 
+export const isTunnel = (n) => n === 'tunapp' || (n && n.startsWith('btun') && n !== 'btunmouth');
 const palCache = {};
 const pal = (name) => {
   if (palCache[name]) return palCache[name];
   const z = ZONES[name] || ZONES.mass;
-  return (palCache[name] = { ...z, cC: rgb(z.c), pC: rgb(z.p), capC: rgb(z.cap), fC: rgb(z.f), trimC: z.trim ? rgb(z.trim) : null });
+  const dk = isTunnel(name) ? 0.72 : 1;   // roofed volumes sit 1.5-2 stops under the sunlit exits
+  return (palCache[name] = { ...z, dk, cC: mulc(rgb(z.c), dk), pC: mulc(rgb(z.p), dk), capC: mulc(rgb(z.cap), dk), fC: mulc(rgb(z.f), dk), trimC: z.trim ? mulc(rgb(z.trim), dk) : null });
 };
 
 // DIRS: 0 +x, 1 -x, 2 +z, 3 -z. corner index: 0=x0z0 1=x1z0 2=x0z1 3=x1z1
@@ -57,7 +59,7 @@ export function meshTerrain(g, VB, CB) {
       const zn = g.zoneNames[g.zone[k]], P = pal(zn);
       const surf = g.surf[k];
       let mat = P.floor, base = P.fC;
-      if (g.tint[k]) base = rgb(g.tint[k] & 0xffffff);
+      if (g.tint[k]) base = mulc(rgb(g.tint[k] & 0xffffff), P.dk);
       if (surf === 1) mat = 'sand'; else if (surf === 2) mat = 'tile'; else if (surf === 3) mat = 'brick'; else if (surf === 4) { mat = 'floor'; base = mulc(rgb(0x6e8f86), 1); } else if (surf === 5) mat = 'deck';
       if (surf === 2 && !g.tint[k]) base = rgb(0xa9d3cd);
       const n = 1 + (hash2(i, j) - 0.5) * 0.07 + (vnoise(x0 * 0.17, z0 * 0.17) - 0.5) * 0.14;

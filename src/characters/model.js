@@ -25,7 +25,7 @@ export function buildModel(ctx, actor, specIn) {
     shoulderL: mk('shoulderL', chest, -0.31, 0.24, 0), shoulderR: mk('shoulderR', chest, 0.31, 0.24, 0),
     handR: mk('handR', bones[B.handR], 0, -0.05, 0), handL: mk('handL', bones[B.handL], 0, -0.05, 0),
     trailEmitter: mk('trailEmitter', bones[B.pelvis], 0, 0.1, 0.28), nameplate: mk('nameplate', head, 0, 0.42, 0),
-    hip: mk('hip', bones[B.pelvis], 0.24, 0, 0),
+    hip: mk('hip', bones[B.pelvis], 0.27, -0.04, 0.0),
   };
   const pivot = mk('weaponPivot', chest); attach.weapon = pivot;
   const magGeo = new THREE.BoxGeometry(0.05, 0.15, 0.075), mag = new THREE.Mesh(magGeo, new THREE.MeshStandardMaterial({ color: 0x2b2f38, roughness: 0.5, metalness: 0.4, emissive: tc, emissiveIntensity: 0.6 }));

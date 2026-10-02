@@ -53,6 +53,7 @@ export function buildLayout() {
   ramp(-10, -4, -7, 0, 'z', 0, 0, -4, H.BALC, 'hub', 'stone', { stairs: true });
   floor(-8, -16, -4, -14, 0, 'palace', 'stone'); floor(4, -16, 8, -14, 0, 'palace', 'stone');   // centre arch closed (breaks the x=0 spawn-to-spawn sightline)
   floor(-16, -26, 17, -16, 0, 'palace', 'stone');
+  ramp(17, -21, 22, -16, 'x', 17, 0, 22, H.A, 'aconn', 'stone');           // A Connector: Palace east end -> A site (mid rotation)
   ramp(-22, -26, -16, -20, 'x', -16, 0, -22, H.BPLAZA, 'bconn', 'stone');
 
   // ------------------------------------------------------------------ TIDE side (north)
@@ -89,6 +90,10 @@ export function buildLayout() {
   // Long lane bright sand with a darker walking line
   paint(36, -4, 40, 27, { tint: 0xf1d9a4 });
 
+  // tunnel floors: each bend its own paving (darkened in terrain.js)
+  paint(-36, 24, -30, 46, { surf: 'tile', tint: 0x8fb5b0 }); paint(-42, 24, -36, 30, { surf: 'tile', tint: 0x8fb5b0 });
+  paint(-42, 6, -36, 24, { surf: 'brick', tint: 0xa05a44 }); paint(-42, 6, -30, 12, { surf: 'brick', tint: 0xa05a44 });
+  paint(-36, -12, -30, 6, { surf: 'stone', tint: 0xd9d4c4 }); paint(-36, -6, -35, 6, { surf: 'stone', tint: 0xb0aa98 });
   // 2 m checker paving in the big open courts (breaks up the empty floor), skipped where inlays follow
   const CHK = { a: [0xf2e0b2, 0xe3cd9a], aplat: [0xf4e4b8, 0xe6d3a2], palace: [0xe0cba4, 0xd1bc92], hub: [0xe2ccA6, 0xd3be96], ts: [0xdddcd0, 0xcdcbbd], longramp: [0xeed9a8, 0xdfc994], midapp: [0xdcc7a1, 0xd0bb92], terrace: [0xd2c9bb, 0xc4bbac] };
   for (let j = 0; j < g.NZ; j++) for (let i = 0; i < g.NX; i++) { const k = j * g.NX + i; if (!g.open[k] || g.tint[k] || g.surf[k] !== 0) continue; const c = CHK[g.zoneNames[g.zone[k]]]; if (!c) continue; const x = i + g.X0, z = j + g.Z0; g.tint[k] = c[(((x >> 1) + (z >> 1)) & 1)] | 0x1000000; }
@@ -131,6 +136,7 @@ export const ZONES = {
   tidemid:   { floor: 'floor', wall: 'plaster', plinth: 'tile',  c: 0xdcd2b8, p: 0x2a9d9f, cap: 0xeee6cc, f: 0xd3d2c4 },
   winroom:   { floor: 'floor', wall: 'plaster', plinth: 'tile',  c: 0xd9c9ac, p: 0x2a9d9f, cap: 0xeadcc0, f: 0xd0cabb },
   eastroom:  { floor: 'floor', wall: 'plaster', plinth: 'tile',  c: 0xd9c9ac, p: 0x2a9d9f, cap: 0xeadcc0, f: 0xd0cabb },
+  aconn:     { floor: 'floor', wall: 'plaster', plinth: 'tile',  c: 0xe6c793, p: 0x2a9d9f, cap: 0xf1dcae, f: 0xe3cda2, trim: 0x2a9d9f },
   bconn:     { floor: 'floor', wall: 'plaster', plinth: 'tile',  c: 0xd6a184, p: 0x1f8a8f, cap: 0xe7c6a8, f: 0xcdb797 },
   bdoor:     { floor: 'floor', wall: 'plaster', plinth: 'tile',  c: 0xd6a184, p: 0x1f8a8f, cap: 0xe7c6a8, f: 0xcdb797 },
   bplaza:    { floor: 'brick', wall: 'plaster', plinth: 'tile',  c: 0xd49578, p: 0x1f8a8f, cap: 0xe8c5a6, f: 0xcf9f82, trim: 0x1f8a8f },

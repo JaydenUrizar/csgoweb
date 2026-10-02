@@ -34,7 +34,7 @@ export function createActorMaterial() {
     uSuit: { value: new THREE.Color(0xd9531e) }, uAccent: { value: new THREE.Color(0xe6ebf2) }, uTeam: { value: new THREE.Color(0xff7a2f) },
     uVisor: { value: new THREE.Color(0xffe1c8) }, uHelmet: { value: new THREE.Color(0xdde3ea) }, uHAccent: { value: new THREE.Color(0x3a3f4b) },
     uBack: { value: new THREE.Color(0x3a3f4b) }, uPatCol: { value: new THREE.Color(0xffffff) },
-    uPattern: { value: 0 }, uTeamGlow: { value: 1.6 }, uVisorGlow: { value: 2.4 }, uRim: { value: 0.75 }, uHolo: { value: 0 },
+    uPattern: { value: 0 }, uTeamGlow: { value: 1.2 }, uVisorGlow: { value: 2.4 }, uRim: { value: 0.75 }, uHolo: { value: 0 },
     uFreeze: { value: 0 }, uFlash: { value: 0 }, uMat: { value: 1 }, uTime: { value: 0 }, uFinishR: { value: 0.6 }, uFinishM: { value: 0.1 },
   };
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.1 });
@@ -91,7 +91,7 @@ const SRGB = THREE.SRGBColorSpace;
 const wrapH = (d) => d - Math.round(d);
 // Per-team palette clamps. EVERY colour slot is forced into the team's hue band or a neutral; the opposite team's hue can never appear.
 const TEAM_RULES = {
-  ember: { suit: { s: [0.55, 0.75], l: [0.27, 0.37] }, accent: { l: [0.08, 0.2] }, helmet: { l: [0.13, 0.28] }, back: { l: [0.12, 0.26] }, hAccent: { l: [0.1, 0.55] } },
+  ember: { suit: { s: [0.45, 0.7], l: [0.12, 0.19] }, accent: { l: [0.78, 0.92] }, helmet: { l: [0.78, 0.92] }, back: { l: [0.1, 0.2] }, hAccent: { l: [0.1, 0.5] } },
   tide:  { suit: { s: [0.62, 0.95], l: [0.36, 0.5] }, accent: { l: [0.74, 0.92] }, helmet: { l: [0.58, 0.9] }, back: { l: [0.28, 0.5] }, hAccent: { l: [0.1, 0.55] } },
 };
 function clampSlot(out, hex, th, rule, teamHueOk = true) {
@@ -108,9 +108,9 @@ export function applySpecToMaterial(mat, spec, teamColor, team = 'ember') {
   const R = TEAM_RULES[team] || TEAM_RULES.ember;
   new THREE.Color(teamColor).getHSL(_t, SRGB); const th = _t.h;
   _c.set(s.base ?? teamColor).getHSL(_h, SRGB);
-  u.uSuit.value.setHSL(th + (team === 'ember' ? 0.012 : 0) + Math.max(-0.02, Math.min(0.02, wrapH(_h.h - th))), Math.min(R.suit.s[1], Math.max(R.suit.s[0], _h.s)), Math.min(R.suit.l[1], Math.max(R.suit.l[0], _h.l)), SRGB);
+  u.uSuit.value.setHSL(th + (team === 'ember' ? 0.0 : 0) + Math.max(-0.02, Math.min(0.02, wrapH(_h.h - th))), Math.min(R.suit.s[1], Math.max(R.suit.s[0], _h.s)), Math.min(R.suit.l[1], Math.max(R.suit.l[0], _h.l)), SRGB);
   clampSlot(u.uAccent.value, s.accent ?? 0xe6ebf2, th, R.accent);
-  u.uPatCol.value.copy(u.uSuit.value); u.uPatCol.value.getHSL(_h, SRGB); u.uPatCol.value.setHSL(_h.h, _h.s, Math.min(0.85, _h.l + (team === 'ember' ? 0.1 : 0.12)), SRGB);   // subtle tone-on-tone patterns only
+  u.uPatCol.value.copy(u.uSuit.value); u.uPatCol.value.getHSL(_h, SRGB); u.uPatCol.value.setHSL(_h.h, _h.s, Math.min(0.85, _h.l + (team === 'ember' ? 0.05 : 0.12)), SRGB);   // subtle tone-on-tone patterns only
   u.uPattern.value = PATTERNS[s.pattern] ?? 0;
   u.uTeam.value.set(teamColor);
   u.uVisor.value.setHSL(th, 0.85, 0.74, SRGB);

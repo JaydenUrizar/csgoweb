@@ -7,7 +7,7 @@ import { makeMaterials } from './materials.js';
 import { buildDecals } from './decals.js';
 import { buildSkyline } from './skyline.js';
 import { buildRadar } from './radar.js';
-import { VisBuilder } from './builder.js';
+import { VisBuilder, rgb } from './builder.js';
 import { heightAt, X0, Z0, NX, NZ, idx, SURF } from './grid.js';
 import { H } from './layout.js';
 import { CALLOUTS } from './dress.js';
@@ -36,6 +36,10 @@ export function create(ctx) {
       W.VB.quad('contact', q[0], q[1], q[2], q[3], cs);
     }
   }
+  for (const pl of D.pools) { // soft lamp pools on the floor (alpha fans, drawn with the contact layer)
+    const c = rgb(pl.color), n = 10, yy = pl.y + 0.035;
+    for (let i = 0; i < n; i++) { const a0 = i / n * Math.PI * 2, a1 = (i + 1) / n * Math.PI * 2;
+      W.VB.tri('contact', [pl.x, yy, pl.z], [pl.x + Math.cos(a0) * pl.r, yy, pl.z + Math.sin(a0) * pl.r], [pl.x + Math.cos(a1) * pl.r, yy, pl.z + Math.sin(a1) * pl.r], [[c[0] * 1.6, c[1] * 1.6, c[2] * 1.6, pl.a], [c[0], c[1], c[2], 0], [c[0], c[1], c[2], 0]]); } }
   const spawnsData = { ember: SPAWNS.ember.map((s) => ({ pos: new THREE.Vector3(s.x, heightAt(grid, s.x, s.z), s.z), yaw: s.yaw })), tide: SPAWNS.tide.map((s) => ({ pos: new THREE.Vector3(s.x, heightAt(grid, s.x, s.z), s.z), yaw: s.yaw })) };
   const VBsky = new VisBuilder(); buildSkyline(VBsky, D);
   const atlas = buildDecals(D, W.VB, SPAWNS, SITES, VBsky);
@@ -98,27 +102,37 @@ export function create(ctx) {
     { type: 'site', id: 'A', center: sites.A.center, radius: sites.A.radius }, { type: 'site', id: 'B', center: sites.B.center, radius: sites.B.radius },
     { type: 'buyzone', team: 'ember', box: new THREE.Box3(v3(-16, -1, 38), v3(16, 6, 50)) }, { type: 'buyzone', team: 'tide', box: new THREE.Box3(v3(-16, -1, -50), v3(16, 6, -38)) },
   ];
-  const ZONE_CALLOUT = { es: 'Ember Spawn', tunapp: 'Tunnel Approach', outerlong: 'Outer Long', midapp: 'Mid Lane', doors: 'Mid Doors', hub: 'Hub', short: 'Short', terrace: 'Terrace', palace: 'Palace', long: 'Long', pit: 'Pit', longramp: 'Long Ramp', a: 'A Site', aplat: 'Ledge', adoor: 'A Door', ts: 'Tide Spawn', tidemid: 'Tide Mid', winroom: 'Window Room', eastroom: 'East Room', bconn: 'B Connector', bdoor: 'B Door', bplaza: 'B Site', bbalc: 'Balcony', btunmouth: 'Tunnel Mouth' };
+  const ZONE_CALLOUT = { es: 'Ember Spawn', tunapp: 'Tunnel Approach', outerlong: 'Outer Long', midapp: 'Mid Lane', doors: 'Mid Doors', hub: 'Hub', short: 'Short', terrace: 'Terrace', palace: 'Palace', long: 'Long', pit: 'Pit', longramp: 'Long Ramp', a: 'A Site', aplat: 'Ledge', adoor: 'A Door', ts: 'Tide Spawn', tidemid: 'Tide Mid', winroom: 'Window Room', eastroom: 'East Room', bconn: 'B Connector', aconn: 'A Connector', bdoor: 'B Door', bplaza: 'B Site', bbalc: 'Balcony', btunmouth: 'Tunnel Mouth' };
   const zoneAt = (x, z) => { const i = Math.floor(x - X0), j = Math.floor(z - Z0); if (i < 0 || j < 0 || i >= NX || j >= NZ) return null; const k = idx(i, j); return grid.open[k] ? grid.zoneNames[grid.zone[k]] : null; };
   const tunnelCallouts = callouts.filter((c) => /Tunnel|Bend|Corner/.test(c.name));
+  const ZONE_NAMES = new Set(Object.values(ZONE_CALLOUT));
   const calloutAt = (p) => {
-    const z = zoneAt(p.x, p.z);
-    let best = null, bd = 1e9; for (const c of callouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z) / c.radius; if (d < 1.0 && d < bd && Math.abs(p.y - c.pos.y) < 4.2) { bd = d; best = c; } }
+    const z = zoneAt(p.x, p.z), own = ZONE_CALLOUT[z];
+    let best = null, bd = 1e9;
+    for (const c of callouts) { if (ZONE_NAMES.has(c.name) && c.name !== own) continue; const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z) / c.radius; if (d < 1.0 && d < bd && Math.abs(p.y - c.pos.y) < 4.2) { bd = d; best = c; } }
     if (best) return best;
     if (z && z.startsWith('btun') && z !== 'btunmouth') { let b2 = null, d2 = 1e9; for (const c of tunnelCallouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z); if (d < d2) { d2 = d; b2 = c; } } return b2; }
-    const nm = ZONE_CALLOUT[z]; return nm ? callouts.find((c) => c.name === nm) || null : null;
+    return own ? callouts.find((c) => c.name === own) || null : null;
   };
   const calloutAtOld = (p) => { let best = null, bd = 1e9; for (const c of callouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z) / c.radius; if (d < 1.0 && d < bd && Math.abs(p.y - c.pos.y) < 4.2) { bd = d; best = c; } } return best; };
 
   const api = {
     name: 'crux-station', group, collider: col.collider, bvh: col.bvh,
     raycast: col.raycast, raycastThrough: col.raycastThrough, visible: col.visible,
-    spawns: spawnsData, sites, callouts, calloutAt, zoneAt, triggers, thinWalls, thinWallAt, objectsAtSites, lightProbes, lamps: D.lamps.map((l) => ({ pos: v3(...l.pos), color: l.color, intensity: l.intensity })),
+    spawns: spawnsData, sites, callouts, calloutAt, zoneAt, triggers, thinWalls, thinWallAt, objectsAtSites, lightProbes, lamps: D.lamps.map((l) => ({ pos: v3(...l.pos), color: l.color, intensity: l.intensity ?? 1, radius: l.radius ?? 5, kind: l.kind || 'lamp' })),
     nodes: { list: nodes, byId: nodeById, paths, ofType: (t) => nodes.filter((n) => n.type === t) },
     radar,
     bounds: new THREE.Box3(v3(-50, -6, -52), v3(50, 40, 52)),
     playBounds: new THREE.Box3(v3(-49.5, -6, -51.5), v3(49.5, 20, 51.5)),
-    heightAt: (x, z) => heightAt(grid, x, z),
+    /** terrain height; with `y` given returns the walkable floor under that height (ray down through props/decks), falling back to terrain only if the cell is open */
+    heightAt: (x, z, y) => {
+      if (y === undefined || y === null) return heightAt(grid, x, z);
+      const h = col.raycast(v3(x, y + 0.3, z), v3(0, -1, 0), 60);
+      if (h) return h.point.y;
+      return zoneAt(x, z) ? heightAt(grid, x, z) : null;
+    },
+    /** floor under (x,y,z) or null when the point is inside solid mass / off the map */
+    floorAt: (x, z, y = 3) => { if (!zoneAt(x, z)) return null; const h = col.raycast(v3(x, y + 0.3, z), v3(0, -1, 0), 60); return h ? h.point.y : heightAt(grid, x, z); },
     surfaceAt(p) {
       const o = _p.set(p.x, p.y + 0.35, p.z); const h = col.raycast(o, v3(0, -1, 0), 1.2);
       if (h) return h.surface; return surfaceFromGrid(p.x, p.y, p.z);

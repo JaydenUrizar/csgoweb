@@ -1,0 +1,3 @@
+# cosmetics -> avatars (round 3)
+`applySpecToMaterial` lerps the visor glow 50% toward the team colour and then adds it as emissive x2.4, so any visor whose hue is opposite the team (red Cyclops Eye on Tide, cyan on Ember) renders near-white. Please lerp only ~20% (or keep hue and only tint intensity). `ctx.cosmetics.resolve` already pre-compensates the visor glow for the 50% lerp (clamped to gamut), so a lower lerp should be paired with removing that compensation: tell cosmetics when you change it.
+Also: the suit pattern mask only mixes `uPatCol` at 0.45; cosmetics now sends a high-contrast pattern colour, but a stronger mix (0.7) would make patterns read at 10+ m.

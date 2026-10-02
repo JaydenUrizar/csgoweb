@@ -1,7 +1,7 @@
 // Round-2 dressing: landmarks, bunting, prop clusters, real cover at A / Hub, sightline breakers.
 import { H } from './layout.js';
 import { rgb, mulc } from './builder.js';
-import { tower } from './roofs.js';
+import { tower, hipRoof } from './roofs.js';
 import { bunting } from './facade.js';
 
 const A_Y = H.A, B_Y = H.BPLAZA;
@@ -55,7 +55,7 @@ export function extras(D) {
   VB.box('roof', -2.3, 3.4, -33.0, 2.3, 3.7, -30.0, rgb(0x2a9d9f), { ao: 1, bottom: true });
   D.awning(-1.7, -30.4, 1.7, -29.2, 2.7, 0.4, { axis: 'x', color: 0xffffff });
   D.decal({ type: 'wall', kind: 'shopsign', c: [0, 2.9, -30.33], n: [0, 1], w: 3.0, h: 0.62, text: 'TIDE TEA', color: 0x2a9d9f, seed: 0 });
-  D.decal({ type: 'wall', kind: 'shopsign', c: [0, 2.9, -32.67], n: [0, -1], w: 3.0, h: 0.62, text: 'KIOSK', color: 0xc4573a, seed: 0 });
+  D.decal({ type: 'wall', kind: 'shopsign', c: [0, 2.9, -32.67], n: [0, -1], w: 3.0, h: 0.62, text: 'CAFE LUNA', color: 0xc4573a, seed: 0 });
   D.planter(-4.0, -35.5, 1.8, 1.0, 0.75, { flowers: true }); D.planter(4.0, -27.8, 1.8, 1.0, 0.75, { flowers: true });
   // centre hub arch replaced by a wall fountain niche on the palace side
   D.decal({ type: 'wall', kind: 'niche', c: [0, 1.9, -15.95], n: [0, 1], w: 2.2, h: 3.4, seed: 1 });
@@ -74,18 +74,18 @@ export function extras(D) {
   D.crate(-8.8, -1, 1.4); D.crate(-8.8, 0.4, 1.4, { variant: 'tide' });
 
   // ---- LONG: lane-middle clusters -----------------------------------------------------------------------------------
-  cart(35.2, 22.5); sacks(34.6, 24.6, 3); D.barrels([[34.2, 26.2], [34.8, 26.6]]);
+  D.barrels([[34.2, 26.2], [34.8, 26.6]]);
   cafe(41.8, 31.5, 0xc4573a, {}); D.planter(34.2, 32, 1.0, 2.6, 0.75); D.palm(34.1, 33.2, 4.4);
   D.lowWall(36, 9.3, 38.5, 10.0, 1.1); cart(42.2, 14.5, { w: 1.8 }); parasol(41.5, 17.5, 0x2a9d9f);
   D.crate(34.2, 2.5, 1.4); D.crate(34.2, 1.1, 1.4, { variant: 'olive' }); D.crate(34.2, 1.8, 1.4, { y0: 1.4, cover: false });
-  D.container(33, -3.5, 36, -0.5, 2.4, 0x2a9d9f, { name: 'long-container-2' });
+  D.container(33, -3.5, 36, -0.5, 2.4, 0x9a3f2f, { name: 'long-container-2' }); D.crateBox(33.4, -3.2, 34.8, -1.8, 1.4, { y0: 2.4, variant: 'olive', name: 'long-container-top' }); D.crateBox(34.9, -2.6, 36, -1.5, 0.9, { y0: 2.4, variant: 'dark', name: 'long-container-top-2' });
   tree(24, 42.4); cafe(19.5, 41.5, 0x2a9d9f, {}); cart(30.5, 44.4, { w: 2.0 }); D.lowWall(18.5, 44.2, 20.5, 45, 1.1);
   // ---- MID LANE / SHORT / TUNNELS ------------------------------------------------------------------------------------
   cafe(-3.8, 34, 0x2a9d9f, {}); cart(3.6, 31.5, { w: 1.8 }); sacks(-4.0, 17, 3); D.barrels([[3.9, 17.4], [3.4, 17.9]]);
   cafe(15.5, 3.5, 0xc4573a, { noParasol: true }); sacks(12.6, -3.2, 2); D.planter(16.3, -9.5, 1.0, 2.4, 0.75);
   cart(-33, 33, { w: 2.0 }); D.barrels([[-34.8, 20]]); sacks(-41, 12, 3);
   // ---- PALACE ---------------------------------------------------------------------------------------------------------
-  cafe(-12, -17.8, 0x2a9d9f, {}); cafe(12, -24, 0xc4573a, { noParasol: true }); tree(-14.4, -22.6, 5.4);
+  cafe(-12, -17.8, 0x2a9d9f, {}); cafe(12, -24, 0xc4573a, { noParasol: true }); 
   arcade(-14, -25.3, 10, -25.3, 0, 4.6, 4, 0xefd9ac);
   // ---- A SITE: real cover & multi-height ------------------------------------------------------------------------------
   D.solid({ x0: 27, x1: 32, z0: -37, z1: -35.6, y0: A_Y, y1: A_Y + 2.4, mat: 'wall', color: 0xf0dcae, surf: 'stone', name: 'A-ruin-wall-1', cover: true, kind: 'wall', ao: 0.8 });
@@ -98,7 +98,7 @@ export function extras(D) {
   cafe(26, -26.5, 0x2a9d9f, { noParasol: true }); tree(30.5, -44.5, 5.6);
   arcade(25, -45.2, 39, -45.2, A_Y, 4.4, 5, 0xf0dcae);
   // ---- B SITE extra ---------------------------------------------------------------------------------------------------
-  tree(-24.5, -44.5, 5.2); cafe(-26.5, -28, 0xc4573a, {}); cart(-28, -23.5, { w: 1.8 });
+  tree(-24.5, -44.5, 5.2); cart(-28, -23.5, { w: 1.8 });
   D.solid({ x0: -40.5, x1: -37, z0: -30, z1: -28.6, y0: B_Y, y1: B_Y + 2.2, mat: 'plaster', color: 0xdba58a, surf: 'stone', name: 'B-wall-west', cover: true, kind: 'wall', ao: 0.8 });
   arcade(-44, -45.2, -39, -45.2, H.BALC, 4.2, 2, 0xe0b99a);
   // ---- TIDE SPAWN / EMBER SPAWN ---------------------------------------------------------------------------------------
@@ -138,4 +138,33 @@ export function extras(D) {
   for (const z of [-29, -25]) D.wallLamp(-46, B_Y + 3.0, z, 1, 0, 0x9ae8ff);
   VB.box('emissive', -44.06, -1.72, -30, -44.0, -1.62, -22, mulc(rgb(0x62e6d8), 1.8), { ao: 1, top: false }); VB.box('emissive', -46.0, -1.72, -30, -45.94, -1.62, -22, mulc(rgb(0x62e6d8), 1.8), { ao: 1, top: false });
   for (const z of [-27, -23]) D.lampPost(-42.8, z, 3.4, 0x9ae8ff);
+
+  // ================= ROUND 4 =================
+  // ---- overhead arches across the lanes: hard-edged shade bands + framing for the long sightlines -------------------------------
+  D.arch({ axis: 'z', cx: 38, cz: 21, w: 10, depth: 1.2, floorY: 0, spring: 5.0, rise: 1.5, topY: 8.4, margin: 0.9, color: 0xf0dcae, dark: 0.7 });
+  D.arch({ axis: 'z', cx: 38, cz: -1, w: 10, depth: 1.2, floorY: 0, spring: 5.0, rise: 1.5, topY: 8.4, margin: 0.9, color: 0xe8cf9f, dark: 0.7 });
+  D.arch({ axis: 'z', cx: 0, cz: 26, w: 10, depth: 1.2, floorY: 0, spring: 5.2, rise: 1.4, topY: 7.8, margin: 0.9, color: 0xe4c595, dark: 0.7 });
+  for (const [x, z] of [[38, 21], [38, -1], [0, 26]]) { VB.box('plain', x - 0.02, 3.9, z - 0.02, x + 0.02, 5.4, z + 0.02, rgb(0x30343a), { ao: 1 }); VB.box('emissive', x - 0.18, 3.45, z - 0.18, x + 0.18, 3.95, z + 0.18, mulc(rgb(0xffc880), 2.8), { ao: 1 }); D.lamps.push({ pos: [x, 3.7, z], color: 0xffc880, intensity: 1.2, radius: 6, kind: 'lantern' }); D.pool(x, z, 3.0, 0xffc880, 0.26, 0); }
+  // ---- Long: covered portico along the west wall (mid-ground depth), mixed containers ------------------------------------------
+  for (const z of [12.6, 15.6, 18.6, 21.4]) D.solid({ x0: 35.05, x1: 35.45, z0: z - 0.2, z1: z + 0.2, y0: 0, y1: 3.4, mat: 'wall', color: 0xf0dcae, surf: 'stone', name: 'portico-post', ao: 0.85 });
+  D.slab({ x0: 33, z0: 12, x1: 35.6, z1: 22, y0: 3.4, y1: 3.65, color: 0xdcc394, mat: 'wall', name: 'portico-roof' });
+  VB.quad('roof', [33, 3.65, 22.3], [35.9, 3.45, 22.3], [35.9, 3.45, 11.7], [33, 3.65, 11.7], mulc(rgb(0xc4673d), 1.0));
+  for (let z = 12.2; z < 22; z += 1.0) VB.box('wood', 33, 3.28, z, 35.6, 3.4, z + 0.1, rgb(0x7a4f30), { ao: 1, top: false });
+  D.bench(33.8, 14.5, 0.7, 2.2); D.bench(33.8, 19.5, 0.7, 2.2); D.pool(34.2, 17, 2.4, 0xffc880, 0.22, 0);
+  D.decal({ type: 'wall', kind: 'shopsign', c: [33.05, 3.0, 17], n: [1, 0], w: 3.0, h: 0.62, text: 'GELATO', color: 0xc4573a, seed: 0 });
+  // ---- Mid lane: central market stall breaks the straight spawn peek -----------------------------------------------------------
+  D.solid({ x0: -1.7, x1: 1.7, z0: 28.4, z1: 30.4, y0: 0, y1: 2.7, mat: 'plaster', color: 0xe6c690, surf: 'stone', name: 'mid-market', cover: true, kind: 'kiosk', ao: 0.85 });
+  VB.box('roof', -2.2, 2.7, 27.9, 2.2, 3.0, 30.9, rgb(0xc4673d), { ao: 1, bottom: true }); VB.box('wall', -2.3, 3.0, 27.8, 2.3, 3.3, 31.0, rgb(0xefe0b8), { ao: 1 });
+  D.decal({ type: 'wall', kind: 'shopsign', c: [0, 2.0, 30.43], n: [0, 1], w: 3.0, h: 0.62, text: 'FLUX MARKET', color: 0x2a9d9f, seed: 0 }); D.decal({ type: 'wall', kind: 'shopsign', c: [0, 2.0, 28.37], n: [0, -1], w: 3.0, h: 0.62, text: 'ORANGE & CO', color: 0xe8883e, seed: 0 });
+  D.awning(-1.6, 28.4, 1.6, 27.3, 2.45, 0.4, { axis: 'x', color: 0xffffff });
+  // ---- A hero: lantern gazebo over the default (4 posts, hip roof, bench) ---------------------------------------------------------
+  for (const [px, pz] of [[39.2, -31.2], [41.6, -31.2], [39.2, -28.2], [41.6, -28.2]]) D.solid({ x0: px - 0.18, x1: px + 0.18, z0: pz - 0.18, z1: pz + 0.18, y0: A_Y, y1: A_Y + 3.4, mat: 'wood', color: 0x8a5a36, surf: 'wood', name: 'gazebo-post', ao: 0.85 });
+  VB.box('wood', 38.9, A_Y + 3.4, -31.5, 41.9, A_Y + 3.6, -27.9, rgb(0x7a4f30), { ao: 1, bottom: true });
+  hipRoof(VB, 38.9, -31.6, 41.9, -27.8, A_Y + 3.6, rgb(0x2a9d9f), { eave: 0.35, rise: 1.5 });
+  D.bench(40.4, -29.7, 1.6, 0.5);
+  for (let i = 0; i < 6; i++) VB.box('emissive', 39.3 + i * 0.45, A_Y + 3.25, -29.8, 39.3 + i * 0.45 + 0.1, A_Y + 3.4, -29.7, mulc(rgb(0xffd9a0), 3), { ao: 1 });
+  D.lamps.push({ pos: [40.4, A_Y + 3.2, -29.7], color: 0xffd9a0, intensity: 1.3, radius: 6, kind: 'lantern' }); D.pool(40.4, -29.7, 3.2, 0xffd9a0, 0.26, A_Y);
+  // ---- B hero: lantern market pergola with stalls -----------------------------------------------------------------------------------
+  D.pergola(-27.4, -29.8, -22.8, -25.4, 3.5); D.stall(-26.6, -29.2, -23.6, -28.0, { seed: 2 }); D.stall(-26.6, -27.4, -23.6, -26.2, { seed: 3 });
+  D.pool(-25.1, -27.6, 3.4, 0xffd9a0, 0.28, B_Y);
 }

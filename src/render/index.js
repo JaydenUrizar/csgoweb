@@ -44,7 +44,7 @@ export function create(ctx) {
   const sunDir = sky.sunDir;
 
   // viewmodel lighting (rotated into camera space every frame so the gun is lit like the world)
-  const vKey = new THREE.DirectionalLight(0xfff0d6, 2.6), vRim = new THREE.DirectionalLight(0x9cc8ff, 0.9), vHemi = new THREE.HemisphereLight(0xdfeaff, 0x8a7358, 0.55);
+  const vKey = new THREE.DirectionalLight(0xfff0d6, 1.5), vRim = new THREE.DirectionalLight(0x9cc8ff, 0.9), vHemi = new THREE.HemisphereLight(0xdfeaff, 0x8a7358, 0.38);
   viewScene.add(vKey, vKey.target, vRim, vRim.target, vHemi);
 
   const materials = createMaterials(renderer, skyOcc.hook);
@@ -59,10 +59,10 @@ export function create(ctx) {
     blur: { value: 0, hold: 0 }, tint: { color: new THREE.Color(1, 0, 0), amount: 0, hold: 0 },
     damage: { dir: 0, amount: 0 }, white: { hold: 0, level: 0 },
     shake: { trauma: 0, decay: 6, t: 0 },
-    exposure: 0.86, bloom: 0.12, ao: 1.0, vignette: 0.10, grain: 1, ca: 1, contrast: 1.2, saturation: 1.06,
+    exposure: 0.97, bloom: 0.08, ao: 1.0, vignette: 0.10, grain: 1, ca: 1, contrast: 1.12, saturation: 0.80,
     toggles: { skyocc: true, bloom: true, ssao: true, grain: true, vignette: true, shadows: true, fxaa: true, shafts: true },
   };
-  const stats = { sceneCalls: 0, sceneTris: 0, calls: 0, tris: 0, sunVis: 0, sunUV: new THREE.Vector2(0.5, 0.5), shaftI: 0.22 };
+  const stats = { beforeVM: () => { skyOcc.U.uSkyOccOn.value = 0; }, afterVM: () => { skyOcc.U.uSkyOccOn.value = skyOcc.state.done && fx.toggles.skyocc ? 1 : 0; }, sceneCalls: 0, sceneTris: 0, calls: 0, tris: 0, sunVis: 0, sunUV: new THREE.Vector2(0.5, 0.5), shaftI: 0.08 };
   const infoObj = { calls: 0, triangles: 0, points: 0, lines: 0, geometries: 0, textures: 0, postCalls: 0, quality, scale: 1, fps: 60, width: 0, height: 0, shadowMap: 0 };
   let followTarget = null, viewHasContent = false, hasFollow = false;
 
@@ -76,7 +76,7 @@ export function create(ctx) {
     scene.fog.color.copy(sky.fogColor); scene.fog.density = p.fogDensity;
     vKey.color.copy(sky.sunColor).lerp(_c.set(0xffffff), 0.3);
     const env = sky.buildEnvironment(); scene.environment = env; viewScene.environment = env;
-    scene.environmentIntensity = 0.46; viewScene.environmentIntensity = 0.75;
+    scene.environmentIntensity = 0.6; viewScene.environmentIntensity = 0.5;
   }
   function setSky(o = {}) { Object.assign(sky.params, o); applySky(); }
 
@@ -86,7 +86,7 @@ export function create(ctx) {
     sun.shadow.mapSize.set(p.shadow, p.shadow);
     if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
     const R = p.R; const c = sun.shadow.camera; c.left = -R; c.right = R; c.top = R; c.bottom = -R; c.near = 1; c.far = 200; c.updateProjectionMatrix();
-    const texel = (2 * R) / p.shadow; sun.shadow.bias = -0.00025; sun.shadow.normalBias = Math.max(0.03, texel * 1.7); sun.shadow.radius = 2.2; sun.shadow.blurSamples = 8;
+    const texel = (2 * R) / p.shadow; sun.shadow.bias = -0.00025; sun.shadow.normalBias = Math.max(0.03, texel * 1.7); sun.shadow.radius = 1.1; sun.shadow.blurSamples = 8;
     sun.userData.texel = texel; sun.userData.R = R;
     resize();
   }

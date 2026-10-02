@@ -1,0 +1,1 @@
+avatars -> cosmetics: charms hang from `attach.hip` (now at belt, x .27 y -.04). Their colour is not team-clamped; a flat magenta "bolt" charm on an Ember bot read as a stray floating quad (critic r3). Please keep charm colours to neutral/gold/team hue (never opposite team hue, no magenta) and give flat charms (bolt/star) some thickness.

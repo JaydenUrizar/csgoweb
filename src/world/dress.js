@@ -16,7 +16,7 @@ export const CALLOUTS = [
   ['Tide Mid', 0, -32, 6], ['Tide Spawn', 0, -44, 13], ['Window Room', -14.5, -32, 6], ['East Room', 9, -32, 4.5],
   ['B Window', -22, -34, 3], ['B Connector', -19, -23, 4], ['B Site', -33, -31, 10], ['Balcony', -42, -41, 5], ['B Door', -19, -43, 4], ['Plaza', -28, -40, 6],
   ['Tunnel Mouth', -33, -16, 4], ['Upper Tunnel', -33, -1, 7], ['Tunnel Bend', -37, 9, 5], ['Lower Tunnel', -39, 18, 6], ['Tunnel Corner', -37, 27, 4], ['Outer Tunnel', -33, 36, 6],
-  ['Canal', -45, -26, 3], ['Hub Ledge', -8.5, -8, 3],
+  ['A Connector', 19.5, -18.5, 3.5], ['Canal', -45, -26, 3], ['Hub Ledge', -8.5, -8, 3],
 ].map(([name, x, z, radius]) => ({ name, x, z, radius }));
 
 export function dressWorld(D) {
@@ -25,33 +25,34 @@ export function dressWorld(D) {
 
   // ============================================================ ROOFS over tunnels (toggleable) + arched portals
   const roofRects = [[-30, 40, -16, 46, 'tunapp'], [-36, 24, -30, 46, 'btun1'], [-42, 24, -30, 30, 'btun1'], [-42, 6, -36, 30, 'btun2'], [-42, 6, -30, 12, 'btun2'], [-36, -16, -30, 12, 'btun3']];
-  const TR = { tunapp: [0xd9a070, 0x7a4f30, 0xc4673d], btun1: [0xb8c4c0, 0x5b6d70, 0x2a9d9f], btun2: [0xa5604a, 0x3b3f46, 0xd9a441], btun3: [0xeee4c8, 0x7a4f30, 0x3b6f8f] };
+  const TR = { tunapp: [0x5a3f2e, 0x4a3322, 0xc4673d], btun1: [0x3c4a4c, 0x32403f, 0x2a9d9f], btun2: [0x4a2a24, 0x2a2c32, 0xd9a441], btun3: [0x4d4a48, 0x3a2f28, 0x3b6f8f] };
   for (const [x0, z0, x1, z1, zn] of roofRects) {
     const [rc, ribc, acc] = TR[zn];
     D.slab({ x0, z0, x1, z1, y0: 4.4, y1: 5.7, color: rc, roof: true, name: 'tunnel-roof' });
     const alongX = (x1 - x0) > (z1 - z0), L = alongX ? x1 - x0 : z1 - z0, Wd = alongX ? z1 - z0 : x1 - x0;
     for (let t = 2.5; t < L - 1.5; t += 5) {
       // arched rib (visual + collision) across the width, painted per tunnel
-      if (alongX) D.arch({ axis: 'x', cx: x0 + t, cz: (z0 + z1) / 2, w: Wd - 0.9, depth: 0.5, floorY: 0, spring: 3.0, rise: 1.2, topY: 4.45, margin: 0.7, color: ribc === 0x5b6d70 ? 0xcfd8d0 : ribc, roof: false });
-      else D.arch({ axis: 'z', cx: (x0 + x1) / 2, cz: z0 + t, w: Wd - 0.9, depth: 0.5, floorY: 0, spring: 3.0, rise: 1.2, topY: 4.45, margin: 0.7, color: ribc === 0x5b6d70 ? 0xcfd8d0 : ribc, roof: false });
+      if (alongX) D.arch({ axis: 'x', cx: x0 + t, cz: (z0 + z1) / 2, w: Wd - 0.9, depth: 0.5, floorY: 0, spring: 3.0, rise: 1.2, topY: 4.45, margin: 0.7, color: ribc, roof: false, dark: 0.8 });
+      else D.arch({ axis: 'z', cx: (x0 + x1) / 2, cz: z0 + t, w: Wd - 0.9, depth: 0.5, floorY: 0, spring: 3.0, rise: 1.2, topY: 4.45, margin: 0.7, color: ribc, roof: false, dark: 0.8 });
       // hanging lantern between ribs
-      const lt = t + 2.5; if (lt < L - 1) { const lx = alongX ? x0 + lt : (x0 + x1) / 2, lz = alongX ? (z0 + z1) / 2 : z0 + lt; D.VB.box('plain', lx - 0.02, 3.35, lz - 0.02, lx + 0.02, 4.4, lz + 0.02, rgb(0x30343a), { ao: 1 }); D.VB.box('emissive', lx - 0.17, 2.95, lz - 0.17, lx + 0.17, 3.4, lz + 0.17, mulc(rgb(zn === 'btun1' ? 0x9ae8ff : zn === 'btun3' ? 0xbfe0ff : 0xffb070), 2.8), { ao: 1 }); D.lamps.push({ pos: [lx, 3.2, lz], color: 0xffc080, intensity: 1 }); }
+      const lt = t + 2.5; if (lt < L - 1) { const lx = alongX ? x0 + lt : (x0 + x1) / 2, lz = alongX ? (z0 + z1) / 2 : z0 + lt; D.VB.box('plain', lx - 0.02, 3.35, lz - 0.02, lx + 0.02, 4.4, lz + 0.02, rgb(0x30343a), { ao: 1 }); D.VB.box('emissive', lx - 0.17, 2.95, lz - 0.17, lx + 0.17, 3.4, lz + 0.17, mulc(rgb(zn === 'btun1' ? 0x9ae8ff : zn === 'btun3' ? 0xbfe0ff : 0xffb070), 2.8), { ao: 1 }); D.lamps.push({ pos: [lx, 3.2, lz], color: 0xffc080, intensity: 1.2, radius: 5.5, kind: 'lantern' }); D.pool(lx, lz, 2.8, zn === 'btun1' ? 0x9ae8ff : zn === 'btun3' ? 0xbfe0ff : 0xffb070, 0.34, 0); }
     }
     void acc;
   }
   // portals (barrel-vaulted blocks): axis z => passage along z
-  D.arch({ axis: 'x', cx: -17, cz: 43, w: 6, depth: 2, spring: 3.0, rise: 1.3, topY: 6.6, color: 0xf0c9a0 });         // ES -> tunnels
-  D.arch({ axis: 'x', cx: 17, cz: 43, w: 6, depth: 2, spring: 3.0, rise: 1.3, topY: 6.6, color: 0xf0d6a8 });          // ES -> long
-  D.arch({ axis: 'z', cx: 0, cz: 12.5, w: 4, depth: 5, spring: 3.2, rise: 1.0, topY: 8.4, color: 0xe4c595 });         // mid doors
-  D.arch({ axis: 'z', cx: 38, cz: 28.5, w: 6, depth: 3, spring: 3.4, rise: 1.5, topY: 8.4, color: 0xf0dcae });        // long doors
-  for (const cx of [-6, 6]) D.arch({ axis: 'z', cx, cz: -15, w: 4, depth: 2, spring: 3.4, rise: 1.0, topY: 8.4, color: 0xeed3a4 }); // hub arches
-  D.arch({ axis: 'x', cx: 19, cz: -43, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.4, color: 0xf0dcae });         // tide -> A
-  D.arch({ axis: 'x', cx: -19, cz: -43, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.4, color: 0xe8c5a8 });        // tide -> B
-  D.arch({ axis: 'x', cx: -19, cz: -23, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.6, color: 0xe8c5a8 });        // palace -> B
-  D.arch({ axis: 'z', cx: -33, cz: -15, w: 6, depth: 2, spring: 3.2, rise: 1.2, topY: 7.6, color: 0xdcc394 });        // tunnel mouth
-  D.arch({ axis: 'x', cx: -21, cz: -34, w: 4, depth: 2, floorY: 1.1, spring: 3.0, rise: 0.6, topY: 6.4, color: 0xeadcc0 }); // B window frame
+  D.arch({ axis: 'x', cx: -17, cz: 43, w: 6, depth: 2, spring: 3.0, rise: 1.3, topY: 6.6, color: 0xf0c9a0, dark: 0.65 });         // ES -> tunnels
+  D.arch({ axis: 'x', cx: 17, cz: 43, w: 6, depth: 2, spring: 3.0, rise: 1.3, topY: 6.6, color: 0xf0d6a8, dark: 0.8 });          // ES -> long
+  D.arch({ axis: 'z', cx: 0, cz: 12.5, w: 4, depth: 5, spring: 3.2, rise: 1.0, topY: 8.4, color: 0xe4c595, dark: 0.55 });         // mid doors
+  D.arch({ axis: 'z', cx: 38, cz: 28.5, w: 6, depth: 3, spring: 3.4, rise: 1.5, topY: 8.4, color: 0xf0dcae, dark: 0.62 });        // long doors
+  for (const cx of [-6, 6]) D.arch({ axis: 'z', cx, cz: -15, w: 4, depth: 2, spring: 3.4, rise: 1.0, topY: 8.4, color: 0xeed3a4, dark: 0.8 }); // hub arches
+  D.arch({ axis: 'x', cx: 19, cz: -43, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.4, color: 0xf0dcae, dark: 0.65 });         // tide -> A
+  D.arch({ axis: 'x', cx: -19, cz: -43, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.4, color: 0xe8c5a8, dark: 0.65 });        // tide -> B
+  D.arch({ axis: 'x', cx: -19, cz: -23, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.6, color: 0xe8c5a8, dark: 0.65 });        // palace -> B
+  D.arch({ axis: 'z', cx: -33, cz: -15, w: 6, depth: 2, spring: 3.2, rise: 1.2, topY: 7.6, color: 0xdcc394, dark: 0.7 });        // tunnel mouth
+  D.arch({ axis: 'x', cx: -21, cz: -34, w: 4, depth: 2, floorY: 1.1, spring: 3.0, rise: 0.6, topY: 6.4, color: 0xeadcc0, dark: 0.75 }); // B window frame
   // jambs/stair gates
-  D.arch({ axis: 'x', cx: 11, cz: 7, w: 6, depth: 2, spring: 3.2, rise: 1.0, topY: 8.4, color: 0xe4c595 });          // hub -> short
+  D.arch({ axis: 'x', cx: 19.5, cz: -18.5, w: 5, depth: 5, spring: 3.4, rise: 1.2, topY: 7.4, color: 0xf0dcae, dark: 0.65 });   // A connector
+  D.arch({ axis: 'x', cx: 11, cz: 7, w: 6, depth: 2, spring: 3.2, rise: 1.0, topY: 8.4, color: 0xe4c595, dark: 0.7 });          // hub -> short
 
   // ============================================================ CATWALK deck, supports, railings
   D.slab({ x0: 12, z0: -26, x1: 17, z1: -16, y0: 2.55, y1: 3.0, mat: 'deck', color: 0xc9c2b4, surf: 'metal', name: 'catwalk-deck' });
@@ -95,7 +96,7 @@ export function dressWorld(D) {
 
   // ============================================================ PALACE
   D.fountain(0, -21, 2.6, 0.9, {}); D.planter(-13, -25.3, 2.6, 1.0, 0.75, { flowers: true }); D.planter(8, -25.3, 2.6, 1.0, 0.75, { flowers: true });
-  D.palm(-14.8, -24.2, 4.4); D.palm(15.5, -17.5, 3.8);
+  D.palm(-15.2, -17.2, 4.4);
   D.crate(-14.4, -17.5, 1.4, { variant: 'tide' }); D.crate(-14.4, -19, 1.4, { variant: 'wood' });
   D.barrels([[15.6, -21.5], [15.6, -22.5], [14.8, -22]]);
   D.lowWall(-9, -24.5, -6.5, -23.9, 1.0); D.lowWall(6.5, -24.5, 9.5, -23.9, 1.0);
@@ -161,7 +162,7 @@ export function dressWorld(D) {
   D.railing(-38, -46, -38, -36, B_Y + 2.6, 1.05); D.railing(-46, -36, -43, -36, B_Y + 2.6, 1.05);
   D.crate(-44.5, -44.5, 1.4, { y0: H.BALC }); D.crate(-42.9, -44.5, 1.4, { y0: H.BALC, variant: 'tide' }); D.crate(-44.5, -43.1, 1.4, { y0: H.BALC, variant: 'olive', cover: false });
   D.planter(-26, -22.2, 2.2, 1.0, 0.75, { y0: B_Y }); D.palm(-23.3, -22, 3.4);
-  D.lampPost(-26, -28, 4.2, 0xbfeaff); D.lampPost(-42, -32, 4.2, 0xbfeaff);
+  D.lampPost(-42, -32, 4.2, 0xbfeaff);
   D.pergola(-41.5, -26, -36.5, -23, 3.0);
   plinth(D, -33, -31, B_Y, 0x2fd0ff);
   // water surfaces

@@ -31,7 +31,7 @@ export function zip(b) {
   hnd.box('trim', [3.1, 11.4, 4.4], [1.4, 1.5, 3.6], { bevel: 0.3 }); hnd.box('dark', [3.9, 11.4, 6], [1.0, 2.0, 1.6], { bevel: 0.25 });
   panels(m, { xh: 2.3, z0: -16, z1: 10, y0: 4.4, y1: 12.8 });
   return {
-    name: 'Zip', cls: 'smg', skin: { pattern: 'solid', primary: 0x2f3744, accent: 0x7d8aa0, glow: 0x7dff4a, wear: 0.1 },
+    name: 'Zip', cls: 'smg', skin: { pattern: 'solid', primary: 0x1f5560, accent: 0x9ad24a, glow: 0x7dff4a, wear: 0.1 },
     muzzle: [0, 9.2, -36.5], eject: { p: [2.6, 12, 0], v: [1.8, 1.7, 0.2] }, len: 56, cellSize: [0.04, 0.14, 0.05], ejectSize: 0.9,
     fire: { handle: { kick: [0, 0, 2.2, 0, 0, 0], k: 900, c: 36 } },
     hands: { r: RH(3.5, -1, 2.0, 14), l: LH_UNDER(-19.5, 1.4, -0.3) },
@@ -57,7 +57,7 @@ export function hum(b) {
   hnd.box('trim', [3.1, 11.4, 2], [1.4, 1.5, 3.6], { bevel: 0.3 });
   panels(m, { xh: 2.3, z0: -16, z1: 14, y0: 4.5, y1: 13.1 });
   return {
-    name: 'Hum', cls: 'smg', skin: { pattern: 'hex', primary: 0x3d4f6e, accent: 0x7a94c0, glow: 0x4a9bff, wear: 0.05 },
+    name: 'Hum', cls: 'smg', skin: { pattern: 'hex', primary: 0x4a5fa8, accent: 0xb6c6ff, glow: 0x4a9bff, wear: 0.05 },
     muzzle: [0, 9.2, -42.4], eject: { p: [2.6, 12, 0], v: [1.7, 1.7, 0.2] }, len: 62, cellSize: [0.04, 0.15, 0.05],
     fire: { handle: { kick: [0, 0, 2, 0, 0, 0], k: 900, c: 36 } }, spinCoil: true,
     hands: { r: RH(3.5, -1, 2.2, 16), l: LH_UNDER(-17, 0.8, -0.3) },
@@ -129,7 +129,7 @@ export function rail(b) {
   hnd.box('dark', [0, 13, 7], [2.4, 1.6, 4], { bevel: 0.3 }); hnd.box('trim', [0, 12.2, 9.2], [3.2, 0.9, 1.0], { bevel: 0.2 });
   panels(m, { xh: 2.2, z0: -7.5, z1: 9.5, y0: 8.1, y1: 13.5, seams: 2, hseam: 0.3 });
   return {
-    name: 'Rail', cls: 'rifle', skin: { pattern: 'solid', primary: 0x39475a, accent: 0x8da3bf, glow: 0x2fd0ff, wear: 0.06 },
+    name: 'Rail', cls: 'rifle', skin: { pattern: 'solid', primary: 0x2c6a86, accent: 0xa9d8ee, glow: 0x2fd0ff, wear: 0.06 },
     muzzle: [0, 9.8, -46.6], eject: { p: [2.4, 11, 2], v: [1.9, 1.8, 0.3] }, len: 80, cellSize: [0.04, 0.16, 0.05],
     fire: { handle: { kick: [0, 0, 1.4, 0, 0, 0], k: 900, c: 36 } },
     hands: { r: RH(3.4, -1, 2.0, 12), l: LH_UNDER(-20.5, 1.4, -0.4) },
@@ -202,7 +202,7 @@ export function lance(b) {
   bolt.box('dark', [2.5, 11.4, 4], [1.4, 1.1, 3.6], { bevel: 0.2 });
   panels(m, { xh: 2.3, z0: -12, z1: 12, y0: 4.8, y1: 13.2 });
   return {
-    name: 'Lance', cls: 'sniper', skin: { pattern: 'solid', primary: 0x2e3744, accent: 0x6a7686, glow: 0xff3355, wear: 0.05 },
+    name: 'Lance', cls: 'sniper', skin: { pattern: 'solid', primary: 0x1c2027, accent: 0xc83a50, glow: 0xff3355, wear: 0.05 },
     muzzle: [0, 9.2, -69.5], eject: { p: [2.6, 11, 4], v: [1.9, 1.8, 0.3] }, len: 108, cellSize: [0.04, 0.1, 0.05], ejectSize: 1.3,
     fire: {}, scope: { center: [0, 16.6, 12.5], zoom: [0.42, 0.16] }, afterFire: { clip: 'bolt', delay: 0.28, dur: 0.85 }, gaugeOnMain: true,
     hands: { r: RH(3.5, -1, 2.0, 12), l: LH_UNDER(-22, 1.4, -0.4) },
@@ -234,7 +234,7 @@ export function scatter(b) {
   m.box('trim', [3.0, 11.2, -2], [0.6, 2.4, 5], { bevel: 0.15 }); // loading port
   panels(m, { xh: 2.5, z0: -12, z1: 12, y0: 4.6, y1: 12.6 });
   return {
-    name: 'Scatter', cls: 'shotgun', skin: { pattern: 'solid', primary: 0x6a4234, accent: 0xb8815a, glow: 0xffd84a, wear: 0.2 },
+    name: 'Scatter', cls: 'shotgun', skin: { pattern: 'solid', primary: 0x8c4a2c, accent: 0xd9a05a, glow: 0xffd84a, wear: 0.2 },
     muzzle: [0, 9.2, -42.5], eject: { p: [2.8, 11, -1], v: [1.9, 1.6, 0.2] }, len: 84, cellSize: [0.03, 0.03, 0.03], ejectSize: 1.9,
     fire: {}, afterFire: { clip: 'pump', delay: 0.14, dur: 0.46 }, shell: true,
     hands: { r: RH(3.7, -1, 2.2, 14), l: { p: [-0.2, 2.6, -22], r: [0, 0, 180], curl: [0.6, 0.62, 0.64, 0.66, 0.4], pose: 'under' } },
@@ -271,7 +271,7 @@ export function storm(b) {
   hnd.box('trim', [3.4, 12.6, 3.6], [1.4, 1.6, 3.6], { bevel: 0.3 });
   panels(m, { xh: 2.7, z0: -16, z1: 14, y0: 4.2, y1: 13.8 });
   return {
-    name: 'Storm', cls: 'heavy', skin: { pattern: 'chevron', primary: 0x3f4a58, accent: 0xffb020, glow: 0xffb020, wear: 0.25 },
+    name: 'Storm', cls: 'heavy', skin: { pattern: 'chevron', primary: 0x4a505c, accent: 0xffb020, glow: 0xffb020, wear: 0.25 },
     muzzle: [0, 9.4, -53.5], eject: { p: [3.0, 11, 2], v: [2.0, 1.7, 0.3] }, len: 88, cellSize: [0.1, 0.17, 0.17], ejectSize: 1.0,
     fire: { drum: { step: [0, 0, 0, 20, 0, 0], k: 90, c: 11 } }, heavy: true,
     hands: { r: RH(3.9, -1, 2.2, 12), l: LH_UNDER(-26, 1.6, -0.4) },

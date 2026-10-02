@@ -109,12 +109,12 @@ export function create(ctx) {
   on('round:start', () => { fx.clear(); if (state.vmHidden) { state.vmHidden = false; viewActor = undefined; try { ctx.combat?.viewmodel?.setVisible?.(true); } catch { /* stub */ } } for (const m of models.values()) { if (m.actor.alive !== false) { if (m.tag) resetTag(m); else if (!m.auto || m.actor.alive) m.spawnT = 0; } } });
 
   // ------------------------------------------------------------------ frame update
-  function fixedUpdate() { tick++; for (const m of models.values()) { m.prev.copy(m.cur); m.cur.copy(m.actor.pos); } }
+  function fixedUpdate() { tick++; for (const m of models.values()) { m.prev.copy(m.actor.pos); } }   // snapshot = state BEFORE this tick; update() interpolates prev -> actor.pos (no 1-tick lag)
   function fpOf(m) { const va = viewActor !== undefined ? viewActor : (ctx.localActor?.alive !== false ? ctx.localActor : null); return !state.thirdPerson && va === m.actor; }
   function update(dt, alpha) {
     autoManage();
     for (const m of models.values()) {
-      const a = m.actor;
+      const a = m.actor; m.cur.copy(a.pos);
       if (!m.tag && a.alive === false && m.aliveLast !== false && !m.hidden && !m.manual) tagOut(a, m.lastHitDir);
       if (a.alive !== false && m.aliveLast === false) { if (m.tag || m.hidden) resetTag(m); }
       m.aliveLast = a.alive;

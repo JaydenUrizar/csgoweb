@@ -1,0 +1,26 @@
+{"piece":"hud","round":3,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"Live HUD, 1280x720 (live_1280_s1/06_first_tagout_feed vs t1_020). CS2 reads calmer and its radar fills the disc with map. Our radar is about 70% empty navy void at the 30 m range, and our bottom-left vitals are chunky and heavier than they need to be. Our pips, timer and feed are crisp."},
+ {"pair":2,"picked":"ours","truth":"ours","why":"Buy menu (15_buymenu_col4 vs t1_011). Ours is easier to read: bigger labels, green/red prices, an EQUIPPED tag, a loadout panel and a buy timer that matches the topbar. The weak spot is that unaffordable icons stay full brightness, so at $800 the price colour is the only cue. CS2 dims unaffordable items heavily."},
+ {"pair":3,"picked":"ref","truth":"ref","why":"Mid-fight (fb/05_myhit_head vs t1_019). Our hit markers read well: white X for a body hit, red-tipped X plus a crown chevron for a headshot. But the damage arc is a lone red squiggle about 120 px above the crosshair, the radar is mostly empty, and CS2's thin elements leave more of the play area clear."}],
+"winner_overall":"ref","score":7.9,
+"biggest_gap":"Death to spectate still cuts hard and then blocks the screen. Reproduce: ?test=1&seed=2&match=1&phase=live at 1920x1080, then let Tango one-tap you (shots/critic-hud-r3/death_1920_s2/03_death_0.png, 05_death_2.2.png; also fb/07_dead_cycled.png at 720p). On the tag-out frame (t=0) the view jumps straight to 'SPECTATING Echo' with no beat on the killer. The opaque 'TAGGED OUT BY' card (about 490x240 px at 1080p, y 370-610) then sits dead centre for about 2-5 s, right over the spectated teammate's line of fire; at 2.2 s an enemy is hidden behind it. No crosshair is drawn for the spectated player, and the bottom centre stacks three items (red pill, spectator panel, PREV/NEXT). CS2 holds a short death cam on the killer and then spectates with the target's crosshair, keeping the centre clear. Fix: hold about 1.5 s on the killer (name and HP tag), then move the recap to a compact strip above the spectator panel or to the left side. Merge the pill into the panel, and draw the target's crosshair.",
+"other_gaps":[
+ "Radar callout crossfade draws both names on top of each other ('B Connector' ghosted under 'Lower Tunnel', 03_death_0.png, radar_zoom.png). Swap the label hard or slide it, and don't overprint. The 30 m range also leaves most of the disc as void in tunnels and at spawn. CS2 shows about twice the surrounding layout.",
+ "Buy phase stacks three items in the centre: beacon notice, a full-width ROUND 2 banner (y 210-320 at 1080p) and the 'B BUY TIME' prompt, whose tracked light-grey subtitle sits on a light floor (09_next_buy.png). CS2 keeps the centre empty during freeze. Keep one compact element.",
+ "Damage-direction arcs float about 120 px (720p) from the crosshair as short isolated red squiggles, read poorly as direction, and still look the same 1.6 s later (fb_sheet.png). Use a ring segment closer to the crosshair with a clear fade.",
+ "Buy menu: unaffordable items keep bright icons, so affordability reads only from small red prices. Dim them the way CS2 does. The column highlight for the selected category (4 RIFLES) is barely visible.",
+ "With the phase=live shortcut, the ROUND 1 banner still covers the top centre for about 1.4 s of live play (01_live_start.png, fb 01/02).",
+ "Scoreboard mid-round shows SCORE 0 for Echo with 1 tag (08_scoreboard_dead.png). In seed 1 the scores were filled in at round end. The score is not updated live."],
+"bugs":[
+ "Radar location label overprints the old and new callouts during the transition (death_1920_s2/03_death_0.png).",
+ "Spectate cycle: the first fire press moved from Lumen to Sprig, but a second press 0.3 s later stayed on Sprig, with 4 teammates alive (fb.log). Possibly an input-edge issue; not fully confirmed.",
+ "The death recap persists across mock states in the gallery: it shows in cb-deut and draws over the flash-blind white (gal/cb-deut.png, gal/blind.png). This only affects the debug gallery.",
+ "No console or page errors in 3 live runs or the gallery. HUD time per frame: median 0.40 ms, p95 0.8 ms, max 28.7 ms under host load (fine)."],
+"strengths":[
+ "The r2 death bugs are fixed: no stale damage arcs over the spectated view, money is hidden while spectating, vitals snap to the target, and a killer recap with live killer charge and damage dealt and taken now exists.",
+ "The crosshair gap visibly opens during fire and recovers, and the outline survives VFX. Hit markers are distinct for body and headshot (crown chevron).",
+ "The tag feed is CS2-literate: team-coloured names, assist '+', crown for headshots, and your own and spectated entries outlined.",
+ "The scoreboard and round-over banner (TIDE WIN / TIME EXPIRED / MVP) are clean. Dead pips are dimmed, and the 'N vs N' count is correct.",
+ "The low-HP red numeral and vignette read instantly. The colourblind deut palette remaps the HUD consistently."],
+"pass":false}

@@ -14,10 +14,10 @@ import { backdropTexture, radialTexture, mix } from './textures.js';
 
 const FOCUS = {
   body:   { y: 1.0, dist: 4.7, fov: 30, cy: 1.0, yaw: null },
-  head:   { y: 1.45, dist: 2.1, fov: 30, cy: 1.55, yaw: 0 },
+  head:   { y: 1.52, dist: 2.3, fov: 30, cy: 1.6, yaw: 0 },
   back:   { y: 0.9, dist: 4.5, fov: 30, cy: 1.1, yaw: Math.PI },
   tagger: { y: 1.15, dist: 3.3, fov: 30, cy: 1.2, yaw: 0, gun: true },
-  charm:  { y: 0.95, dist: 1.7, fov: 30, cy: 1.0, yaw: 1.3 },
+  charm:  { y: 0.95, dist: 2.4, fov: 30, cy: 1.0, yaw: 1.3 },
   name:   { y: 1.62, dist: 2.7, fov: 30, cy: 1.7, yaw: 0 },
   wide:   { y: 1.0, dist: 5.0, fov: 30, cy: 1.1, yaw: 0.45 },
   run:    { y: 0.8, dist: 6.0, fov: 30, cy: 1.15, yaw: 1.25 },
@@ -26,7 +26,7 @@ const FOCUS = {
 export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAYER', fallbackOnly = false } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: preserve });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.8;
+  renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 0.8;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene(); scene.background = backdropTexture('ember');
   const pmrem = new THREE.PMREMGenerator(renderer); const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04); scene.environment = envRT.texture; scene.environmentIntensity = 0.3;
@@ -38,8 +38,8 @@ export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAY
   key.shadow.camera.left = -1.6; key.shadow.camera.right = 1.6; key.shadow.camera.top = 2.4; key.shadow.camera.bottom = -0.5; key.shadow.camera.near = 1; key.shadow.camera.far = 12; key.shadow.bias = -0.0006; key.shadow.normalBias = 0.02;
   scene.add(key);
   const fill = new THREE.DirectionalLight(0xdfe8ff, 0.4); fill.position.set(3, 1.6, 2.5); scene.add(fill);
-  const rimA = new THREE.DirectionalLight(0xff7a2f, 0.55); rimA.position.set(-3, 2.2, -3.2); scene.add(rimA);
-  const rimB = new THREE.DirectionalLight(0xff7a2f, 0.5); rimB.position.set(3, 2.6, -3); scene.add(rimB);
+  const rimA = new THREE.DirectionalLight(0xff7a2f, 0.3); rimA.position.set(-3, 2.2, -3.2); scene.add(rimA);
+  const rimB = new THREE.DirectionalLight(0xff7a2f, 0.28); rimB.position.set(3, 2.6, -3); scene.add(rimB);
   const under = new THREE.PointLight(0xff7a2f, 0.15, 3.5, 2); under.position.set(0, 0.1, 1.0); scene.add(under);
 
   // ---- platform
@@ -82,7 +82,7 @@ export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAY
     try {
       const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples: 4 });
       composer = new EffectComposer(renderer, rt); composer.addPass(new RenderPass(scene, camera));
-      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.22, 0.5, 1.2); composer.addPass(bloom); composer.addPass(new OutputPass());
+      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.15, 0.5, 1.5); composer.addPass(bloom); composer.addPass(new OutputPass());
     } catch { composer = null; }
   }
 
@@ -189,7 +189,7 @@ export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAY
       // decor
       ticks.rotation.y += dt * 0.08; ring.material.color.setHex(TEAM_COL[S.team]).multiplyScalar(2.0 + 0.4 * Math.sin(S.time * 1.7));
       floorGlow.material.opacity = 0.32 + 0.05 * Math.sin(S.time * 1.7);
-      if (bloom) { bloom.strength += ((tagFlash > 0 ? 1.0 : 0.22) - bloom.strength) * Math.min(1, dt * 8); }
+      if (bloom) { bloom.strength += ((tagFlash > 0 ? 0.9 : 0.15) - bloom.strength) * Math.min(1, dt * 8); }
       tagFlash = Math.max(0, tagFlash - dt * 3);
     },
     render() {

@@ -44,13 +44,12 @@ export function strobe(b) {
   m.cylY('body', [0, -1, 0], 3.3, 3.3, 11, 6);
   m.cylY('dark', [0, -6.9, 0], 3.2, 3.0, 1.2, 6);
   m.cylY('trim', [0, 5.2, 0], 3.7, 3.7, 2, 6); m.cylY('dark', [0, 4.2, 0], 3.4, 3.4, 0.5, 6);
-  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + Math.PI / 6; m.box('glow', [Math.cos(a) * 3.0, 7.9, Math.sin(a) * 3.0], [1.9, 3.0, 0.5], { rot: [0, -a * 180 / Math.PI + 90, 0], bevel: 0.1 }); }
-  m.cylY('glow', [0, 7.4, 0], 2.0, 2.0, 2.6, 6); m.ball('glow', [0, 9, 0], 1.7);
+  m.cylY('dark', [0, 7.3, 0], 2.7, 2.3, 1.8, 6); m.cylY('trim', [0, 8.5, 0], 1.6, 1.4, 0.8, 6); m.cylY('glow', [0, 6.5, 0], 3.5, 3.5, 0.4, 6);
   m.cylY('glow', [0, -2.6, 0], 3.45, 3.45, 1.4, 6);
   for (let i = 0; i < 3; i++) m.box('glow', [0, 1.2 + i * 1.2, 3.25], [0.5, 0.5, 0.15], { rot: [0, 0, 45] });
-  m.box('trim', [3.3, 1.4, 0], [0.7, 10, 2.2], { bevel: 0.25 });
+  m.box('trim', [3.15, 1.4, 0], [0.45, 9.4, 1.8], { bevel: 0.2 });
   pin.ring('trim', [4.2, 7.8, 0], 1.7, 0.3, 10, 4, { rot: [0, 90, 0] }); pin.cylX('trim', [1.6, 7.8, 0], 0.28, 0.28, 3.6, 6);
-  return { name: 'Strobe', cls: 'grenade', skin: { pattern: 'solid', primary: 0xe6e2d6, accent: 0x8e8a7e, glow: 0xfff2a0, wear: 0 }, muzzle: [0, 10, 0], len: 22, hands: canisterHands(-0.6), hold: 'throw', pinAt: [4.2, 7.8, 0] };
+  return { name: 'Strobe', cls: 'grenade', skin: { pattern: 'solid', primary: 0x2c313b, accent: 0xe8c43a, glow: 0xfff2a0, wear: 0 }, muzzle: [0, 10, 0], len: 22, hands: canisterHands(-0.6), hold: 'throw', pinAt: [4.2, 7.8, 0] };
 }
 
 export function pulse(b) {

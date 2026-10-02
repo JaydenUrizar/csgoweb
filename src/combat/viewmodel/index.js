@@ -28,7 +28,7 @@ export function createViewmodel(ctx) {
   const rig = new THREE.Group(); rig.name = 'viewmodel-rig'; root.add(rig);
   const muzzleObj = new THREE.Object3D(); muzzleObj.name = 'viewmodel-muzzle'; rig.add(muzzleObj);
   const castRoot = new THREE.Group(); castRoot.name = 'viewmodel-fx'; viewCamera.add(castRoot);
-  const shoulderR = new THREE.Object3D(), shoulderL = new THREE.Object3D(); shoulderR.position.set(0.34, -0.5, 0.36); shoulderL.position.set(-0.3, -0.55, 0.34); root.add(shoulderR, shoulderL);
+  const shoulderR = new THREE.Object3D(), shoulderL = new THREE.Object3D(); shoulderR.position.set(0.34, -0.5, 0.36); shoulderL.position.set(-0.52, -0.6, 0.22); root.add(shoulderR, shoulderL);
   const lights = new THREE.Group(); lights.name = 'viewmodel-lights'; viewCamera.add(lights);
   const key = new THREE.DirectionalLight(0xfff0dc, 2.6); key.position.set(-0.7, 1.1, 0.5); key.target.position.set(0.1, -0.2, -0.5);
   const fill = new THREE.HemisphereLight(0xcfe2ff, 0x6a5a48, 0.95);
@@ -92,7 +92,7 @@ export function createViewmodel(ctx) {
     const model = getViewModel(id), prof = profile(id);
     S.id = id; S.model = model; S.prof = prof; S.meta = model.meta; S.clips = clipsFor(id, model.meta, prof);
     model.mats.apply(skin); S.skin = skin;
-    model.root.scale.x = ['rifle', 'smg', 'sniper', 'heavy', 'shotgun'].includes(model.meta.cls) ? 0.86 : 1;   // slimmer flanks: reads as a side profile, not a block
+    model.root.scale.x = ['rifle', 'smg', 'sniper', 'heavy', 'shotgun'].includes(model.meta.cls) ? 0.86 : 1; model.root.scale.z = model.meta.cls === 'smg' ? 0.82 : 1;   // slimmer flanks: reads as a side profile, not a block
     rig.add(model.root); model.root.visible = true; for (const n in model.parts) model.parts[n].visible = true;
     model.root.traverse((o) => o.layers.enable(3));
     muzzleObj.position.copy(model.anchors.muzzle.position);
@@ -108,7 +108,7 @@ export function createViewmodel(ctx) {
   }
 
   // ---------------------------------------------------------------- framing: put the muzzle where CS2 puts it (lower-right third, clear of the crosshair)
-  const FIT = { rifle: [0.25, -0.12], smg: [0.25, -0.12], shotgun: [0.25, -0.12], heavy: [0.23, -0.12], sniper: [0.21, -0.1] };
+  const FIT = { rifle: [0.25, -0.12], smg: [0.25, -0.12], shotgun: [0.25, -0.12], heavy: [0.23, -0.12], sniper: [0.21, -0.1], pistol: [0.31, -0.27], melee: [0.36, -0.08], grenade: [0.40, -0.1], gear: [0.28, -0.12] };
   const _fl = new THREE.Vector3(), _ft = new THREE.Vector3();
   function fitRest() {
     S.fit[0] = S.fit[1] = 0; S.fitAspect = viewCamera.aspect;
@@ -214,8 +214,10 @@ export function createViewmodel(ctx) {
     // heat
     S.heat = Math.min(1, S.heat + pr.heat);
     // visuals
-    fx.fire(pr.flash, S.model.mats.glowColor, p.power ?? 1);
-    muzzleObj.updateWorldMatrix(true, false); muzzleObj.getWorldPosition(_p); castRoot.worldToLocal(_p); fx.smoke(_p.x, _p.y, _p.z, (pr.flash.size || 1) * (S.meta.cls === 'pistol' ? 0.6 : 1), S.meta.cls === 'pistol' ? 1 : 2);
+    muzzleObj.updateWorldMatrix(true, false); muzzleObj.getWorldPosition(_p); castRoot.worldToLocal(_p);
+    // cap the flash so its radius stops short of the crosshair (distance of the muzzle from screen centre, in half-heights)
+    _v3.copy(_p).applyMatrix4(viewCamera.projectionMatrix); const fdist = Math.hypot(_v3.x * (viewCamera.aspect || 1.78), _v3.y), fcap = clamp((fdist - 0.07) / 0.27, 0.4, 1.25);
+    fx.fire(pr.flash, S.model.mats.glowColor, (p.power ?? 1) * fcap); fx.smoke(_p.x, _p.y, _p.z, (pr.flash.size || 1) * (S.meta.cls === 'pistol' ? 0.6 : 1), S.meta.cls === 'pistol' ? 1 : 2);
     S.model.mats.flash = 1;
     if (!S.meta.afterFire && !p.silent) ejectCasing(true);
     if (S.ammo <= 0) S.ammoLock = -1;
@@ -311,6 +313,7 @@ export function createViewmodel(ctx) {
     S.air = approach(S.air, onGround ? 0 : 1, onGround ? 9 : 6, dt);
     S.hpLow = approach(S.hpLow, st.hp != null && st.hp < 25 ? 1 : 0, 3, dt);
     const scopeTarget = S.scopeIn && !act.on ? 1 : (S.scopeIn && act.name === 'bolt' ? 0 : S.scopeIn ? 0 : 0); scopeSp.t[0] = S.scopeIn && !(act.on && (act.name === 'reload' || act.name === 'bolt' || act.name === 'draw')) ? 1 : 0; void scopeTarget;
+    scopeSp.k = scopeSp.t[0] > 0.5 ? 120 : 420; scopeSp.c = scopeSp.t[0] > 0.5 ? 16 : 40;
     scopeSp.step(dt); const sc = clamp(scopeSp.x[0], 0, 1.02); S.scopeT = sc;
     // look inertia: velocity-proportional offset pulled through a spring => weapon lags the camera, overshoots slightly, settles
     S.lookVX = approach(S.lookVX, lx / dt, 24, dt); S.lookVY = approach(S.lookVY, ly / dt, 24, dt);
@@ -337,8 +340,8 @@ export function createViewmodel(ctx) {
     const br = Math.sin(t * 1.55), br2 = Math.sin(t * 0.83 + 1.3), hp = 1 + S.hpLow * 1.4;
     y += br * 0.0017 * idle * hp; x += br2 * 0.0010 * idle; rx += br * 0.0048 * idle * hp; rz += br2 * 0.0035 * idle; ry += Math.sin(t * 0.6) * 0.003 * idle;
     // walk / run bob (figure-8), footfall at phase = k*pi
-    x += Math.sin(bp) * 0.0105 * ba; y += -(0.5 + 0.5 * Math.cos(bp * 2)) * 0.0135 * ba + 0.004 * ba; z += Math.sin(bp * 2 + 0.6) * 0.0055 * ba;
-    rz += Math.sin(bp) * 0.030 * ba; rx += Math.cos(bp * 2) * 0.0125 * ba; ry += Math.sin(bp + 0.5) * 0.0175 * ba;
+    x += Math.sin(bp) * 0.0175 * ba; y += -(0.5 + 0.5 * Math.cos(bp * 2)) * 0.024 * ba + 0.007 * ba; z += Math.sin(bp * 2 + 0.6) * 0.009 * ba;
+    rz += Math.sin(bp) * 0.05 * ba; rx += Math.cos(bp * 2) * 0.022 * ba; ry += Math.sin(bp + 0.5) * 0.03 * ba;
     // sprint pose: weapon lowered/angled across
     x += spr * -0.030; y += spr * -0.042; z += spr * 0.018; rx += spr * -0.36; ry += spr * 0.62; rz += spr * 0.22;
     // crouch, air
@@ -374,7 +377,7 @@ export function createViewmodel(ctx) {
     void frac;
     // scope zoom
     S.fovMul = meta.scope ? lerp(1, meta.scope.zoom[Math.min(S.zoomLevel, meta.scope.zoom.length - 1)], smooth(0.35, 1, sc)) : 1;
-    const hide = !S.visible || S.hidden || S.spectating || ctx.localActor?.alive === false || (meta.scope && sc > 0.93);
+    const hide = !S.visible || S.hidden || S.spectating || ctx.localActor?.alive === false || (meta.scope && (sc > 0.93 || (scopeSp.t[0] < 0.5 && sc > 0.12)));
     S.fresh = false; rig.visible = !hide; handR.root.visible = !hide && !!hd.r; handL.root.visible = !hide && !!hd.l;
     // fov
     const vf = vFovOf(settings.fov || 68); if (Math.abs(viewCamera.fov - vf) > 0.01) { viewCamera.fov = vf; viewCamera.updateProjectionMatrix(); }

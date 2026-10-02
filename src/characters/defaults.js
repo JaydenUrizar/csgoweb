@@ -4,8 +4,8 @@ import { TEAMS } from '../core/config.js';
 export function defaultSpec(team) {
   const ember = team !== 'tide';
   return {
-    suit: { base: ember ? 0x86361a : 0x1f86b8, accent: ember ? 0x1d2026 : 0xe9f3f8, pattern: 'solid', patternColor: ember ? 0xb4552b : 0xe9f3f8, material: 'satin' },
-    helmet: { shape: 'round', color: ember ? 0x3a2c26 : 0xe6eff3, accent: ember ? 0xff7a2f : 0x2b2f38 },
+    suit: { base: ember ? 0x3a2418 : 0x1f86b8, accent: ember ? 0xf1e6d0 : 0xe9f3f8, pattern: 'solid', patternColor: ember ? 0x5a3a28 : 0xe9f3f8, material: 'satin' },
+    helmet: { shape: 'round', color: ember ? 0xf1e6d0 : 0xe6eff3, accent: ember ? 0xff7a2f : 0x2b2f38 },
     visor: { shape: 'wide', color: ember ? 0xffc79a : 0xaeeaff, glow: ember ? 0xffa060 : 0x7fe3ff },
     back: { model: 'none', color: 0x3a3f4b }, trail: { type: 'none', color: 0xffffff, color2: 0xffffff },
     tagOutEffect: 'shatter', taggerSkin: null, charm: { model: 'none', color: 0xffffff }, nameplate: { style: 'plain', color: 0xffffff }, emote: '', rarity: 'common',

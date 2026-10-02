@@ -5,7 +5,7 @@ import * as THREE from 'three';
 
 export const SKY_DEFAULTS = {
   sunElevation: 44, sunAzimuth: 205,               // degrees; azimuth 0 = +Z toward... (x = sin(az)*cos(el), z = cos(az)*cos(el))
-  sunColor: 0xffe0b4, sunIntensity: 5.3,
+  sunColor: 0xffecd4, sunIntensity: 5.0,
   skyTop: 0x5b90da, skyMid: 0x9cc3ee, skyHorizon: 0xeae6dc, ground: 0xb79f7c,
   envTop: 0xb4bcc8, envMid: 0xcdc7bc, envHorizon: 0xd8c8ae, envGround: 0xb08f66,   // ambient-only palette: near-neutral warm, slight cool from above
   fogColor: null,                                  // null = derived from skyHorizon
