@@ -5,6 +5,7 @@ import { rgb, mulc, mixc } from './builder.js';
 import { heightAt } from './grid.js';
 
 const TAU = Math.PI * 2;
+function VB_stripe(VB, x0, z0, x1, z1, y, hh, col, alongX) { VB.box('plain', x0 - 0.02, y, z0 - 0.02, x1 + 0.02, y + hh, z1 + 0.02, col, { ao: 1, top: false }); }
 
 export class Dress {
   constructor(VB, VBroof, CB, grid) {
@@ -46,6 +47,11 @@ export class Dress {
     const t = 0.1, tc = mulc(rgb(color), 0.55);
     for (const [px, pz] of [[x0, z0], [x1 - t, z0], [x0, z1 - t], [x1 - t, z1 - t]]) this.VB.box('plain', px - 0.02, y0, pz - 0.02, px + t + 0.02, y0 + h + 0.02, pz + t + 0.02, tc, { ao: 1, top: false });
     this.VB.box('plain', x0 - 0.03, y0 + h - 0.02, z0 - 0.03, x1 + 0.03, y0 + h + 0.05, z1 + 0.03, tc, { ao: 1 });
+    const alongX = (x1 - x0) > (z1 - z0), sc = mulc(mixc(rgb(color), rgb(0xf4ead0), 0.8), 1.0), lc = rgb(color);
+    VB_stripe(this.VB, x0, z0, x1, z1, y0 + h * 0.58, h * 0.14, sc, alongX);
+    // end doors: two vertical locking bars + hinge plates
+    const ex = alongX ? x1 : (x0 + x1) / 2, ez = alongX ? (z0 + z1) / 2 : z1;
+    for (const k of [-0.18, 0.18]) { if (alongX) this.VB.box('plain', x1 - 0.01, y0 + 0.2, ez + k * (z1 - z0) - 0.03, x1 + 0.05, y0 + h - 0.2, ez + k * (z1 - z0) + 0.03, mulc(lc, 0.45), { ao: 1, top: false }); else this.VB.box('plain', ex + k * (x1 - x0) - 0.03, y0 + 0.2, z1 - 0.01, ex + k * (x1 - x0) + 0.03, y0 + h - 0.2, z1 + 0.05, mulc(lc, 0.45), { ao: 1, top: false }); }
     return y0 + h;
   }
   barrel(x, z, o = {}) {
@@ -150,29 +156,39 @@ export class Dress {
     const own = this.owner({ kind: 'prop', surface: 'wood', name: 'palm' }); this.CB.box(x - 0.22, y0, z - 0.22, x + 0.22, y0 + 2.2, z + 0.22, own);
     this.contacts.push([x - 0.4, z - 0.4, x + 0.4, z + 0.4, y0]);
   }
-  /** octagonal fountain basin with water and a central column */
+  /** tiered fountain: basin, pedestal, upper bowl, jets, plinths + lanterns */
   fountain(cx, cz, r = 2.6, h = 0.9, o = {}) {
-    const y0 = this.ground(cx, cz), n = 8, VB = this.VB, c = rgb(o.color ?? 0xe8d6ac), wt = rgb(0x2aa6a6);
+    const y0 = this.ground(cx, cz), n = 8, VB = this.VB, c = rgb(o.color ?? 0xe8d6ac), wt = rgb(0x2aa6a6), jet = rgb(0xcff4ff);
     const pt = (rr, a, y) => [cx + Math.cos(a) * rr, y, cz + Math.sin(a) * rr];
-    const ro = r, ri = r - 0.45;
-    for (let i = 0; i < n; i++) {
-      const a0 = (i + 0.5) / n * TAU, a1 = (i + 1.5) / n * TAU;
-      VB.quad('wall', pt(ro, a1, y0), pt(ro, a0, y0), pt(ro, a0, y0 + h), pt(ro, a1, y0 + h), [mulc(c, 0.75), mulc(c, 0.75), c, c]);       // outer
-      VB.quad('wall', pt(ri, a0, y0 + h * 0.55), pt(ri, a1, y0 + h * 0.55), pt(ri, a1, y0 + h), pt(ri, a0, y0 + h), [mulc(c, 0.6), mulc(c, 0.6), mulc(c, 0.9), mulc(c, 0.9)]);   // inner
-      VB.quad('wall', pt(ri, a0, y0 + h), pt(ri, a1, y0 + h), pt(ro, a1, y0 + h), pt(ro, a0, y0 + h), mulc(c, 1.08)); // rim top (faces up: inner->outer)
-      VB.tri('water', [cx, y0 + h * 0.72, cz], pt(ri, a1, y0 + h * 0.72), pt(ri, a0, y0 + h * 0.72), wt);
-      this.waters.push(0);
+    const ring = (ro, ri, yb, yt, wy) => {
+      for (let i = 0; i < n; i++) {
+        const a0 = (i + 0.5) / n * TAU, a1 = (i + 1.5) / n * TAU;
+        VB.quad('wall', pt(ro, a1, yb), pt(ro, a0, yb), pt(ro, a0, yt), pt(ro, a1, yt), [mulc(c, 0.75), mulc(c, 0.75), c, c]);
+        VB.quad('wall', pt(ri, a0, yt - 0.4), pt(ri, a1, yt - 0.4), pt(ri, a1, yt), pt(ri, a0, yt), [mulc(c, 0.6), mulc(c, 0.6), mulc(c, 0.9), mulc(c, 0.9)]);
+        VB.quad('wall', pt(ri, a0, yt), pt(ri, a1, yt), pt(ro, a1, yt), pt(ro, a0, yt), mulc(c, 1.08));
+        VB.tri('water', [cx, wy, cz], pt(ri, a1, wy), pt(ri, a0, wy), wt);
+      }
+    };
+    ring(r, r - 0.45, y0, y0 + h, y0 + h * 0.72);
+    // pedestal (octagonal, tapering) + decorative bands
+    for (let i = 0; i < n; i++) { const a0 = (i + 0.5) / n * TAU, a1 = (i + 1.5) / n * TAU; VB.quad('wall', pt(1.0, a1, y0 + h * 0.7), pt(1.0, a0, y0 + h * 0.7), pt(0.55, a0, y0 + h + 1.0), pt(0.55, a1, y0 + h + 1.0), [mulc(c, 0.85), mulc(c, 0.85), c, c]); }
+    ring(1.55, 1.1, y0 + h + 0.95, y0 + h + 1.4, y0 + h + 1.28);
+    VB.box('wall', cx - 0.22, y0 + h + 1.4, cz - 0.22, cx + 0.22, y0 + h + 2.5, cz + 0.22, mulc(c, 1.04), { ao: 0.95 });
+    VB.box('emissive', cx - 0.28, y0 + h + 2.5, cz - 0.28, cx + 0.28, y0 + h + 3.05, cz + 0.28, mulc(rgb(o.glow ?? 0x62e6d8), 2.4), { ao: 1 });
+    for (let i = 0; i < n; i++) { // jets: thin translucent strands arcing top -> upper bowl -> basin
+      const a = i / n * TAU, w = 0.05;
+      VB.quad('water', [cx + Math.cos(a) * 0.1, y0 + h + 2.3, cz + Math.sin(a) * 0.1], [cx + Math.cos(a) * 0.1 + w, y0 + h + 2.3, cz + Math.sin(a) * 0.1], [cx + Math.cos(a) * 1.0 + w, y0 + h + 1.3, cz + Math.sin(a) * 1.0], [cx + Math.cos(a) * 1.0, y0 + h + 1.3, cz + Math.sin(a) * 1.0], jet);
+      VB.quad('water', [cx + Math.cos(a) * 1.6, y0 + h + 1.2, cz + Math.sin(a) * 1.6], [cx + Math.cos(a) * 1.6 + w, y0 + h + 1.2, cz + Math.sin(a) * 1.6], [cx + Math.cos(a) * 2.1 + w, y0 + h * 0.72, cz + Math.sin(a) * 2.1], [cx + Math.cos(a) * 2.1, y0 + h * 0.72, cz + Math.sin(a) * 2.1], jet);
     }
-    const poly = []; for (let i = 0; i < n; i++) poly.push([cx + Math.cos((i + 0.5) / n * TAU) * (ro - 0.05), cz + Math.sin((i + 0.5) / n * TAU) * (ro - 0.05)]);
+    const poly = []; for (let i = 0; i < n; i++) poly.push([cx + Math.cos((i + 0.5) / n * TAU) * (r - 0.05), cz + Math.sin((i + 0.5) / n * TAU) * (r - 0.05)]);
     const own = this.owner({ kind: 'prop', surface: 'stone', name: 'fountain' }); this.CB.prism(poly.slice().reverse(), y0, y0 + h, own);
+    const own2 = this.owner({ kind: 'prop', surface: 'stone', name: 'fountain-column' }); this.CB.box(cx - 0.6, y0, cz - 0.6, cx + 0.6, y0 + h + 3, cz + 0.6, own2);
     this.objects.push({ name: 'fountain', kind: 'fountain', min: [cx - r, y0, cz - r], max: [cx + r, y0 + h, cz + r], center: [cx, y0 + h, cz], height: h });
-    // central column + bowl + orb
-    this.VB.box('wall', cx - 0.45, y0 + h * 0.7, cz - 0.45, cx + 0.45, y0 + h * 0.7 + 0.5, cz + 0.45, c, { ao: 0.85 });
-    this.VB.box('wall', cx - 0.28, y0 + h * 0.7 + 0.5, cz - 0.28, cx + 0.28, y0 + h + 1.6, cz + 0.28, mulc(c, 1.04), { ao: 0.95 });
-    this.VB.box('wall', cx - 0.7, y0 + h + 1.6, cz - 0.7, cx + 0.7, y0 + h + 1.85, cz + 0.7, mulc(c, 1.05), { ao: 0.9 });
-    this.VB.box('emissive', cx - 0.3, y0 + h + 1.85, cz - 0.3, cx + 0.3, y0 + h + 2.35, cz + 0.3, rgb(o.glow ?? 0x62e6d8).map((v) => v * 2.4), { ao: 1 });
-    const own2 = this.owner({ kind: 'prop', surface: 'stone', name: 'fountain-column' }); this.CB.box(cx - 0.3, y0, cz - 0.3, cx + 0.3, y0 + h + 1.8, cz + 0.3, own2);
-    this.lamps.push({ pos: [cx, y0 + h + 2.4, cz], color: o.glow ?? 0x62e6d8, intensity: 1.2 });
+    // four plinths with lanterns on the diagonals
+    for (const [dx, dz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) { const px = cx + dx * (r + 1.1), pz = cz + dz * (r + 1.1);
+      this.solid({ x0: px - 0.35, x1: px + 0.35, z0: pz - 0.35, z1: pz + 0.35, y0, y1: y0 + 1.0, mat: 'wall', color: 0xe8d6ac, surf: 'stone', name: 'fountain-plinth', cover: true, kind: 'plinth', ao: 0.85 });
+      VB.box('wall', px - 0.45, y0 + 1.0, pz - 0.45, px + 0.45, y0 + 1.12, pz + 0.45, mulc(c, 1.06), { ao: 1 }); VB.box('emissive', px - 0.2, y0 + 1.12, pz - 0.2, px + 0.2, y0 + 1.6, pz + 0.2, mulc(rgb(0xffd9a0), 2.4), { ao: 1 }); this.lamps.push({ pos: [px, y0 + 1.4, pz], color: 0xffd9a0, intensity: 1 }); }
+    this.lamps.push({ pos: [cx, y0 + h + 3, cz], color: o.glow ?? 0x62e6d8, intensity: 1.2 });
   }
   /** sloped cloth awning (visual only) */
   awning(x0, z0, x1, z1, y, drop = 0.5, o = {}) {

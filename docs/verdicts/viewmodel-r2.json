@@ -1,0 +1,20 @@
+{"piece":"viewmodel","round":2,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"Arc spraying (r2/fire_4.png) vs CS2 AK firing (ss_4). CS2 muzzle sits low-right (~0.63,0.56 of frame) so the plume never touches the crosshair; ours puts the muzzle ~40px from the crosshair and the flash star is drawn ON the crosshair every shot. Our receiver is a flat khaki slab filling the lower-right."},
+ {"pair":2,"picked":"ref","truth":"ref","why":"Rail idle (r2/g_rail.png) vs CS2 M4 (t2_035). CS2: slim side profile, carry handle, mag, gloved hand all read instantly. Ours: chunky camo block whose barrel tip reaches the crosshair, part separation lost under one khaki finish."},
+ {"pair":3,"picked":"ref","truth":"ref","why":"Pip (r2/g_pip.png) vs CS2 Deagle (t2_015). Close framing-wise, but our slide reads as a toy block and the hand as a faceted mitten; CS2 has sights, glove creases and grip wrap."},
+ {"pair":4,"picked":"ref","truth":"ref","why":"Lance (r2/g_lance.png) vs CS2 AWP (t2_025). Our scope rear lens is a big octagon with a glowing reticle staring at the player, muzzle directly under the crosshair; CS2 AWP sits right with rings/turrets and both gloves."}],
+"winner_overall":"ref","score":5.3,
+"biggest_gap":"Framing: long arms sit far too central and too big, so the muzzle and muzzle flash land on the crosshair. Repro: ?test=1&seed=3&match=1&phase=live, combat.debug.give(localActor,'arc'), hold fire (shots/critic-viewmodel/r2/fire_sheet.png, g_arc.png). Arc muzzle at ~(680,370) and Lance at ~(640,373) for a crosshair at (640,360) at 1280x720; every flash star covers the crosshair during spray, and the receiver fills x 670-1280 / y 340-720. CS2 AK/M4 muzzles sit at ~(0.60-0.63, 0.55-0.56) of the frame (~(790,400) at 720p), the gun is a slim diagonal occupying the lower-right ~third, and the flash never occludes the aim point. Move rest pose right/down ~8-10% of screen, shrink apparent receiver size ~25%, and offset the flash origin so its glow radius clears the crosshair.",
+"other_gaps":[
+ "In-match default skin makes every long arm the same muted khaki camo (zip/hum/arc/rail/scatter/storm in r2/sheetA.png, sheetB.png are near-indistinguishable), although the gallery profiles (r2/w_sheet.png) have distinct colour identity (orange arc, teal rail, drum storm). Keep tagger identity colours on furniture/trim, skin only body panels.",
+ "Reload (r2/rel_sheet.png, rel_1.png): the rifle tilts up through the screen centre covering the crosshair for ~1.5 s; left hand renders as floating separated finger cubes; forearm is a long flat slab with a white edge. CS2 reloads keep the gun low-right with the view clear.",
+ "Inspect (r2/insp_sheet.png): gun is pushed so close that a featureless flat khaki side panel fills ~70% of the frame for 2 s; at that size the low detail is exposed. CS2 inspect shows the whole weapon mid-frame.",
+ "Sleeve/forearm from the side (r2/w_sheet.png) is two parallel planks with a cream stripe, not a forearm volume; gloves are boxy mittens.",
+ "Tap melee swing trail is a single thin yellow line across the screen (r2/throw_sheet.png row 3) and the bat barely rotates; reads as a stray streak, not a swing.",
+ "Lance/Halo rear scope lens draws a glowing reticle facing the player; reads as a target icon, adds central clutter."],
+"bugs":[
+ "Rifle muzzle flash occludes the crosshair on every shot (Arc, full-auto) - gameplay-impacting.",
+ "Arc reload mid-clip: left-hand finger segments render detached from the palm (r2/rel_1.png, x650-720 y380-580)."],
+"strengths":["Draw calls fixed: 6-7 viewmodel meshes, ~4.7-6.4k tris (cap1.json)","Scope-in no longer shows the weapon inside the overlay; eyepiece raise then clean overlay","Bigger flash with size variation, smoke puffs, ejected glowing cells","Lance bolt cycle now visible after shot; grenade held visibly with throw arc","Gallery side profiles have distinct, readable silhouettes per tagger","No console errors in live-game or gallery runs"],
+"pass":false}

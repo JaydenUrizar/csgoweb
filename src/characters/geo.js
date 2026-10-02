@@ -11,6 +11,7 @@ const _e = new THREE.Euler(), _q = new THREE.Quaternion(), _m = new THREE.Matrix
 /** Chamfered, optionally tapered box centred on the origin: bottom w x d, top w1 x d1. */
 export function boxP(w, h, d, b = 0.02, w1 = w, d1 = d) {
   const pts = [];
+  if (b < 0.011) { for (const sy of [-1, 1]) for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const W = sy < 0 ? w : w1, D = sy < 0 ? d : d1; pts.push(V(sx * W / 2, sy * h / 2, sz * D / 2)); } return pts; }
   for (const sy of [-1, 1]) {
     const W = sy < 0 ? w : w1, D = sy < 0 ? d : d1, y = sy * h / 2;
     const bb = Math.min(b, W / 2 - 0.001, D / 2 - 0.001, h / 2 - 0.001);

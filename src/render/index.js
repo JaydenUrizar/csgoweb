@@ -40,7 +40,7 @@ export function create(ctx) {
 
   const sun = new THREE.DirectionalLight(0xffe7c2, 3.6); sun.castShadow = true; scene.add(sun); scene.add(sun.target);
   const fill = new THREE.DirectionalLight(0xffd9a8, 0.0);        // cool sky fill from the shaded side
-  const hemi = new THREE.HemisphereLight(0xd2d4d8, 0xb08d62, 0.10); scene.add(hemi);                        // sky / warm bounce
+  const hemi = new THREE.HemisphereLight(0xd2d4d8, 0xb08d62, 0.16); scene.add(hemi);                        // sky / warm bounce
   const sunDir = sky.sunDir;
 
   // viewmodel lighting (rotated into camera space every frame so the gun is lit like the world)
@@ -59,7 +59,7 @@ export function create(ctx) {
     blur: { value: 0, hold: 0 }, tint: { color: new THREE.Color(1, 0, 0), amount: 0, hold: 0 },
     damage: { dir: 0, amount: 0 }, white: { hold: 0, level: 0 },
     shake: { trauma: 0, decay: 6, t: 0 },
-    exposure: 0.85, bloom: 0.12, ao: 0.85, vignette: 0.2, grain: 1, ca: 1, contrast: 1.14, saturation: 1.06,
+    exposure: 0.86, bloom: 0.12, ao: 1.0, vignette: 0.10, grain: 1, ca: 1, contrast: 1.2, saturation: 1.06,
     toggles: { skyocc: true, bloom: true, ssao: true, grain: true, vignette: true, shadows: true, fxaa: true, shafts: true },
   };
   const stats = { sceneCalls: 0, sceneTris: 0, calls: 0, tris: 0, sunVis: 0, sunUV: new THREE.Vector2(0.5, 0.5), shaftI: 0.22 };
@@ -76,7 +76,7 @@ export function create(ctx) {
     scene.fog.color.copy(sky.fogColor); scene.fog.density = p.fogDensity;
     vKey.color.copy(sky.sunColor).lerp(_c.set(0xffffff), 0.3);
     const env = sky.buildEnvironment(); scene.environment = env; viewScene.environment = env;
-    scene.environmentIntensity = 0.36; viewScene.environmentIntensity = 0.75;
+    scene.environmentIntensity = 0.46; viewScene.environmentIntensity = 0.75;
   }
   function setSky(o = {}) { Object.assign(sky.params, o); applySky(); }
 
@@ -154,7 +154,7 @@ export function create(ctx) {
     f.flash.amount = Math.max(0, f.flash.amount - f.flash.decay * dt);
     if (f.blur.hold > 0) f.blur.hold -= dt; else f.blur.value = Math.max(0, f.blur.value - 5 * dt);
     if (f.tint.hold > 0) f.tint.hold -= dt; else f.tint.amount = Math.max(0, f.tint.amount - 3 * dt);
-    f.damage.amount = Math.max(0, f.damage.amount - 1.6 * dt);
+    f.damage.amount = Math.max(0, f.damage.amount - 2.4 * dt);
     if (f.white.hold > 0) f.white.hold -= dt; else f.white.level = Math.max(0, f.white.level - dt / 2.4);
     f.shake.trauma = Math.max(0, f.shake.trauma - f.shake.decay * dt * 0.25 - dt * 0.05); f.shake.t += dt;
     sky.update(camera, dt);

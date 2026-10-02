@@ -43,7 +43,7 @@ const HEAT_COLD = new THREE.Color(0x0a0608), HEAT_WARM = new THREE.Color(0xff5a1
 const _c = new THREE.Color();
 /** sub-material ids shared with geo/builder (per-vertex aMat). 'glass' is a separate transparent mesh. */
 export const MAT_ID = { body: 0, trim: 1, dark: 2, rubber: 3, grip: 4, glow: 5, core: 6, coreOff: 7, vent: 8, lens: 9 };
-const PATTERN_CONTRAST = 0.4, SKIN_STRENGTH = 0.5;   // skins are applied to body panels only, at reduced contrast so part separation stays readable
+const PATTERN_CONTRAST = 0.4, SKIN_STRENGTH = 0.22;   // skins are applied to body panels only, at reduced contrast so part separation stays readable
 
 /** A full material set for one tagger model: one opaque uber material (+ one glass material). apply(skin) re-skins, update() drives glow/heat. */
 export class MatSet {
@@ -59,6 +59,8 @@ export class MatSet {
   apply(skin) {
     const d = this.defaults, s = { ...d, ...(skin || {}) };
     for (const k of ['pattern', 'primary', 'accent', 'glow', 'wear']) if (s[k] == null) s[k] = d[k];
+    // keep each tagger's identity: skins only lightly re-tint furniture/trim and glow
+    if (skin) { s.accent = new THREE.Color(d.accent).lerp(new THREE.Color(s.accent), 0.3).getHex(); s.glow = new THREE.Color(d.glow).lerp(new THREE.Color(s.glow), 0.3).getHex(); }
     this.skin = s;
     const u = this.u;
     // a custom skin tints the weapon's own gunmetal instead of replacing it (readable finish, never a full-contrast slab);

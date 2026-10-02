@@ -1,0 +1,24 @@
+{"piece":"map","round":2,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"Long Doors (38,0,33 looking -Z) vs CS2 Inferno alley (ss_4). Ours reads well: a long lane, a tower landmark, bunting and awnings. But the two flat dark-wood door walls fill about 40% of the frame and a lone hanging line drops from the sky over the arch. CS2 frames the lane with an arch, string lights, a foreground barrel cluster and a mural, so every plane has something on it."},
+ {"pair":2,"picked":"ref","truth":"ref","why":"B from Balcony (-42,1.2,-42) vs CS2 Inferno market (ss_17). Ours has a lively midground, but two near-identical clock towers stand side by side on the skyline. The balcony floor is flat untextured orange slabs, and a lumpy brown dome sits in the centre. CS2 has one composed hero prop (the pergola stall) with material richness."},
+ {"pair":3,"picked":"ref","truth":"ref","why":"A site from Catwalk Stairs (24,2.4,-29) vs CS2 eye-level site (ss_7). Ours is clear (teal A pad, stairs, crates), but the back of the site is one huge sandstone plane with a row of identical small windows. The floor is bare and cover is small crates of uniform height. CS2 layers chest-high stone walls, barrels and multi-material buildings."}],
+"winner_overall":"ref","score":6.4,
+"biggest_gap":"Material and colour monotony in the big spaces. The Round 2 facade kit shows up in the lanes (Mid Lane, Outer Long, Tide Spawn look good) but not in the largest surfaces. (1) The tunnels are all one dim brown brick with the same beams and no colour accents, and Lower Tunnel, Upper Tunnel and Tunnel Approach look interchangeable (place at (-39,0,20), (-33,0,2) or (-23,0,43); at Tunnel Approach the player faces a lone crate against a blank wall). (2) The A site back wall seen from (24,2.4,-29) toward +X and the Long Ramp approach (38,0.4,-6) are flat sandstone slabs with repeated small windows over an empty tile floor. CS2 gives each zone a dominant secondary material (plaster colour, wood, painted shutters, vines, murals) and breaks big planes with depth such as recesses, overhangs and props at the base. Give the tunnels lit niches, colour and signage that changes per bend, and give the A backdrop a stepped, multi-material facade with real depth plus one tall layered cover piece on site.",
+"other_gaps":[
+ "Landmarks repeat: the same clock tower model appears several times (two side by side from Balcony (-42,1.2,-42), one over Mid Doors, one over Long). Each landmark should be unique in silhouette so it orients the player.",
+ "Sites are still mostly flat, single-height and open: A is a tile field with crates about 1 m high, and the Hub is boxy (blank closed arch wall, FRUIT kiosk, red container). Add named multi-height cover such as a goose, a default box stack or a pillar.",
+ "Long/Cargo (42,0,3): a bare dark-teal pole stands alone mid-lane, the left cargo container is a featureless near-black box, and the teal smear decals on the right wall look like noise up close.",
+ "Spawn-to-spawn LOS still exists: 13 of 6084 eye-height pairs, for example Ember (-6,44) to Tide (12,-42), measured with map.visible.",
+ "Window Room and Canal are very dark and read as dead space. There is an exterior PHARMACY shopfront inside Window Room.",
+ "The Palace fountain is a stack of plain blocks with a slab on top, which is weak for the map's central landmark."],
+"bugs":[
+ "PATH rotate-a-to-b-palace is not walkable without a jump in 3D. A follower that starts on A climbs onto the Terrace/Catwalk deck (y=3) and stalls against the edge at (12.5,3,-18) until it jumps. Reproduce with shots/critic-map/walk2.mjs 0.",
+ "A large pure-black flat panel renders at the right of frame from the Catwalk at (12.5,3,-16.5) looking yaw 135 deg. It looks like an unlit or backfacing face (shots/critic-map/r2-catsnag.png)."],
+"strengths":[
+ "Round-1 issues fixed: the Mid Doors black-wall/white-arch glitch is gone, callout coverage is 1325/1325 floor samples, and the bot PATHS no longer run through props (all 9 complete with the real sim at offset 0).",
+ "The facade kit made the lanes look like a believable stylised town: shopfronts with signs (BAKERY, PHARMACY, TIDE TEA), awnings, bunting, balconies, palms, and terracotta roofs on the skyline.",
+ "Zone readability is good: teal A and B pads with large floor letters, team-tinted spawns, crisp plaques, and a legible radar with location names.",
+ "Real-sim timings are sensible: Ember to A about 11.4 s via Long, Ember to B about 11.7 s via Tunnels, Tide to A/B 4.5/3.9 s, A-B rotation about 10.5 s. verify reports 0 leaks and 0 bad nodes.",
+ "Perf is fine: 56-69 draw calls and about 133k tris per in-game frame, 36 map meshes, 7.4k collision tris, 0 console errors."],
+"pass":false}

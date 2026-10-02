@@ -6,17 +6,17 @@ export const css = `
 .top{position:absolute;left:50%;top:6px;transform:translateX(-50%);display:flex;align-items:flex-start;gap:0;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
 .top .side{display:flex;gap:4px;align-items:flex-start}
 .top .side.l{margin-right:5px}.top .side.r{margin-left:5px}
-.pip{position:relative;width:34px;height:36px;flex:none}
-.pip .av{position:absolute;left:0;top:0;width:34px;height:34px;border-radius:3px;overflow:hidden;box-shadow:0 0 0 2.5px var(--tc,#888),0 1px 0 2.5px rgba(0,0,0,.4);transition:filter .25s,opacity .25s}
+.pip{position:relative;width:30px;height:32px;flex:none;opacity:.88}
+.pip .av{position:absolute;left:0;top:0;width:30px;height:30px;border-radius:3px;overflow:hidden;box-shadow:0 0 0 1.5px var(--tc,#888),0 1px 0 1.5px rgba(0,0,0,.4);transition:filter .25s,opacity .25s}
 .pip .av svg{display:block;width:100%;height:100%}
-.pip:before{content:'';position:absolute;left:0;right:0;top:-5px;height:3px;border-radius:2px;background:var(--tc,#888);opacity:.95}
+.pip:before{content:'';position:absolute;left:0;right:0;top:-4px;height:2px;border-radius:2px;background:var(--tc,#888);opacity:.95}
 .pip .hp{position:absolute;left:1px;right:1px;bottom:0;height:3px;background:rgba(0,0,0,.55);overflow:hidden;border-radius:1px}
 .pip .hp b{position:absolute;inset:0;background:#fff;transform-origin:0 0;will-change:transform}
 .pip.me .av{box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(0,0,0,.35)}
-.pip.dead .av{filter:grayscale(1) brightness(.42) contrast(.9);opacity:.85}
+.pip.dead{opacity:.5}.pip.dead .av{filter:grayscale(1) brightness(.28);box-shadow:0 0 0 1.5px rgba(255,255,255,.18)}.pip.dead:before{opacity:.15}
 .pip.dead .hp{opacity:0}
-.pip .x{position:absolute;left:0;top:0;width:34px;height:34px;display:none;align-items:center;justify-content:center;color:rgba(255,255,255,.92)}
-.pip.dead .x{display:flex}.pip .x svg{width:18px;height:18px;filter:drop-shadow(0 1px 1px #000)}
+.pip .x{position:absolute;left:0;top:0;width:30px;height:30px;display:none;align-items:center;justify-content:center;color:rgba(255,255,255,.92)}
+.pip.dead .x{display:flex}.pip .x svg{width:16px;height:16px;filter:drop-shadow(0 1px 1px #000)}
 .pip .bc{position:absolute;right:-3px;top:-4px;width:15px;height:15px;border-radius:50%;background:#101522;color:#ffd25a;display:none;align-items:center;justify-content:center;box-shadow:0 0 0 1px rgba(255,210,90,.7)}
 .pip .bc svg{width:11px;height:11px}.pip.carrier .bc{display:flex}
 .mid{position:relative;width:104px;height:58px;border-radius:3px;overflow:hidden;background:linear-gradient(180deg,rgba(24,29,42,.86),rgba(12,15,24,.86));box-shadow:0 0 0 1px rgba(255,255,255,.09) inset,0 1px 0 rgba(0,0,0,.5)}

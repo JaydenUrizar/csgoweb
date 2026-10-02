@@ -92,6 +92,7 @@ export function arc(b) {
   // stock
   m.side('trim', 0, 4.4, [[16, 11.4], [32, 9.4], [34, -3.8], [31, -6.4], [16, 3.6]], { bevel: 0.9 });
   m.box('dark', [0, 3, 34.4], [4.6, 11.4, 1.6], { bevel: 0.5, rot: [-6, 0, 0] });
+  for (const sx of [-1, 1]) { m.box('dark', [sx * 2.28, 2.6, 25], [0.2, 5.2, 9.5], { bevel: 0.08, rot: [4, 0, 0] }); m.box('trim', [sx * 2.3, 9.8, 24], [0.2, 0.5, 14]); m.cylX('dark', [sx * 2.3, 6.2, 18.5], 0.6, 0.6, 0.3, 6); }   // stock lightening cut, cheek line, sling stud
   curvedCell(b, 'cell', [0, 3.6, -8.4], { n: 4, len: 5.0, w: 3.8, d: 4.8, phi0: 6, dphi: 12, gauge: 8 });
   hnd.box('trim', [3.1, 11.2, 4], [1.4, 1.6, 3.2], { bevel: 0.3 }); hnd.box('dark', [4.0, 11.2, 5.4], [1.0, 2.2, 1.6], { bevel: 0.25 });
   panels(m, { xh: 2.3, z0: -12, z1: 16, y0: 4.1, y1: 11.9 });
@@ -151,7 +152,7 @@ export function halo(b) {
   // scope
   m.cyl('dark', [0, 17.2, -2], 2.4, 2.4, 22, 10); m.cyl('trim', [0, 17.2, -13.8], 3.1, 3.1, 3.2, 10); m.cyl('trim', [0, 17.2, 9.8], 3.0, 2.4, 4, 10);
   m.cyl('lens', [0, 17.2, -15.6], 2.6, 2.6, 0.4, 10);
-  m.cyl('lens', [0, 17.2, 11.8], 2.0, 2.0, 0.4, 10); m.ring('glow', [0, 17.2, 12.1], 2.05, 0.14, 10, 3); m.box('glow', [0, 17.2, 12.05], [3.4, 0.09, 0.1]); m.box('glow', [0, 17.2, 12.05], [0.09, 3.4, 0.1]);
+  m.cyl('lens', [0, 17.2, 11.8], 2.0, 2.0, 0.4, 10); m.ring('trim', [0, 17.2, 12.1], 2.1, 0.2, 10, 3);
   m.box('dark', [0, 14.4, -8], [1.8, 1.8, 2.2], { bevel: 0.3 }); m.box('dark', [0, 14.4, 4], [1.8, 1.8, 2.2], { bevel: 0.3 });
   for (let i = 0; i < 3; i++) m.box('glow', [0, 15.0, 15.5 + i * 1.7], [0.7, 0.2, 0.9]);   // burst pips
   pgrip(b, { zf: -2.4, zr: 3.2, rake: 14, top: 4.2, bot: -10, mat: 'grip' }); tguard(b, -7, -1.2, 3);
@@ -183,8 +184,7 @@ export function lance(b) {
   // big scope
   m.cyl('dark', [0, 16.6, -4], 3.0, 3.0, 26, 10); m.cyl('trim', [0, 16.6, -17.8], 4.1, 3.5, 4.4, 10); m.cyl('trim', [0, 16.6, 10.6], 3.3, 3.6, 3.4, 10);
   m.cyl('lens', [0, 16.6, -20.2], 3.6, 3.6, 0.4, 10);
-  m.cyl('lens', [0, 16.6, 12.4], 2.7, 2.7, 0.5, 10); m.ring('glow', [0, 16.6, 12.8], 2.75, 0.16, 10, 3);      // dark eyepiece glass with a thin glowing rim
-  m.box('glow', [0, 16.6, 12.75], [4.6, 0.1, 0.1]); m.box('glow', [0, 16.6, 12.75], [0.1, 4.6, 0.1]);        // reticle
+  m.cyl('lens', [0, 16.6, 12.4], 2.7, 2.7, 0.5, 10); m.ring('trim', [0, 16.6, 12.8], 2.8, 0.22, 10, 3);      // dark eyepiece glass in a rubber-trimmed rim (no glowing reticle facing the player)
   m.cyl('trim', [0, 16.6, 4], 3.5, 3.5, 1.2, 10); m.cylY('trim', [0, 19.9, -2], 1.0, 1.0, 1.6, 8); m.cylX('trim', [3.4, 16.6, -2], 1.0, 1.0, 1.6, 8);   // mid ring + elevation / windage turrets
   m.box('dark', [0, 12.9, -10], [2.2, 3.2, 3.2], { bevel: 0.4 }); m.box('dark', [0, 12.9, 4], [2.2, 3.2, 3.2], { bevel: 0.4 });
   m.cyl('trim', [0, 16.6, -4.5], 3.4, 3.4, 2.4, 10);

@@ -12,6 +12,7 @@ import { create as createPrompts, css as promptCss } from './prompts.js';
 import { create as createBuy, css as buyCss } from './buymenu.js';
 import { create as createSb, css as sbCss } from './scoreboard.js';
 import { create as createSpec, css as specCss } from './spectator.js';
+import { create as createRecap, css as recapCss } from './recap.js';
 import { createMock } from './mock.js';
 import f500 from './fonts/bc500.woff2?url';
 import f600 from './fonts/bc600.woff2?url';
@@ -38,7 +39,7 @@ export function create(ctx) {
   const wrap = h('div', 'fxh', ui); wrap.id = 'flux-hud';
   wrap.style.pointerEvents = 'none';
   const st = document.createElement('style'); st.id = 'flux-hud-css';
-  st.textContent = BASE_CSS + fxCss + radarCss + topCss + vitCss + feedCss + promptCss + buyCss + sbCss + specCss;
+  st.textContent = BASE_CSS + fxCss + radarCss + topCss + vitCss + feedCss + promptCss + buyCss + sbCss + specCss + recapCss;
   document.head.appendChild(st);
   const bgd = h('div', 'bgd', wrap);
   const abs = h('div', 'abs', wrap);
@@ -74,7 +75,8 @@ export function create(ctx) {
   const buy = createBuy(H); H.buy = buy;
   const sb = createSb(H);
   const spec = createSpec(H);
-  const comps = [fx, radar, top, vitals, feed, prompts, buy, sb, spec];
+  const recap = createRecap(H);
+  const comps = [fx, radar, top, vitals, feed, prompts, buy, sb, spec, recap];
 
   // ------------------------------------------------------------------ layout / scale
   let lastScale = 0, lastW = 0, lastH = 0;
@@ -101,6 +103,7 @@ export function create(ctx) {
       if (!t || t.alive === false) { t = (R.actors || []).find((a) => a !== local && a.alive !== false && a.team === local.team) || (R.actors || []).find((a) => a.alive !== false && a !== local) || null; H.specTarget = t; }
       view = t || local;
     }
+    if (view !== H._lastView) { H._lastView = view; H.view = view; H.bus.emit('viewchange', { view }); }
     H.view = view;
     const key = paletteKey(H.cbOverride ?? ctx.settings?.get?.('colorblind'));
     if (key !== lastPal || H.playerTeam !== lastTeam) {
@@ -112,7 +115,7 @@ export function create(ctx) {
 
   function cycleSpec(dir) {
     if (!H.mock && ctx.match?.cycleSpectate) { ctx.match.cycleSpectate(dir); return; }
-    const R = H.R; const cand = (R.actors || []).filter((a) => a.alive !== false && a !== H.local);
+    const R = H.R; let cand = (R.actors || []).filter((a) => a.alive !== false && a !== H.local); const mates = cand.filter((a) => a.team === H.local.team); if (mates.length) cand = mates;
     if (!cand.length) return; cand.sort((a, b) => (a.team === H.local.team ? 0 : 1) - (b.team === H.local.team ? 0 : 1) || a.id - b.id);
     const i = Math.max(0, cand.indexOf(H.specTarget)); const n = cand[(i + dir + cand.length) % cand.length];
     H.specTarget = n; H.specForce = null; if (!H.mock) ctx.events.emit('spectate', { actor: n });

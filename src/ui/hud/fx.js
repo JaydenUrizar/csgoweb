@@ -39,14 +39,14 @@ export function create(H) {
     if (d.attacker && d.attacker === v && d.victim !== v) {
       const crown = d.hitgroup === 'head' || d.hitgroup === 'crown' || !!d.headshot;
       if (hits.length >= MAXHIT) hits.shift();
-      hits.push({ t0: H.T, kind: crown ? 'crown' : 'body', dur: crown ? 0.42 : 0.3 });
+      hits.push({ t0: H.T, kind: crown ? 'crown' : 'body', dur: crown ? 0.52 : 0.36 });
     }
     if (d.victim && d.victim === v && d.attacker !== v) {
       if (dmgs.length >= MAXDMG) dmgs.shift();
       const a = d.attacker; let dx = 0, dz = 0;
       if (a?.pos && v.pos) { dx = a.pos.x - v.pos.x; dz = a.pos.z - v.pos.z; }
       else if (d.dir) { dx = -d.dir.x; dz = -d.dir.z; }
-      dmgs.push({ t0: H.T, a, dx, dz, dmg: d.damage || 20 });
+      dmgs.push({ t0: H.T, a, dx, dz, dmg: d.damage || 20, victim: v });
     }
   });
   H.bus.on('tag:out', (d) => {
@@ -55,6 +55,8 @@ export function create(H) {
     }
   });
   H.bus.on('reset', () => { hits.length = 0; dmgs.length = 0; dirty = true; });
+  H.bus.on('viewchange', () => { hits.length = 0; dmgs.length = 0; dirty = true; st.spread = 0; });
+  H.bus.on('tag:out', (d) => { if (d.victim && d.victim === H.local) { hits.length = 0; dmgs.length = 0; dirty = true; } });
 
   // -------------------------------------------------- crosshair
   const STYLES = { classic: 0, dot: 1, circle: 2, t: 3, cross: 0 };
@@ -62,11 +64,11 @@ export function create(H) {
     const dq = dpr * q; // device px per 720p-css px
     const style = STYLES[String(cfg.style || 'classic').toLowerCase()] ?? 0;
     const tD = Math.max(1, Math.round((cfg.thickness ?? 1.6) * dq * 1.0));
-    const lenD = Math.max(2, Math.round((cfg.size ?? 5) * 1.6 * dq));
+    const lenD = Math.max(2, Math.round((cfg.size ?? 5) * 2.0 * dq));
     const gapD = Math.round(Math.max(0, gapCss) * dq);
-    const oD = cfg.outline === false ? 0 : Math.max(1, Math.round(dq * 0.85));
+    const oD = cfg.outline === false ? 0 : Math.max(1, Math.round(dq * 1.25));
     const [r, g, b] = hexRgb(col);
-    const fill = `rgba(${r},${g},${b},${alpha})`, edge = `rgba(0,0,0,${0.85 * alpha})`;
+    const fill = `rgba(${r},${g},${b},${alpha})`, edge = `rgba(0,0,0,${alpha})`;
     const lo = tD >> 1, hi = tD - lo;                // pixel split around centre
     const rect = (x0, y0, w, hh) => {
       if (oD) { c2.fillStyle = edge; c2.fillRect(x0 - oD, y0 - oD, w + oD * 2, hh + oD * 2); }
@@ -132,7 +134,7 @@ export function create(H) {
 
   // -------------------------------------------------- damage arcs
   function drawDmg(m, age, view) {
-    const life = 2.6; if (age >= life) return false;
+    const life = 2.6; if (age >= life || (m.victim && m.victim !== view)) return false;
     const a0 = age < 0.08 ? age / 0.08 : 1, fade = age < 0.9 ? 1 : 1 - (age - 0.9) / (life - 0.9);
     let dx = m.dx, dz = m.dz;
     if (m.a?.alive !== false && m.a?.pos && view?.pos) { dx = m.a.pos.x - view.pos.x; dz = m.a.pos.z - view.pos.z; }
@@ -210,7 +212,7 @@ export function create(H) {
       const so = st.scopeA.toFixed(2); if (st.scopeVis !== so) { st.scopeVis = so; scope.style.opacity = so; }
       // ---- crosshair visibility
       const hide = !v || v.alive === false || H.spec || scoped || H.hidden || H.flags.noCrosshair || (H.menuOpen);
-      let gap = (cfg.gap ?? 3) * 1.15 + (cfg.dynamic === false ? 0 : st.spread * 15);
+      let gap = (cfg.gap ?? 3) * 1.15 + (cfg.dynamic === false ? 0 : 30 * (1 - Math.exp(-st.spread * 8)));
       const g2 = Math.round(gap * 8);
       const col = cfg.color || '#6dff9a';
       const sig = `${g2}|${hide ? 1 : 0}|${col}|${cfg.style}|${cfg.size}|${cfg.thickness}|${cfg.dot}|${cfg.outline}|${q}|${dpr}`;

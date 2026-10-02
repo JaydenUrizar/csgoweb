@@ -18,6 +18,7 @@ export function buildLayout() {
   solid(6, -12, 32, 36, 9.5);             // east block
   solid(-28, -12, -6, 36, 8.0);           // west block
   solid(-50, 30, -30, 52, 7.0);
+  solid(-22, -40, -20, -24, 6.4);   // lower the west wall of the Window Room so the NW sun reaches it
   solid(-47, -52, -20, -46, 6.0); solid(-50, -52, -46, -18, 6.0); solid(-47, -46, -46, -20, 6.0);   // lower north/west B walls: lets the NW sun into the plaza
 
   // ------------------------------------------------------------------ EMBER side (south)
@@ -70,11 +71,12 @@ export function buildLayout() {
   ramp(-46, -22, -44, -20, 'z', -22, H.CANAL, -20, H.BPLAZA, 'bplaza', 'water');
   // B tunnel (snakes: 4 legs, 6 m wide)
   floor(-30, 40, -16, 46, 0, 'tunapp', 'stone');
-  floor(-36, 24, -30, 46, 0, 'btun', 'stone');
-  floor(-42, 24, -30, 30, 0, 'btun', 'stone');
-  floor(-42, 6, -36, 30, 0, 'btun', 'stone');
-  floor(-42, 6, -30, 12, 0, 'btun', 'stone');
-  floor(-36, -12, -30, 12, 0, 'btun', 'stone');
+  floor(-36, 24, -30, 46, 0, 'btun1', 'stone');
+  floor(-42, 24, -30, 30, 0, 'btun1', 'stone');
+  floor(-42, 6, -36, 24, 0, 'btun2', 'stone');
+  floor(-42, 6, -30, 12, 0, 'btun2', 'stone');
+  floor(-36, -12, -30, 12, 0, 'btun3', 'stone');
+  floor(-36, 6, -30, 12, 0, 'btun2', 'stone');
   ramp(-36, -20, -30, -12, 'z', -12, 0, -20, H.BPLAZA, 'btunmouth', 'stone');
 
   // ------------------------------------------------------------------ zone colour tints (cell inlays)
@@ -87,6 +89,9 @@ export function buildLayout() {
   // Long lane bright sand with a darker walking line
   paint(36, -4, 40, 27, { tint: 0xf1d9a4 });
 
+  // 2 m checker paving in the big open courts (breaks up the empty floor), skipped where inlays follow
+  const CHK = { a: [0xf2e0b2, 0xe3cd9a], aplat: [0xf4e4b8, 0xe6d3a2], palace: [0xe0cba4, 0xd1bc92], hub: [0xe2ccA6, 0xd3be96], ts: [0xdddcd0, 0xcdcbbd], longramp: [0xeed9a8, 0xdfc994], midapp: [0xdcc7a1, 0xd0bb92], terrace: [0xd2c9bb, 0xc4bbac] };
+  for (let j = 0; j < g.NZ; j++) for (let i = 0; i < g.NX; i++) { const k = j * g.NX + i; if (!g.open[k] || g.tint[k] || g.surf[k] !== 0) continue; const c = CHK[g.zoneNames[g.zone[k]]]; if (!c) continue; const x = i + g.X0, z = j + g.Z0; g.tint[k] = c[(((x >> 1) + (z >> 1)) & 1)] | 0x1000000; }
   // floor inlays: runners, borders, medallions (cell-level tints crisp against the paving)
   paint(-1, 15, 1, 38, { tint: 0xc9a77a });                                  // mid lane runner
   paint(-10, -26, 16, -25, { surf: 'brick', tint: 0xc98a68 }); paint(-10, -17, 16, -16, { surf: 'brick', tint: 0xc98a68 }); // palace border bricks
@@ -104,8 +109,10 @@ export function buildLayout() {
 export const ZONES = {
   mass:      { floor: 'floor', wall: 'wall',    plinth: 'wall',  c: 0xdcc39a, p: 0xb59770, cap: 0xe4cf9f, f: 0xdcc6a0 },
   es:        { floor: 'brick', wall: 'plaster', plinth: 'brick', c: 0xe0a06a, p: 0xc46f4a, cap: 0xf0c9a0, f: 0xdfa07e, trim: 0xff7a2f },
-  tunapp:    { floor: 'floor', wall: 'wall',    plinth: 'wall',  c: 0xc4a276, p: 0x9a7f5b, cap: 0xd5bb8f, f: 0xc7ab82 },
-  btun:      { floor: 'floor', wall: 'wall',    plinth: 'wall',  c: 0xb8966a, p: 0x8f7452, cap: 0xd0b585, f: 0xbfa27a },
+  tunapp:    { floor: 'brick', wall: 'plaster', plinth: 'brick', c: 0xe3b27a, p: 0xb9603a, cap: 0xf0cfa4, f: 0xd09a74, trim: 0xc4673d },
+  btun1:     { floor: 'floor', wall: 'wall',    plinth: 'tile',  c: 0xc9c3b0, p: 0x2a9d9f, cap: 0xdcd6c2, f: 0xb9b8a8, trim: 0x2a9d9f },
+  btun2:     { floor: 'floor', wall: 'brick',   plinth: 'wall',  c: 0xc9694a, p: 0x8f6a52, cap: 0xdba080, f: 0xb89a7a, trim: 0xd9a441 },
+  btun3:     { floor: 'floor', wall: 'plaster', plinth: 'wall',  c: 0xefe6cc, p: 0x7fa3b0, cap: 0xf6f0dc, f: 0xcfd0c6, trim: 0x3b6f8f },
   btunmouth: { floor: 'floor', wall: 'wall',    plinth: 'wall',  c: 0xc9a67a, p: 0x9a7f5b, cap: 0xdcc394, f: 0xcbb08a },
   outerlong: { floor: 'sand',  wall: 'plaster', plinth: 'wall',  c: 0xeed19a, p: 0xc79a62, cap: 0xf6e6b8, f: 0xe9cf9b },
   long:      { floor: 'sand',  wall: 'wall',    plinth: 'wall',  c: 0xefd39c, p: 0xcda870, cap: 0xf7e8bf, f: 0xebd3a0 },

@@ -15,7 +15,7 @@ import { mulberry32 } from '../../core/rng.js';
 
 const STEP = 1 / 120;
 const _cSky = new THREE.Color(0.8, 0.85, 0.95), _cGnd = new THREE.Color(0.5, 0.45, 0.4);
-const _eye = new THREE.Vector3(), _dir = new THREE.Vector3(), _o = new THREE.Vector3(), _v = new THREE.Vector3(), _hit = { dist: 0, normal: new THREE.Vector3() };
+const _eye2 = new THREE.Vector3(), _eye = new THREE.Vector3(), _dir = new THREE.Vector3(), _o = new THREE.Vector3(), _v = new THREE.Vector3(), _hit = { dist: 0, normal: new THREE.Vector3() };
 
 export function createUtility(ctx) {
   const W = createWorld(ctx);
@@ -26,7 +26,7 @@ export function createUtility(ctx) {
   const shared = {
     sunDir: { value: new THREE.Vector3(0.45, 0.78, 0.35).normalize() }, sunCol: { value: new THREE.Color(1.0, 0.93, 0.8) },
     skyCol: { value: new THREE.Color(0.62, 0.69, 0.8) }, groundCol: { value: new THREE.Color(0.5, 0.47, 0.44) },
-    glow: { pos: new THREE.Vector3(), r: 1, g: 1, b: 1, w: 0, decay: 1 }, overlayAmount: 0, exposure: { value: 1.05 }, fogCol: { value: new THREE.Color(0.75, 0.8, 0.88) },
+    glow: { pos: new THREE.Vector3(), r: 1, g: 1, b: 1, w: 0, decay: 1 }, overlayAmount: 0, exposure: { value: 0.95 }, fogCol: { value: new THREE.Color(0.75, 0.8, 0.88) },
   };
   const sparks = createSparks(512);
   const dust = createDust(96);
@@ -143,20 +143,27 @@ export function createUtility(ctx) {
     const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
     const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.4, 32), ringMat); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 200; ring.visible = false;
     const dot = new THREE.Mesh(new THREE.CircleGeometry(0.09, 16), ringMat); dot.rotation.x = -Math.PI / 2; dot.renderOrder = 200; dot.visible = false;
-    return { pts, ring, dot, geo, pos, N, list: [], mat: pts.material };
+    const sgeo = new THREE.BufferGeometry(); const spos = new Float32Array(N * 3); sgeo.setAttribute('position', new THREE.BufferAttribute(spos, 3)); sgeo.setDrawRange(0, 0);
+    const shadow = new THREE.Points(sgeo, new THREE.PointsMaterial({ size: 0.16, map: tex, sizeAttenuation: true, color: 0xffffff, transparent: true, opacity: 0.45, depthWrite: false, toneMapped: false, alphaTest: 0.02 })); shadow.frustumCulled = false; shadow.renderOrder = 199; shadow.visible = false;
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 3.2, 6), ringMat); beam.renderOrder = 200; beam.visible = false;
+    return { pts, ring, dot, geo, pos, N, list: [], mat: pts.material, shadow, sgeo, spos, beam };
   })();
   util.preview = {
     show(actor, type = 'haze', power = 'strong') {
       const pl = previewLine, ptsL = util.trajectory(actor, type, power, pl.list); const n = Math.min(pl.N, ptsL.length);
-      const cam = ctx.render?.camera; let m = 0;
-      for (let i = 0; i < n; i++) { if (cam && cam.position.distanceToSquared(ptsL[i]) < 1.44) continue; pl.pos[m * 3] = ptsL[i].x; pl.pos[m * 3 + 1] = ptsL[i].y; pl.pos[m * 3 + 2] = ptsL[i].z; m++; }
+      const cam = ctx.render?.camera; let m = 0; const eyeP = actor.eyePos(_eye2);
+      const gy = ptsL[n - 1].y + 0.05;
+      for (let i = 0; i < n; i++) { if (eyeP.distanceToSquared(ptsL[i]) < 6.25) continue; const w = Math.pow(Math.max(0, 1 - i / Math.max(1, n * 0.45)), 2) * 0.5, ox = Math.cos(actor.yaw) * w, oz = -Math.sin(actor.yaw) * w; pl.pos[m * 3] = ptsL[i].x + ox; pl.pos[m * 3 + 1] = ptsL[i].y - w * 0.25; pl.pos[m * 3 + 2] = ptsL[i].z + oz; pl.spos[m * 3] = ptsL[i].x + ox; pl.spos[m * 3 + 1] = gy; pl.spos[m * 3 + 2] = ptsL[i].z + oz; m++; }
+      pl.sgeo.attributes.position.needsUpdate = true; pl.sgeo.setDrawRange(0, m);
       pl.geo.attributes.position.needsUpdate = true; pl.geo.setDrawRange(0, m);
       const c = TYPES[type].band; pl.mat.color.setHex(c).multiplyScalar(1.6); pl.ring.material.color.setHex(c).multiplyScalar(1.1);
       pl.ring.position.copy(ptsL[n - 1]); pl.ring.position.y += 0.04; pl.dot.position.copy(pl.ring.position);
-      const sc = ctx.render?.scene; if (sc && !pl.pts.parent) { sc.add(pl.pts); sc.add(pl.ring); sc.add(pl.dot); }
-      pl.pts.visible = pl.ring.visible = pl.dot.visible = true; return ptsL;
+      { const dc = cam ? cam.position.distanceTo(pl.ring.position) : 10; const k = Math.max(1, dc / 9); pl.ring.scale.setScalar(k); pl.dot.scale.setScalar(k); pl.beam.position.copy(pl.ring.position); pl.beam.position.y += 1.6; pl.beam.scale.set(k, 1, k); }
+      pl.shadow.material.color.setHex(c).multiplyScalar(1.0);
+      const sc = ctx.render?.scene; if (sc && !pl.pts.parent) { sc.add(pl.pts); sc.add(pl.ring); sc.add(pl.dot); sc.add(pl.shadow); sc.add(pl.beam); }
+      pl.pts.visible = pl.ring.visible = pl.dot.visible = pl.shadow.visible = pl.beam.visible = true; return ptsL;
     },
-    hide() { previewLine.pts.visible = previewLine.ring.visible = previewLine.dot.visible = false; },
+    hide() { previewLine.pts.visible = previewLine.ring.visible = previewLine.dot.visible = previewLine.shadow.visible = previewLine.beam.visible = false; },
   };
 
   // ---------------------------------------------------------------- visibility helpers
@@ -175,7 +182,7 @@ export function createUtility(ctx) {
   const offFire = ctx.events.on('weapon:fire', (e) => {
     if (!haze.list.length || !e?.origin || !e?.dir) return;
     _o.copy(e.origin); _dir.copy(e.dir).normalize(); let len = 120; if (W.raycast(_o, _dir, len, _hit)) len = _hit.dist;
-    haze.punch(_o.clone(), _dir.clone(), len, 0.55, 0.97, 1.9);
+    haze.punch(_o.clone(), _dir.clone(), len, 0.85, 1.0, 1.9);
   });
   const offRound = ctx.events.on('round:start', () => util.clear());
 
@@ -206,6 +213,7 @@ export function createUtility(ctx) {
       if (p.y < kp || Math.abs(p.x) > 400 || Math.abs(p.z) > 400 || !Number.isFinite(p.y)) { gr.dead = true; ctx.events.emit('util:lost', { type: gr.type, pos: p.clone(), thrower: gr.g.thrower }); continue; }   // left the world: despawn quietly
       if (gr.g.age > C.maxAge || gr.t >= gr.fuse || (gr.def.popOnRest && gr.g.rest)) detonate(gr);
     }
+    { let near = false; for (const gr of grenades) if (gr.type === 'strobe' && !gr.dead && gr.fuse - gr.t < 0.4) near = true; screen.state.rolling = near; if (!near) screen.state.rollValid = false; }
     haze.fixedUpdate(dt);
     // haze glow/lights decay
     if (shared.glow.w > 0) shared.glow.w = Math.max(0, shared.glow.w - dt * shared.glow.decay);

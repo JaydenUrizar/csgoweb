@@ -87,7 +87,7 @@ export function create(ctx) {
     else { m.reloadSeen = true; onReload(m, cls, def?.reloadTime ?? def?.reload ?? 2.2); }
   });
   on('weapon:switch', (e) => { const m = model(e.actor); if (m && !m.tag) syncHeld(m, idOf(e.tagger) ?? undefined); });
-  on('util:throw', (e) => { const m = model(e.actor); if (m && !m.tag) onThrow(m); });
+  on('util:throw', (e) => { const m = model(e.actor); if (m && !m.tag) onThrow(m, e.type); });
   on('tag:hit', (e) => {
     const m = model(e.victim); if (!m || m.tag) return; const d = e.dir || (e.attacker ? _v.subVectors(e.victim.pos, e.attacker.pos).setY(0).normalize() : null); if (!d) return;
     m.lastHitDir = m.lastHitDir || new THREE.Vector3(); m.lastHitDir.set(d.x, d.y || 0, d.z);
@@ -106,7 +106,7 @@ export function create(ctx) {
   on('land', (e) => { const m = model(e.actor); if (m) landImpact(m, e.speed ?? 6); });
   on('jump', (e) => { const m = model(e.actor); if (m) m.jumpT = 0; });
   on('spectate', (e) => { viewActor = e.actor || undefined; });   // integration: null = back to own view; null here left the respawned local body visible (big coloured card in the camera)
-  on('round:start', () => { fx.clear(); for (const m of models.values()) { if (m.actor.alive !== false) { if (m.tag) resetTag(m); else if (!m.auto || m.actor.alive) m.spawnT = 0; } } });
+  on('round:start', () => { fx.clear(); if (state.vmHidden) { state.vmHidden = false; viewActor = undefined; try { ctx.combat?.viewmodel?.setVisible?.(true); } catch { /* stub */ } } for (const m of models.values()) { if (m.actor.alive !== false) { if (m.tag) resetTag(m); else if (!m.auto || m.actor.alive) m.spawnT = 0; } } });
 
   // ------------------------------------------------------------------ frame update
   function fixedUpdate() { tick++; for (const m of models.values()) { m.prev.copy(m.cur); m.cur.copy(m.actor.pos); } }
@@ -120,6 +120,7 @@ export function create(ctx) {
       m.aliveLast = a.alive;
       const fp = fpOf(m);
       if (fp !== m.firstPerson) { m.firstPerson = fp; m.mat.colorWrite = !fp; m.mat.depthWrite = !fp; if (m.held.obj) m.held.obj.visible = !fp; }
+      if (m.hbDbg && (m.tag || m.hidden || !showHb)) m.hbDbg.visible = false;
       if (m.hidden) continue;
       if (m.dbg?.loop) m.dbg.loop(m, dt);
       if (m.tag && tickTag(ctx, m, dt, fx, tick)) continue;

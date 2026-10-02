@@ -62,7 +62,8 @@ export function roofForRect(VB, x0, z0, x1, z1, h) {
 }
 
 /** tall landmark tower. style: 'bell' | 'dome' | 'minaret' */
-export function tower(VB, D, cx, cz, y0, hgt, style = 'bell', col = 0xe9d6a8, accent = TEAL) {
+export function tower(VB, D, cx, cz, y0, hgt, style = 'bell', col = 0xe9d6a8, accent = TEAL, opts = {}) {
+  if (style === 'round' || style === 'campanile' || style === 'tank') return tower2(VB, D, cx, cz, y0, hgt, style, col, accent);
   const c = rgb(col), W = 3.2;
   const shaftH = hgt * 0.74;
   VB.box('wall', cx - W / 2 - 0.4, y0, cz - W / 2 - 0.4, cx + W / 2 + 0.4, y0 + 1.6, cz + W / 2 + 0.4, mulc(c, 0.92), { ao: 0.8 });
@@ -94,8 +95,44 @@ export function tower(VB, D, cx, cz, y0, hgt, style = 'bell', col = 0xe9d6a8, ac
   // decals: arched windows + clock on 4 faces
   if (D) for (const [nx, nz] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
     const c3 = [cx + nx * W / 2, 0, cz + nz * W / 2];
-    D.decal({ type: 'wall', kind: 'clock', c: [c3[0], y0 + shaftH * 0.8, c3[2]], n: [nx, nz], w: 2.0, h: 2.0, seed: 1 });
-    D.decal({ type: 'wall', kind: 'window', c: [c3[0], y0 + shaftH * 0.36, c3[2]], n: [nx, nz], w: 1.4, h: 2.3, seed: 2 });
+    if (opts.clock) D.decal({ type: 'wall', kind: 'clock', c: [c3[0], y0 + shaftH * 0.8, c3[2]], n: [nx, nz], w: 2.0, h: 2.0, seed: 1 }); else D.decal({ type: 'wall', kind: 'mural', c: [c3[0], y0 + shaftH * 0.8, c3[2]], n: [nx, nz], w: 2.0, h: 1.4, color: accent, seed: 1 });
+    D.decal({ type: 'wall', kind: opts.clock ? 'window' : 'shutter', c: [c3[0], y0 + shaftH * 0.36, c3[2]], n: [nx, nz], w: 1.4, h: 2.3, seed: 2 });
     D.decal({ type: 'wall', kind: 'window', c: [c3[0], y0 + shaftH * 0.62, c3[2]], n: [nx, nz], w: 1.4, h: 2.3, seed: 4 });
   }
+}
+
+function tower2(VB, D, cx, cz, y0, hgt, style, col, accent) {
+  const c = rgb(col), ac = rgb(accent);
+  if (style === 'round') { // lighthouse-like octagonal tower with gallery and cone
+    const n = 8, R0 = 2.1, R1 = 1.5, H1 = hgt * 0.8, P = (r, a, y) => [cx + Math.cos(a) * r, y, cz + Math.sin(a) * r];
+    for (let i = 0; i < n; i++) { const a0 = i / n * 6.283 + 0.39, a1 = (i + 1) / n * 6.283 + 0.39; const band = (y0b, y1b, r0, r1, cc) => VB.quad('plaster', P(r0, a1, y0b), P(r0, a0, y0b), P(r1, a0, y1b), P(r1, a1, y1b), [mulc(cc, 0.8), mulc(cc, 0.8), cc, cc]);
+      band(y0, y0 + H1 * 0.34, R0 + 0.3, R0, c); band(y0 + H1 * 0.34, y0 + H1 * 0.38, R0, R0, ac); band(y0 + H1 * 0.38, y0 + H1 * 0.7, R0, R1 + 0.2, mulc(c, 1.02)); band(y0 + H1 * 0.7, y0 + H1 * 0.74, R1 + 0.2, R1 + 0.2, ac); band(y0 + H1 * 0.74, y0 + H1, R1 + 0.2, R1, c);
+      VB.quad('wall', P(R1 + 0.9, a1, y0 + H1), P(R1 + 0.9, a0, y0 + H1), P(R1 + 0.9, a0, y0 + H1 + 0.18), P(R1 + 0.9, a1, y0 + H1 + 0.18), mulc(c, 1.05));
+      VB.quad('wall', P(R1, a0, y0 + H1 + 0.18), P(R1, a1, y0 + H1 + 0.18), P(R1 + 0.9, a1, y0 + H1 + 0.18), P(R1 + 0.9, a0, y0 + H1 + 0.18), mulc(c, 1.1));
+      VB.quad('emissive', P(R1 - 0.05, a1, y0 + H1 + 0.2), P(R1 - 0.05, a0, y0 + H1 + 0.2), P(R1 - 0.05, a0, y0 + H1 + 1.7), P(R1 - 0.05, a1, y0 + H1 + 1.7), mulc(rgb(0xffe2a0), 2.6));
+      VB.tri('roof', [cx, y0 + H1 + 3.8, cz], P(R1 + 0.9, a1, y0 + H1 + 1.7), P(R1 + 0.9, a0, y0 + H1 + 1.7), mulc(ac, 0.9 + 0.2 * (i % 2))); }
+    VB.box('plain', cx - 0.05, y0 + H1 + 3.8, cz - 0.05, cx + 0.05, y0 + H1 + 5.0, cz + 0.05, rgb(0xb98c3a), { ao: 1 });
+    return;
+  }
+  if (style === 'campanile') { // slim brick tower, open belfry with arches, flat tile roof + pyramid
+    const W = 2.6, sh = hgt * 0.78;
+    VB.box('brick', cx - W / 2 - 0.2, y0, cz - W / 2 - 0.2, cx + W / 2 + 0.2, y0 + 1.2, cz + W / 2 + 0.2, mulc(c, 0.9), { ao: 0.8 });
+    VB.box('brick', cx - W / 2, y0 + 1.2, cz - W / 2, cx + W / 2, y0 + sh, cz + W / 2, c, { ao: 0.8 });
+    for (const yy of [0.3, 0.6]) VB.box('wall', cx - W / 2 - 0.1, y0 + sh * yy, cz - W / 2 - 0.1, cx + W / 2 + 0.1, y0 + sh * yy + 0.2, cz + W / 2 + 0.1, rgb(0xe8d6ac), { ao: 0.9 });
+    for (const [nx, nz] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) { D.decal({ type: 'wall', kind: 'window', c: [cx + nx * W / 2, y0 + sh * 0.45, cz + nz * W / 2], n: [nx, nz], w: 1.0, h: 2.0, seed: 3 }); D.decal({ type: 'wall', kind: 'shutter', c: [cx + nx * W / 2, y0 + sh * 0.75 - 1.4, cz + nz * W / 2], n: [nx, nz], w: 1.0, h: 2.0, seed: 5 }); }
+    const by = y0 + sh;
+    VB.box('wall', cx - W / 2 - 0.25, by, cz - W / 2 - 0.25, cx + W / 2 + 0.25, by + 0.3, cz + W / 2 + 0.25, rgb(0xe8d6ac), { ao: 0.9 });
+    for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1], [-1, 0], [1, 0]]) VB.box('wall', cx + px * (W / 2 - 0.12) - 0.16, by + 0.3, cz + pz * (W / 2 - 0.12) - 0.16, cx + px * (W / 2 - 0.12) + 0.16, by + 2.3, cz + pz * (W / 2 - 0.12) + 0.16, c, { ao: 0.85 });
+    VB.box('plain', cx - 0.4, by + 0.5, cz - 0.4, cx + 0.4, by + 1.3, cz + 0.4, rgb(0xb98c3a), { ao: 0.9 });
+    VB.box('roof', cx - W / 2 - 0.4, by + 2.3, cz - W / 2 - 0.4, cx + W / 2 + 0.4, by + 2.55, cz + W / 2 + 0.4, rgb(0xc4673d), { ao: 1, bottom: true });
+    hipRoof(VB, cx - 0.9, cz - 0.9, cx + 0.9, cz + 0.9, by + 2.55, rgb(0x2a9d9f), { eave: 0.2, rise: 1.4 });
+    VB.box('plain', cx - 0.04, by + 3.9, cz - 0.04, cx + 0.04, by + 5.0, cz + 0.04, rgb(0x30343a), { ao: 1 });
+    return;
+  }
+  // water tower on a steel frame
+  const legH = hgt * 0.55, R = 2.0;
+  for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) VB.box('plain', cx + px * 1.6 - 0.12, y0, cz + pz * 1.6 - 0.12, cx + px * 1.6 + 0.12, y0 + legH, cz + pz * 1.6 + 0.12, rgb(0x59616b), { ao: 0.85, top: false });
+  for (let k = 1; k <= 3; k++) { const yy = y0 + legH * k / 4; VB.box('plain', cx - 1.7, yy, cz - 1.7, cx + 1.7, yy + 0.1, cz - 1.5, rgb(0x59616b), { ao: 1 }); VB.box('plain', cx - 1.7, yy, cz + 1.5, cx + 1.7, yy + 0.1, cz + 1.7, rgb(0x59616b), { ao: 1 }); VB.box('plain', cx - 1.7, yy, cz - 1.7, cx - 1.5, yy + 0.1, cz + 1.7, rgb(0x59616b), { ao: 1 }); VB.box('plain', cx + 1.5, yy, cz - 1.7, cx + 1.7, yy + 0.1, cz + 1.7, rgb(0x59616b), { ao: 1 }); }
+  const n = 10, ty = y0 + legH, th = hgt * 0.3, P = (r, a, y) => [cx + Math.cos(a) * r, y, cz + Math.sin(a) * r];
+  for (let i = 0; i < n; i++) { const a0 = i / n * 6.283, a1 = (i + 1) / n * 6.283; VB.quad('wood', P(R, a1, ty), P(R, a0, ty), P(R + 0.15, a0, ty + th * 0.5), P(R + 0.15, a1, ty + th * 0.5), [mulc(c, 0.7), mulc(c, 0.7), c, c]); VB.quad('wood', P(R + 0.15, a1, ty + th * 0.5), P(R + 0.15, a0, ty + th * 0.5), P(R, a0, ty + th), P(R, a1, ty + th), [c, c, mulc(c, 1.05), mulc(c, 1.05)]); VB.tri('roof', [cx, ty + th + 1.2, cz], P(R, a1, ty + th), P(R, a0, ty + th), mulc(ac, 0.85 + 0.2 * (i % 2))); VB.quad('plain', P(R + 0.18, a1, ty + th * 0.2), P(R + 0.18, a0, ty + th * 0.2), P(R + 0.18, a0, ty + th * 0.26), P(R + 0.18, a1, ty + th * 0.26), rgb(0x3b3f46)); }
 }

@@ -87,7 +87,7 @@ export function buildMain(ctx, A) {
 
 // ---- help / cheat sheet ----
 export function buildHelp(ctx, A, { compact = false } = {}) {
-  const grp = (t, list) => h('div', { class: 'g' }, h('h4', null, t), ...list.map(([label, keys]) => h('div', { class: 'r' }, h('span', null, label), h('span', { style: { display: 'flex', gap: '.35rem' } }, keys.filter(Boolean).map((k) => h('span', { class: 'fx-key' }, k))))));
+  const grp = (t, list) => h('div', { class: 'g' }, h('h4', null, t), ...list.map(([label, keys]) => h('div', { class: 'r' }, h('span', null, label), h('span', { style: { display: 'flex', gap: 'calc(.35*var(--u))' } }, keys.filter(Boolean).map((k) => h('span', { class: 'fx-key' }, k))))));
   const body = h('div');
   const build = () => {
     const b = A.binds(); const K = (a) => (b[a] || []).filter(Boolean).map(keyLabel);
@@ -102,19 +102,19 @@ export function buildHelp(ctx, A, { compact = false } = {}) {
         h('div', { class: 'fx-rb' }, h('div', { class: 'no' }, '04 · FIRST TO 8'), h('b', null, 'Win the match'), h('p', null, 'Halves swap sides after 7 rounds. Utility — Haze, Strobe, Pulse — wins rounds. Learn it in the Practice Range.')))));
   };
   build();
-  const els = compact ? h('div', { class: 'fx-screen fx-cheat' }, h('div', { class: 'fx-layer fx-dim' }), h('div', { class: 'fx-card', style: { position: 'absolute', left: '50%', top: '50%', translate: '-50% -50%', width: 'min(84rem,94vw)', padding: '1.6rem 2rem' } }, h('div', { class: 'fx-h' }, h('b', null, 'Controls'), 'cheat-sheet', h('span', { class: 'fx-hint', style: { marginLeft: 'auto' } }, h('span', { class: 'fx-key' }, 'F1'), 'Close')), body))
+  const els = compact ? h('div', { class: 'fx-screen fx-cheat' }, h('div', { class: 'fx-layer fx-dim' }), h('div', { class: 'fx-card', style: { position: 'absolute', left: '50%', top: '50%', translate: '-50% -50%', width: 'min(calc(84*var(--u)),94vw)', padding: 'calc(1.6*var(--u)) calc(2*var(--u))' } }, h('div', { class: 'fx-h' }, h('b', null, 'Controls'), 'cheat-sheet', h('span', { class: 'fx-hint', style: { marginLeft: 'auto' } }, h('span', { class: 'fx-key' }, 'F1'), 'Close')), body))
     : h('div', { class: 'fx-screen fx-helpscr' }, h('div', { class: 'fx-layer fx-dim' }), h('div', { class: 'fx-card fx-sheet' },
       h('div', { class: 'fx-sh-head' }, h('h2', null, 'How to ', h('i', null, 'Play')), h('span', { class: 'fx-spacer' }), h('button', { class: 'fx-btn sm', onClick: () => A.replayTutorial() }, 'Replay tutorial'), h('button', { class: 'fx-x', 'aria-label': 'Close', onClick: () => A.back(), html: ICON.x })),
-      h('div', { class: 'fx-pane', style: { padding: '1.6rem 2.4rem' } }, body),
+      h('div', { class: 'fx-pane', style: { padding: 'calc(1.6*var(--u)) calc(2.4*var(--u))' } }, body),
       h('div', { class: 'fx-sh-foot' }, h('span', { class: 'fx-hint' }, h('span', { class: 'fx-key' }, 'Esc'), 'Back'), h('span', { class: 'fx-spacer' }), h('span', null, 'Bindings shown are your current keys'))));
   return { el: els, refresh: build };
 }
 
 export function buildCredits(ctx, A) {
-  return h('div', { class: 'fx-screen fx-creditscr' }, h('div', { class: 'fx-layer fx-dim' }), h('div', { class: 'fx-card fx-sheet', style: { width: 'min(56rem,94vw)' } },
+  return h('div', { class: 'fx-screen fx-creditscr' }, h('div', { class: 'fx-layer fx-dim' }), h('div', { class: 'fx-card fx-sheet', style: { width: 'min(calc(56*var(--u)),94vw)' } },
     h('div', { class: 'fx-sh-head' }, h('h2', null, 'Cred', h('i', null, 'its')), h('span', { class: 'fx-spacer' }), h('button', { class: 'fx-x', 'aria-label': 'Close', onClick: () => A.back(), html: ICON.x })),
-    h('div', { class: 'fx-pane', style: { padding: '1rem 2rem 2rem' } }, h('div', { class: 'fx-cred' },
-      h('div', { html: logoSVG(), style: { width: '17rem', margin: '0 auto' } }),
+    h('div', { class: 'fx-pane', style: { padding: 'calc(1*var(--u)) calc(2*var(--u)) calc(2*var(--u))' } }, h('div', { class: 'fx-cred' },
+      h('div', { html: logoSVG(), style: { width: 'calc(17*var(--u))', margin: '0 auto' } }),
       h('h3', null, 'Concept & direction'), h('p', null, 'Jayden Urizar'),
       h('h3', null, 'Built with'), h('p', null, 'Claude Code'), h('small', null, 'Every model, texture, animation and sound is generated procedurally in code — no external assets.'),
       h('h3', null, 'Tech'), h('p', null, 'three.js · three-mesh-bvh · WebAudio'), h('small', null, 'Typography: Barlow & Barlow Condensed (SIL OFL).'),
@@ -127,15 +127,16 @@ export function buildPause(ctx, A) {
   const sens = K.slider({ min: .1, max: 8, step: .01, def: 1, get: () => S.get('sensitivity') ?? 1, set: (v) => S.set('sensitivity', v), fmt: (v) => v.toFixed(2), label: 'Sensitivity' });
   const vol = K.slider({ min: 0, max: 1, step: .01, def: .8, get: () => S.get('volume') ?? .8, set: (v) => S.set('volume', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'Master volume' });
   const qrow = (l, c) => h('div', { class: 'qr' }, h('span', null, l), c.el);
-  const sub = h('div', { class: 'sub' }, 'Match in progress');
+  const sub = h('div', { class: 'sub' }, 'Match in progress'); let foot = null;
   const mk = (cls, label, key, fn, id) => h('button', { class: 'fx-pb ' + cls, 'data-id': id, 'data-autofocus': id === 'resume' ? '' : null, onClick: fn }, h('span', null, label), key ? h('span', { class: 'fx-key' }, key) : null);
   const box = h('div', { class: 'fx-card fx-pbox fx-inU' }, h('div', { class: 'ttl' }, 'Paused'), sub,
-    h('div', { class: 'list' }, mk('pri', 'Resume', 'Esc', () => A.resume(), 'resume'), mk('', 'Settings', '', () => A.open('settings'), 'settings'), mk('', 'Controls', 'F1', () => A.open('cheat'), 'controls'), mk('danger', 'Leave match', '', () => A.confirmLeave(), 'leave')),
+    h('div', { class: 'list' }, mk('pri', 'Click to resume', '', () => A.resume(), 'resume'), mk('', 'Settings', '', () => A.open('settings'), 'settings'), mk('', 'Controls', 'F1', () => A.open('cheat'), 'controls'), mk('danger', 'Leave match', '', () => A.confirmLeave(), 'leave')),
     h('div', { class: 'fx-quick' }, qrow('Sensitivity', sens), qrow('Master volume', vol)),
-    h('div', { class: 'foot' }, 'Click Resume to recapture the mouse'));
+    h('div', { class: 'foot' }, 'Click to resume recaptures your mouse'));
   const el = h('div', { class: 'fx-screen fx-pause' }, h('div', { class: 'fx-layer fx-dim' }), box);
+  foot = box.querySelector('.foot');
   return {
-    el, refresh() {
+    el, hint(on, failed) { foot.textContent = failed ? 'Browser blocked pointer lock — click RESUME again' : 'Click to resume recaptures your mouse'; foot.style.color = failed ? 'var(--ember)' : ''; }, refresh() {
       const m = ctx.match; let t = 'Match in progress';
       if (m && !m.__stub && m.scores) t = `Round ${m.round || 1} · Ember ${m.scores.ember ?? 0} – ${m.scores.tide ?? 0} Tide`;
       sub.textContent = t; sens.refresh(); vol.refresh();
@@ -148,7 +149,7 @@ export function fakeEndData(ctx, winner = 'ember') {
   const mk = (team) => names[team].map((n, i) => ({ name: n, team, isPlayer: n === 'You', stats: { tags: 14 - i * 2 + (team === winner ? 3 : 0), outs: 6 + i, assists: i % 3, damage: 1800 - i * 210, score: 34 - i * 5 + (team === winner ? 9 : 0) } }));
   const teams = { ember: mk('ember'), tide: mk('tide') };
   const all = [...teams.ember, ...teams.tide]; const mvp = all.filter((a) => a.team === winner).sort((a, b) => b.stats.score - a.stats.score)[0];
-  return { winner, teams, mvp, scores: winner === 'ember' ? { ember: 8, tide: 5 } : { ember: 5, tide: 8 }, playerTeam: 'ember', history: Array.from({ length: 13 }, (_, i) => ({ n: i + 1, winner: [0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0].map((x) => (x ? 'tide' : 'ember'))[i], reason: 'tagged' })), fake: true };
+  return { winner, teams, mvp, scores: winner === 'ember' ? { ember: 8, tide: 5 } : { ember: 5, tide: 8 }, playerTeam: 'ember', history: Array.from({ length: 13 }, (_, i) => ({ n: i + 1, winner: [0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0].map((x) => (x ? 'tide' : 'ember'))[i], reason: 'tagged' })), fake: true, econLog: Array.from({ length: 13 }, (_, i) => ({ n: i + 1, ember: 4200 + Math.sin(i * .9) * 2600 + i * 120, tide: 4600 + Math.cos(i * .7) * 2400 })) };
 }
 
 export function buildEnd(ctx, A, data) {
@@ -169,16 +170,37 @@ export function buildEnd(ctx, A, data) {
       h('table', null, h('thead', null, h('tr', null, ['Player', 'Tags', 'Outs', 'Ast', 'Dmg', 'Score'].map((c) => h('th', { class: 'c' }, c)))),
         h('tbody', null, list.map((a) => { const s = a.stats || {}; return h('tr', { class: (a.isPlayer ? 'me ' : '') + (a === mvp ? 'mvp' : '') }, h('td', null, a === mvp ? h('span', { class: 'star', html: '★' }) : null, a.name), h('td', null, s.tags ?? 0), h('td', null, s.outs ?? 0), h('td', null, s.assists ?? 0), h('td', null, Math.round(s.damage ?? 0)), h('td', null, s.score ?? 0)); }))));
   };
-  const hist = (d.history || m.history || []).slice(0, 30);
-  const reasonMap = { tagged: 'T', armed: 'B', beacon: 'B', disarmed: 'D', time: 'C' };
+  const hist = (d.history || m.history || []).slice(0, 40);
+  const econLog = d.econLog || A.econLog?.() || [];
+  const best = (key) => [...all].sort((x, y) => (y.stats?.[key] || 0) - (x.stats?.[key] || 0))[0];
+  const award = (icon, title, who, val, hot) => who ? h('div', { class: 'fx-aw' + (hot ? ' hot' : ''), style: { '--c': col(who.team) } }, h('div', { class: 'ic', html: icon }), h('div', null, h('small', null, title), h('b', null, who.name), h('em', null, val))) : null;
+  const awards = h('div', { class: 'fx-awards' },
+    award(ICON.star, 'Match MVP', mvp, `${mvp?.stats?.tags ?? 0} tags · ${mvp?.stats?.score ?? 0} pts`, true),
+    award(ICON.target, 'Top tagger', best('tags'), `${best('tags')?.stats?.tags ?? 0} tags`),
+    award(ICON.bolt, 'Most Charge drained', best('damage'), `${Math.round(best('damage')?.stats?.damage ?? 0)} damage`),
+    award(ICON.check, 'Playmaker', best('assists'), `${best('assists')?.stats?.assists ?? 0} assists`));
+  // chart: round pips + score differential line (+ team credits when the match module reports them)
+  const chart = (() => {
+    const W = 420, H = 110, n = Math.max(hist.length, 1), x = (i) => 14 + (W - 28) * (n === 1 ? .5 : i / (n - 1));
+    let diff = 0; const pts = hist.map((r, i) => { diff += r.winner === 'ember' ? 1 : -1; return [x(i), diff]; });
+    const mx = Math.max(3, ...pts.map((p) => Math.abs(p[1]))), y = (v) => H / 2 - (v / mx) * (H / 2 - 10);
+    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${y(p[1]).toFixed(1)}`).join('');
+    const area = pts.length ? `${line}L${pts[pts.length - 1][0].toFixed(1)} ${H / 2}L${pts[0][0].toFixed(1)} ${H / 2}Z` : '';
+    let eco = ''; if (econLog.length > 1) { const mc = Math.max(...econLog.flatMap((e) => [e.ember, e.tide]), 1); const ln = (k) => econLog.map((e, i) => `${i ? 'L' : 'M'}${x(i * (n - 1) / (econLog.length - 1)).toFixed(1)} ${(H - 6 - (e[k] / mc) * (H - 16)).toFixed(1)}`).join(''); eco = `<path d="${ln('ember')}" fill="none" stroke="#ff7a2f" stroke-width="1.6" opacity=".7" stroke-dasharray="3 3"/><path d="${ln('tide')}" fill="none" stroke="#2fd0ff" stroke-width="1.6" opacity=".7" stroke-dasharray="3 3"/>`; }
+    const dots = pts.map((p, i) => `<circle cx="${p[0].toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="3.2" fill="${hist[i].winner === 'ember' ? '#ff7a2f' : '#2fd0ff'}"/>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="M0 ${H / 2}H${W}" stroke="rgba(255,255,255,.18)" stroke-dasharray="2 4"/>${area ? `<path d="${area}" fill="rgba(255,255,255,.06)"/>` : ''}${eco}<path d="${line}" fill="none" stroke="#fff" stroke-width="2"/>${dots}</svg>`;
+  })();
+  const reasonMap = { elimination: 'E', tagged: 'E', armed: 'B', beacon: 'B', disarmed: 'D', time: 'T', forced: 'F' };
+  const tl = h('div', { class: 'fx-card fx-tl fx-inU', style: { '--i': 4 } },
+    h('div', { class: 'fx-h', style: { marginBottom: 'calc(.5*var(--u))' } }, h('b', null, 'Match'), 'timeline', h('span', { class: 'lg' }, h('i', { style: { '--c': '255,122,47' } }), 'Ember', h('i', { style: { '--c': '47,208,255' } }), 'Tide', econLog.length > 1 ? h('em', null, '- - credits') : null)),
+    h('div', { class: 'ch', html: chart }),
+    hist.length ? h('div', { class: 'fx-hist', title: 'Round results (E elimination, B beacon, D disarmed, T time)' }, hist.map((r) => h('i', { style: { '--c': col(r.winner) } }, reasonMap[r.reason] || ''))) : null);
   const el = h('div', { class: 'fx-screen fx-end', style: { '--acc-rgb': won ? col(my) : '255,93,108' } },
     h('div', { class: 'fx-layer fx-dim fx-enddim' }),
     h('div', { class: 'fx-etop' }, h('div', { class: 'res fx-inU' }, won ? 'Victory' : 'Defeat'),
       h('div', { class: 'sc fx-inU', style: { '--i': 1 } }, h('span', { class: 'e' }, scores.ember ?? 0), h('i', null, 'EMBER · TIDE'), h('span', { class: 't' }, scores.tide ?? 0)),
       h('div', { class: 'reason fx-inU', style: { '--i': 1 } }, (winner === 'ember' ? 'Ember' : 'Tide') + ' wins the match')),
-    h('div', { class: 'fx-ebody' }, table('ember'), table('tide'),
-      mvp ? h('div', { class: 'fx-card fx-mvp fx-inU', style: { '--i': 4 } }, h('div', { class: 'st', html: ICON.star }), h('div', { class: 'who' }, h('small', null, 'Match MVP'), h('b', null, mvp.name), h('em', null, `${mvp.stats?.tags ?? 0} tags · ${Math.round(mvp.stats?.damage ?? 0)} Charge drained`)),
-        hist.length ? h('div', { class: 'fx-hist', title: 'Round history' }, hist.map((r) => h('i', { style: { '--c': col(r.winner) } }, reasonMap[r.reason] || ''))) : null) : null),
+    h('div', { class: 'fx-ebody' }, table('ember'), table('tide'), awards, tl),
     h('div', { class: 'fx-eact fx-inU', style: { '--i': 5 } }, h('button', { class: 'fx-go', 'data-autofocus': '', onClick: () => A.playAgain() }, h('span', { class: 'shine' }), h('span', null, 'Play again')), h('button', { class: 'fx-btn', onClick: () => A.toMenu() }, 'Main menu')));
   return { el };
 }

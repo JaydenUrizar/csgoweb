@@ -31,3 +31,9 @@ Rooftops are plain; facades repeat windows; no instanced foliage variety; murals
 - PATHS: regenerated from `PATH_SEEDS` by `node src/world/verify.mjs genpaths` (clearance 0.62, no jumps); never crosses props.
 - Render glitch (black walls + white arch near Mid Doors): caused by `flatShading` derivative normals on large wall quads; map materials now use vertex normals (`flatShading=false`) and wall quads are <=5 m.
 - Perf: static geometry merged into one mesh per material (26 meshes), ~60k render tris, 7.4k collision tris, 130-140 draw calls in play.
+
+## Round 3 changes
+- Tunnel identities: zones `tunapp` (ochre plaster + terracotta tile, orange lamps), `btun1` Lower (grey-green plaster, teal tile wainscot, cyan lamps), `btun2` Bend (red brick, timber/iron, amber lamps), `btun3` Upper (whitewash, blue tile, cool lamps); arched ribs every 5 m, hanging lanterns, niches, murals, per-bend plaques (`facade.js` tunnelWall, `dress.js` roofRects).
+- A/B/Palace facades: arcades with engaged columns (arcade decal), colour bands, 2 m checker paving in big courts, long ramp stripes; A east loggia with trellis, north gallery, 3-tier ziggurat cover with lantern pillar; Hub stage + pillar; B stage; Palace fountain is now tiered (basin, pedestal, upper bowl, jets, four lantern plinths).
+- Landmarks are unique: Palace clock tower (only one with a clock), A teal dome, B terracotta minaret, Mid red-brick campanile, tunnel-approach lighthouse, Outer Long water tower.
+- Fixes: balcony side rails were solid black panels (now open bars); parasol undersides; containers get stripe + door bars and metalness 0; Window Room/East Room have no shopfronts, lower west wall + lamps; canal lamps/glow; spawn<->spawn LOS 3/9216 (was 13/6084); `rotate-a-to-b-palace` now walks the short ramp (generator forbids drops > 0.6 m).

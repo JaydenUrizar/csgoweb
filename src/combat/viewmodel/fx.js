@@ -165,7 +165,7 @@ export function createFx({ muzzle, castRoot, root }) {
             const s = Math.min(i, n - 1), a = (1 - i / (TN - 1)) * T.fade * (T.n > 1 ? 1 : 0);
             tpos[i * 6] = r[s * 6]; tpos[i * 6 + 1] = r[s * 6 + 1]; tpos[i * 6 + 2] = r[s * 6 + 2];
             tpos[i * 6 + 3] = r[s * 6 + 3]; tpos[i * 6 + 4] = r[s * 6 + 4]; tpos[i * 6 + 5] = r[s * 6 + 5];
-            tcol[i * 6] = T.color.r * 1.1 * a; tcol[i * 6 + 1] = T.color.g * 1.1 * a; tcol[i * 6 + 2] = T.color.b * 1.1 * a; tcol[i * 6 + 3] = 0.05 * a; tcol[i * 6 + 4] = 0.05 * a; tcol[i * 6 + 5] = 0.05 * a;
+            tcol[i * 6] = T.color.r * 1.5 * a; tcol[i * 6 + 1] = T.color.g * 1.5 * a; tcol[i * 6 + 2] = T.color.b * 1.5 * a; tcol[i * 6 + 3] = 0.25 * a; tcol[i * 6 + 4] = 0.18 * a; tcol[i * 6 + 5] = 0.1 * a;
           }
           tg.attributes.position.needsUpdate = true; tg.attributes.color.needsUpdate = true;
         }

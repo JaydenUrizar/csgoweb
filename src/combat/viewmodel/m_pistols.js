@@ -15,6 +15,20 @@ function guard(b, zFront = -6.6) {
   m.box('body', [0, 1.5, (zFront - 2.6) / 2 + 0.2], [2.7, 0.9, -zFront - 2.4 + 0.2], { bevel: 0.3 });
 }
 
+
+/** shared pistol slide/frame detail: ejection port, front serrations, slide-stop, rail slots, bevelled top rib */
+function pistolDetail(m, sl, { z0 = -11.6, z1 = 6.5, y0 = 6.4, y1 = 10.7, hw = 1.65 } = {}) {
+  for (const sx of [-1, 1]) {
+    sl.box('dark', [sx * (hw + 0.03), (y0 + y1) / 2 + 0.6, z0 + (z1 - z0) * 0.5], [0.2, 1.9, 4.4]);
+    sl.box('trim', [sx * (hw + 0.06), (y0 + y1) / 2 + 0.6, z0 + (z1 - z0) * 0.5 + 1.8], [0.2, 1.3, 0.5]);
+    for (let i = 0; i < 4; i++) sl.box('dark', [sx * (hw + 0.02), (y0 + y1) / 2 - 0.3, z0 + 1.6 + i * 0.62], [0.2, 2.8, 0.3]);
+    m.box('trim', [sx * 1.85, y0 - 0.4, z0 + 9.5], [0.4, 0.7, 2.8], { bevel: 0.12 });
+  }
+  sl.box('dark', [0, y1 + 0.02, (z0 + z1) / 2], [0.7, 0.14, (z1 - z0) * 0.9]);
+  m.box('dark', [0, y0 - 2.4, z0 + 4.2], [2.9, 0.7, 5.2], { bevel: 0.15 });
+  for (let i = 0; i < 3; i++) m.box('trim', [0, y0 - 2.75, z0 + 2.4 + i * 1.6], [3.0, 0.12, 0.35]);
+}
+
 export function pip(b) {
   const m = b.main, sl = b.part('slide', [0, 7, 0]), cell = b.part('cell', [0, -3, 2]), trig = b.part('trigger', [0, 3.4, -2.6]);
   // frame + rail
@@ -39,6 +53,7 @@ export function pip(b) {
   for (let i = 0; i < 5; i++) { const y = -7.6 + i * 1.75; segs.push({ p: [0, y, gz(y)], s: [4.02, 1.3, 2.3], r: [-RAKE, 0, 0] }); }
   b.gauge('cell', segs);
   trig.box('trim', [0, 2.6, -3.0], [0.9, 2.4, 0.8], { bevel: 0.2, rot: [-12, 0, 0] });
+  pistolDetail(m, sl);
   return {
     name: 'Pip', cls: 'pistol', skin: { pattern: 'solid', primary: 0x4d5a70, accent: 0x9aa9c2, glow: 0x39f0ff, wear: 0 },
     muzzle: [0, 8.0, -13.6], eject: { p: [1.8, 10, 3], v: [1.6, 1.9, 0.4] }, len: 20,
@@ -72,6 +87,7 @@ export function twin(b) {
   const inter = []; for (let i = 0; i < 6; i++) { inter.push(segs[i * 2], segs[i * 2 + 1]); }
   b.gauge('cell', inter);
   trig.box('trim', [0, 2.6, -3.4], [0.9, 2.4, 0.8], { bevel: 0.2, rot: [-12, 0, 0] });
+  pistolDetail(m, sl);
   return {
     name: 'Twin', cls: 'pistol', skin: { pattern: 'stripes', primary: 0xdfe3ec, accent: 0x8892a8, glow: 0xff4fd8, wear: 0 },
     muzzle: [0, 8.3, -14.2], eject: { p: [2.4, 10, 3], v: [1.6, 1.8, 0.4] }, len: 21, gaugePairs: true,

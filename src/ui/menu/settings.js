@@ -73,7 +73,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
   refreshers.push(paintRo);
   const sens = kit.slider({ min: .1, max: 8, step: .01, def: 1, get: () => cs(), set: (v) => { put('sensitivity', v / csFactor()); paintRo(); }, fmt: (v) => v.toFixed(2), label: 'Sensitivity' });
   const dpiBox = kit.numberBox({ min: 100, max: 32000, step: 50, get: () => get('mouseDpi'), set: (v) => { put('mouseDpi', v); paintRo(); } });
-  const name = h('input', { class: 'fx-txt', maxlength: 16, value: get('playerName'), style: { maxWidth: '16rem' }, 'aria-label': 'Callsign' });
+  const name = h('input', { class: 'fx-txt', maxlength: 16, value: get('playerName'), style: { maxWidth: 'calc(16*var(--u))' }, 'aria-label': 'Callsign' });
   name.addEventListener('focus', () => { ctx.input.captureKeys = true; }); name.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') name.blur(); });
   name.addEventListener('change', () => { const v = name.value.trim().slice(0, 16) || 'You'; name.value = v; put('playerName', v); ctx.menu_nameChanged?.(); });
   refreshers.push(() => { name.value = get('playerName'); });
@@ -82,7 +82,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
     group('Mouse',
       row('Sensitivity', 'Counter-Strike scale — same feel as your CS2 sens', R(sens), { tall: true }),
       row('Mouse DPI', 'Your mouse\'s hardware DPI, for eDPI & cm/360', R(dpiBox)),
-      h('div', { class: 'fx-row', style: { borderBottom: 0 } }, h('div', { class: 'lb' }, h('b', null, 'Readout')), h('div', { class: 'ct', style: { justifyContent: 'flex-start' } }, readout)),
+      h('div', { class: 'fx-row wide', style: { borderBottom: 0 } }, h('div', { class: 'lb' }, h('b', null, 'Readout')), h('div', { class: 'ct', style: { justifyContent: 'flex-start' } }, readout)),
       row('Invert Y', null, R(kit.toggle({ get: () => get('invertY'), set: (v) => put('invertY', v), label: 'Invert Y' })))),
     group('View', row('Field of view', 'Horizontal field of view', R(kit.slider({ min: 80, max: 120, step: 1, def: 100, ticks: [90, 100, 110], get: () => get('fov'), set: (v) => put('fov', v), fmt: (v) => v, unit: '°', label: 'Field of view' })))),
     group('Movement', row('Toggle crouch', 'Press once to crouch, again to stand', R(kit.toggle({ get: () => get('crouchToggle'), set: (v) => put('crouchToggle', v), label: 'Toggle crouch' }))), row('Head bob', 'Camera bob while running', R(kit.slider({ min: 0, max: 1.5, step: .05, def: 1, get: () => get('headBob'), set: (v) => put('headBob', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'Head bob' }))), row('Auto bunny-hop', 'Hold jump to keep hopping', R(kit.toggle({ get: () => get('autoBhop'), set: (v) => put('autoBhop', v), label: 'Auto bunny hop' })))),
@@ -101,7 +101,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
   const paintFs = () => { fsBtn.textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Enter fullscreen'; };
   refreshers.push(paintFs);
   const video = () => h('div', null,
-    group('Quality', h('div', { class: 'fx-row', style: { borderBottom: 0, paddingTop: '.8rem' } }, qc)),
+    group('Quality', h('div', { class: 'fx-row', style: { borderBottom: 0, paddingTop: 'calc(.8*var(--u))' } }, qc)),
     group('Display', row('Fullscreen', 'Or press F11', fsBtn), row('Show FPS', 'Small counter, top right', R(kit.toggle({ get: () => get('showFps'), set: (v) => put('showFps', v), label: 'Show FPS' })))),
     group('Effects',
       row('Screen shake', 'Camera shake on impacts and pulses', R(kit.slider({ min: 0, max: 1, step: .05, def: 1, get: () => get('screenShake'), set: (v) => put('screenShake', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'Screen shake' })))),
@@ -112,9 +112,9 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
   const meters = [];
   const audioRow = ([key, label, desc, bus]) => {
     const sl = kit.slider({ min: 0, max: 1, step: .01, def: SD[key], get: () => get(key), set: (v) => { put(key, v); ctx.audio?.setVolume?.(bus, v); }, fmt: (v) => Math.round(v * 100), unit: '%', label });
-    const meter = h('div', { style: { display: 'flex', gap: '2px', alignItems: 'flex-end', height: '1.3rem', width: '2.6rem' } }, [0, 1, 2, 3, 4].map((i) => h('i', { style: { flex: 1, height: '25%', background: 'rgba(255,255,255,.18)', borderRadius: '1px', transition: 'height .1s, background .1s' } })));
+    const meter = h('div', { style: { display: 'flex', gap: '2px', alignItems: 'flex-end', height: 'calc(1.3*var(--u))', width: 'calc(2.6*var(--u))' } }, [0, 1, 2, 3, 4].map((i) => h('i', { style: { flex: 1, height: '25%', background: 'rgba(255,255,255,.18)', borderRadius: '1px', transition: 'height .1s, background .1s' } })));
     meters.push([bus, meter]);
-    const play = h('button', { class: 'fx-btn sm', 'aria-label': `Test ${label}`, onClick: () => { testTone(bus); pulse(meter); } }, h('span', { html: ICON.play, style: { width: '.9rem', height: '.9rem', display: 'block' } }), 'Test');
+    const play = h('button', { class: 'fx-btn sm', 'aria-label': `Test ${label}`, onClick: () => { testTone(bus); pulse(meter); } }, h('span', { html: ICON.play, style: { width: 'calc(.9*var(--u))', height: 'calc(.9*var(--u))', display: 'block' } }), 'Test');
     refreshers.push(sl.refresh);
     return row(label, desc, h('div', { style: { display: 'contents' } }, sl.el, meter, play));
   };
@@ -140,13 +140,13 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
   refreshers.push(paintVm);
   const vs = (k, o) => R(kit.slider({ get: () => vm()[k], set: (v) => putVm({ [k]: v }), ...o }));
   const viewmodel = () => h('div', null,
-    h('div', { class: 'fx-xh' }, h('div', null,
+    h('div', { class: 'fx-vm2' }, h('div', null,
       group('Viewmodel', row('Viewmodel FOV', 'Independent of world FOV', vs('fov', { min: 54, max: 90, step: 1, def: 68, fmt: (v) => v, unit: '°', label: 'Viewmodel FOV' })),
         row('Offset X', 'Left / right', vs('offsetX', { min: -2, max: 2, step: .05, def: 0, fmt: (v) => v.toFixed(2), label: 'Offset X' })),
         row('Offset Y', 'Down / up', vs('offsetY', { min: -2, max: 2, step: .05, def: 0, fmt: (v) => v.toFixed(2), label: 'Offset Y' })),
         row('Offset Z', 'Back / forward', vs('offsetZ', { min: -2, max: 2, step: .05, def: 0, fmt: (v) => v.toFixed(2), label: 'Offset Z' })),
         row('Bob & sway', 'Weapon motion while moving', vs('bob', { min: 0, max: 1.5, step: .05, def: 1, fmt: (v) => Math.round(v * 100), unit: '%', label: 'Bob' })),
-        h('div', { style: { display: 'flex', gap: '.5rem', marginTop: '.8rem' } }, h('button', { class: 'fx-btn sm ghost', onClick: () => putVm({ ...SD.viewmodel }) }, 'Default'), h('button', { class: 'fx-btn sm ghost', onClick: () => putVm({ fov: 62, offsetX: .35, offsetY: -.1, offsetZ: 0, bob: .5 }) }, 'Low profile'), h('button', { class: 'fx-btn sm ghost', onClick: () => putVm({ fov: 74, offsetX: 0, offsetY: 0, offsetZ: .2, bob: 1 }) }, 'Centred'))),
+        h('div', { style: { display: 'flex', gap: 'calc(.5*var(--u))', marginTop: 'calc(.8*var(--u))' } }, h('button', { class: 'fx-btn sm ghost', onClick: () => putVm({ ...SD.viewmodel }) }, 'Default'), h('button', { class: 'fx-btn sm ghost', onClick: () => putVm({ fov: 62, offsetX: .35, offsetY: -.1, offsetZ: 0, bob: .5 }) }, 'Low profile'), h('button', { class: 'fx-btn sm ghost', onClick: () => putVm({ fov: 74, offsetX: 0, offsetY: 0, offsetZ: .2, bob: 1 }) }, 'Centred'))),
       group('HUD', row('HUD scale', 'Health, ammo, radar, feed', R(kit.slider({ min: .7, max: 1.3, step: .05, def: 1, ticks: [1], get: () => get('hudScale'), set: (v) => put('hudScale', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'HUD scale' }))))),
       h('div', { class: 'fx-xh-prev' }, vmSvg, h('div', { class: 'fx-note' }, 'Schematic preview. Exact placement is shown live in game — change these while standing in Practice Range.'))));
 
@@ -171,7 +171,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
     for (const k of t.reset) { if (k === 'keybinds') { S.set('keybinds', {}); ctx.menu_applyBinds?.(); } else if (k === 'crosshair') S.set('crosshair', { ...{ style: 'classic', size: 5, gap: 3, thickness: 1.6, color: '#6dff9a', dot: false, outline: true, dynamic: true } }); else S.set(k, structuredClone(SD[k])); }
     ctx.menu_applySettings?.(); refresh(); toast('Defaults restored');
   });
-  rail.append(...tabBtns, h('div', { class: 'sp' }), h('div', { style: { padding: '0 1.2rem' } }, resetBtn));
+  rail.append(...tabBtns, h('div', { class: 'sp' }), h('div', { style: { padding: '0 calc(1.2*var(--u))' } }, resetBtn));
   const cache = {};
   function show(id, first) {
     if (capturing) cancelCapture();
@@ -180,15 +180,19 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
     const t = TABS.find((x) => x.id === id);
     pane.classList.remove('swap'); pane.replaceChildren(cache[id] || (cache[id] = t.build())); void pane.offsetWidth; pane.classList.add('swap');
     [...pane.firstChild.children].forEach((c, i) => c.style?.setProperty('--i', i));
-    pane.scrollTop = 0; refresh(); if (id === 'crosshair') xh.start();
+    pane.scrollTop = 0; refresh(); if (id === 'crosshair') xh.start(); [60, 300, 900].forEach((t) => setTimeout(updMore, t));
     if (id === 'controls') paintKeys();
   }
   function refresh() { paintRo(); refreshers.forEach((f) => { try { f(); } catch {} }); paintKeys(); }
+  const cue = h('div', { class: 'fx-scrollcue', html: '<span>More</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>' });
+  const shBody = h('div', { class: 'fx-sh-body' }, rail, pane, cue);
+  const updMore = () => { const m = pane.scrollHeight - pane.clientHeight > 12 && pane.scrollTop + pane.clientHeight < pane.scrollHeight - 12; pane.classList.toggle('more', m); shBody.classList.toggle('more', m); };
+  pane.addEventListener('scroll', updMore, { passive: true }); addEventListener('resize', updMore);
   const el = h('div', { class: 'fx-screen fx-settings' },
     h('div', { class: 'fx-layer fx-dim' }),
     h('div', { class: 'fx-card fx-sheet', role: 'dialog', 'aria-label': 'Settings' },
-      h('div', { class: 'fx-sh-head' }, h('h2', null, 'Set', h('i', null, 'tings')), h('span', { class: 'fx-spacer' }), h('span', { class: 'fx-hint', style: { font: '600 .84rem var(--disp)', letterSpacing: '.14em', color: 'var(--mute)', textTransform: 'uppercase' } }, h('span', { class: 'fx-key' }, '['), h('span', { class: 'fx-key' }, ']'), 'Switch tab'), h('button', { class: 'fx-x', 'aria-label': 'Close settings', onClick: () => onClose?.(), html: ICON.x })),
-      h('div', { class: 'fx-sh-body' }, rail, pane),
+      h('div', { class: 'fx-sh-head' }, h('h2', null, 'Set', h('i', null, 'tings')), h('span', { class: 'fx-spacer' }), h('span', { class: 'fx-hint', style: { font: '600 calc(.84*var(--u)) var(--disp)', letterSpacing: '.14em', color: 'var(--mute)', textTransform: 'uppercase' } }, h('span', { class: 'fx-key' }, '['), h('span', { class: 'fx-key' }, ']'), 'Switch tab'), h('button', { class: 'fx-x', 'aria-label': 'Close settings', onClick: () => onClose?.(), html: ICON.x })),
+      shBody,
       h('div', { class: 'fx-sh-foot' }, h('span', { class: 'fx-hint' }, h('span', { class: 'fx-key' }, 'Esc'), 'Back'), h('span', { class: 'fx-hint' }, h('span', { class: 'fx-key' }, '↑ ↓ ← →'), 'Navigate'), h('span', { class: 'fx-hint' }, h('span', { class: 'fx-key' }, 'Enter'), 'Select'), h('span', { class: 'fx-spacer' }), h('span', null, 'Changes save automatically'))));
   return {
     el, show, refresh, tabs: TABS.map((t) => t.id), get active() { return active; },

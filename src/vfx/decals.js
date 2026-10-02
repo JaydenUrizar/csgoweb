@@ -46,18 +46,18 @@ void main() {
   if (r > 1.0) discard;
   vec3 glow = vec3(0.0); float body = 0.0; vec3 bodyCol = vCol2.rgb;
   if (kind < 0.5) {                                   // IMPACT: expanding energy ring + hot dot + lingering scuff
-    float rt = clamp(age / 0.45, 0.0, 1.0);
+    float rt = clamp(age / 0.3, 0.0, 1.0);
     float rad = mix(0.3, 1.0, 1.0 - (1.0 - rt) * (1.0 - rt));
     float ring = exp(-pow((r - rad * 0.9) * mix(8.0, 14.0, rt), 2.0)) * (1.0 - rt) * (1.0 - rt);
     float dotg = exp(-r * r * 36.0) * (1.0 - smoothstep(0.0, 0.6, age)) * 1.8;
-    glow = vCol.rgb * (ring * vCol.a * 1.8 + dotg * vCol.a);
+    glow = vCol.rgb * (ring * vCol.a * 1.1 + dotg * vCol.a * 0.8);
     float n = vnoise(vUv * 6.0 + vInfo.w * 40.0);
     float hole = 1.0 - smoothstep(0.13, 0.24 + 0.04 * n, r);               // crisp dark bullet hole
     float halo = (1.0 - smoothstep(0.1, 0.65 + 0.2 * n, r)) * 0.55;         // scorch / scuff
     float fadeOut = 1.0 - smoothstep(0.7, 1.0, t);
     body = clamp(hole * 0.95 + halo, 0.0, 1.0) * vCol2.a * fadeOut;
     bodyCol = mix(vCol2.rgb, vCol2.rgb * 0.15, hole);
-    float ember = exp(-r * r * 40.0) * (1.0 - smoothstep(0.0, 0.8, age)) * 0.7;   // cooling core
+    float ember = exp(-r * r * 40.0) * (1.0 - smoothstep(0.0, 0.3, age)) * 0.5;   // cooling core
     glow += vCol.rgb * ember * vCol.a;
   } else if (kind < 1.5) {                            // PULSE: thick shock ring + inner disc wash
     float w = mix(0.22, 0.05, t);

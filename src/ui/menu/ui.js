@@ -78,6 +78,7 @@ export function makeControls(ctx) {
     const paint = () => { const v = +input.value; input.style.setProperty('--p', ((v - min) / (max - min) * 100).toFixed(2) + '%'); val.innerHTML = fmt(v) + (unit ? `<small>${unit}</small>` : ''); };
     input.addEventListener('input', () => { paint(); set(+input.value); });
     input.addEventListener('dblclick', () => { if (def != null) { input.value = def; paint(); set(def); uiEvt('ui:click'); } });
+    if (def != null && !ticks) wrap.append(h('i', { class: 'tick def', title: 'Default', style: { left: `calc(${(def - min) / (max - min) * 100}% + ${(.5 - (def - min) / (max - min)) * 14}px)` } }));
     const refresh = () => { input.value = get(); paint(); };
     refresh();
     return { el: h('div', { class: 'ct-slider', style: { display: 'contents' } }, wrap, val), input, refresh };
@@ -103,7 +104,7 @@ export function makeControls(ctx) {
     refresh(); return { el, refresh };
   }
   function row(label, desc, control, { tall = false } = {}) {
-    return h('div', { class: 'fx-row' + (tall ? ' tall' : '') }, h('div', { class: 'lb' }, h('b', null, label), desc ? h('small', null, desc) : null), h('div', { class: 'ct' }, control));
+    return h('div', { class: 'fx-row' + (tall ? ' tall' : ''), title: desc || null }, h('div', { class: 'lb' }, h('b', null, label), desc ? h('small', null, desc) : null), h('div', { class: 'ct' }, control));
   }
   const group = (title, ...rows) => h('section', { class: 'fx-grp' }, h('h3', null, title), ...rows);
   return { slider, toggle, pills, numberBox, row, group };

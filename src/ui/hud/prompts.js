@@ -11,7 +11,7 @@ export const css = `
 .ring{position:absolute;left:50%;top:50%;width:92px;height:92px;margin:-46px 0 0 -46px;opacity:0;pointer-events:none;will-change:opacity,transform}
 .ring svg{width:100%;height:100%;display:block;transform:rotate(-90deg);filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
 .ring .pc{position:absolute;left:0;right:0;top:100%;margin-top:6px;text-align:center;font:700 18px/18px var(--font);letter-spacing:.14em;color:#fff;text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.6);white-space:nowrap}
-.ban{position:absolute;left:0;right:0;top:104px;height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;will-change:opacity,transform}
+.ban{position:absolute;left:0;right:0;top:128px;height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;will-change:opacity,transform}
 .ban .band{position:absolute;left:18%;right:18%;top:50%;height:74px;margin-top:-37px;background:linear-gradient(90deg,rgba(8,10,18,0),rgba(8,10,18,.6) 20%,rgba(8,10,18,.68) 50%,rgba(8,10,18,.6) 80%,rgba(8,10,18,0));transform-origin:50% 50%;will-change:transform}
 .ban .band:before,.ban .band:after{content:"";position:absolute;left:12%;right:12%;height:2px;background:linear-gradient(90deg,rgba(255,255,255,0),var(--bc,#fff),rgba(255,255,255,0))}
 .ban .band:before{top:0}.ban .band:after{bottom:0}
@@ -19,7 +19,7 @@ export const css = `
 .ban .t em{font-style:normal;color:var(--bc,#fff)}
 .ban .s{position:relative;margin-top:3px;font:600 15px/18px var(--font);letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.88);text-shadow:0 1px 3px #000}
 .ban .m{position:relative;margin-top:1px;font:600 13px/16px var(--font);letter-spacing:.16em;text-transform:uppercase;color:#ffd25a;text-shadow:0 1px 3px #000;height:16px}
-.nt{position:absolute;left:50%;top:92px;transform:translateX(-50%);pointer-events:none;opacity:0;will-change:opacity,transform}
+.nt{position:absolute;left:50%;top:94px;transform:translateX(-50%);pointer-events:none;opacity:0;will-change:opacity,transform}
 .nt .in{display:flex;align-items:center;gap:8px;padding:4px 14px 4px 9px;border-radius:14px;background:rgba(10,13,22,.78);box-shadow:0 0 0 1px var(--nc,rgba(255,255,255,.2)) inset,0 3px 10px rgba(0,0,0,.4);font:600 16px/20px var(--font);letter-spacing:.08em;text-transform:uppercase;color:#fff;white-space:nowrap}
 .nt .in svg{width:18px;height:18px;color:var(--nc,#fff)}
 .toasts{position:absolute;left:22px;bottom:128px;display:flex;flex-direction:column;gap:2px;pointer-events:none;width:360px}
@@ -96,12 +96,12 @@ export function create(H) {
   H.bus.on('reset', () => { S.ban = null; S.nt = null; S.flash = null; for (const t of S.ts) t.el.remove(); S.ts.length = 0; S.lastPhase = ''; ban.style.opacity = 0; nt.style.opacity = 0; flashfx.style.opacity = 0; blindchip.style.opacity = 0; });
 
   function roundIntro(n) {
-    const R = H.R, m = R.match; if (!m) return; n = n ?? m.round ?? 1; if (S.shownRound === n) return; S.shownRound = n;
+    const R = H.R, m = R.match; if (!m) return; n = n ?? m.round ?? 1; if (S.shownRound === n) return; if (m.phase === 'live' || m.phase === 'armed') return; S.shownRound = n;
     const side = m.sideOf?.(H.playerTeam) || (H.playerTeam === 'ember' ? 'attack' : 'defend');
     const team = H.playerTeam, col = H.pal[team];
     const pistol = n === 1 || n === 8; const se = m.scores?.ember ?? 0, st = m.scores?.tide ?? 0;
     const mp = Math.max(se, st) === 7;
-    banner({ title: `ROUND <em>${n}</em>`, sub: side === 'attack' ? 'Attack — arm the Beacon at A or B' : 'Defend — protect both sites', meta: mp ? 'MATCH POINT' : pistol ? 'PISTOL ROUND' : '', color: col, hold: 1.4, kind: 'round' });
+    banner({ title: `ROUND <em>${n}</em>`, sub: side === 'attack' ? 'Attack — arm the Beacon at A or B' : 'Defend — protect both sites', meta: mp ? 'MATCH POINT' : '', color: col, hold: 1.1, kind: 'round' });
   }
   function onPhase(p, prev) {
     if (!p || p === S.lastPhase) return; S.lastPhase = p;

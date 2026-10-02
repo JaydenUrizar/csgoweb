@@ -89,6 +89,7 @@ export function create(H) {
   H.bus.on('tag:hit', (d) => { if (d.victim && d.victim === H.view) S.hitT = H.T; });
   H.bus.on('weapon:switch', (d) => { if (d.actor === H.view) S.sw = H.T; });
   H.bus.on('reset', () => { for (const d of dls) d.t0 = -99; S.trail = S.hp = 100; });
+  H.bus.on('viewchange', (d) => { const v = d?.view; for (const x of dls) x.t0 = -99; if (v) { S.cash = Math.round(v.credits ?? 0); S.cashShown = S.cash; S.hp = S.trail = Math.round(v.hp ?? 100); S.hitT = -9; } });
 
   function rebuildSlots(list, curId) {
     const key = list.map((s) => s.slot + s.id + s.count + (s.cur ? '*' : '')).join('|');
@@ -101,7 +102,7 @@ export function create(H) {
   return {
     update(dt) {
       const R = H.R, v = H.view, vis = !!v && !H.hidden && !H.flags.noVitals;
-      money.style.display = vit.style.display = ammo.style.display = slotsEl.style.display = vis ? '' : 'none';
+      money.style.display = (vis && !H.spec) ? '' : 'none'; vit.style.display = ammo.style.display = slotsEl.style.display = vis ? '' : 'none';
       if (!vis) { setLowfx(0); return; }
       const alive = v.alive !== false;
       // ---------------- charge

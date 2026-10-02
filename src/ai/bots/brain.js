@@ -411,11 +411,11 @@ export function createBrain(B) {
     if (!tgt && now >= ai.utilReactAt && ai.util && !ai.util.cur && ai.util.orders.length === 0 && ctx.match?.phase !== 'freeze') {
       const have = a.inventory?.utility; let best = null, bd = 1e9;
       if (have && have.length) for (const m of ai.mem.values()) {
-        if (!m.actor.alive || m.vis || m.conf < 0.55 || now - m.t > 5) continue;
+        if (!m.actor.alive || m.vis || m.conf < 0.4 || now - m.t > 7) continue;
         const d = Math.hypot(m.pos.x - a.pos.x, m.pos.z - a.pos.z); if (d < 7 || d > 22 || d >= bd) continue; bd = d; best = m;
       }
-      ai.utilReactAt = now + 2;
-      if (best && ai.rng() < ai.diff.util) {
+      ai.utilReactAt = now + 1.2;
+      if (best && ai.rng() < 0.5 + 0.5 * ai.diff.util) {
         const atk = a.team === 'ember', typ = have.includes('strobe') && (atk || ai.rng() < 0.5) ? 'strobe' : have.includes('pulse') ? 'pulse' : null;
         if (typ) { B.utilOrder(ai.bot, typ, best.pos, 'now', { popUp: typ === 'strobe' ? 2.2 : 0, minD: 6, maxD: 24, ttl: 5 }); ai.utilReactAt = now + 7; }
       }

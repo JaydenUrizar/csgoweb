@@ -2,12 +2,12 @@
 // Own DOM overlay (above the 3D canvas, below the HUD) with exact per-flash timing.
 export function createScreenFx(ctx) {
   let root = null, white = null, after = null, actx = null, ok = false;
-  const st = { active: false, t: 0, dur: 0, hold: 0, amount: 0, wantSnap: false, level: 0, afterLevel: 0 };
+  const st = { rolling: false, rollValid: false, active: false, t: 0, dur: 0, hold: 0, amount: 0, wantSnap: false, level: 0, afterLevel: 0 };
   function build() {
     if (root || typeof document === 'undefined') return;
     try {
-      const host = document.getElementById('app') || document.body;
-      root = document.createElement('div'); root.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden;contain:strict';
+      const host = document.body;   // above #ui: the HUD/menu vignette layers must not grey out the white
+      root = document.createElement('div'); root.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden';
       after = document.createElement('canvas'); after.width = 480; after.height = 270; after.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;filter:blur(2.5px) saturate(0.55) brightness(1.18) contrast(1.05);transform:scale(1.02)';
       white = document.createElement('div'); white.style.cssText = 'position:absolute;inset:0;background:#fff;opacity:0;will-change:opacity';
       root.append(after, white); host.appendChild(root); actx = after.getContext('2d'); ok = true;
@@ -15,7 +15,13 @@ export function createScreenFx(ctx) {
   }
   function patchRender() {
     const r = ctx.render; if (!r || r.__utilSnapPatched || typeof r.render !== 'function') return;
-    try { const orig = r.render; r.render = function (...a) { const res = orig.apply(this, a); if (st.wantSnap) snapshot(); return res; }; r.__utilSnapPatched = true; } catch {}
+    try { const orig = r.render; r.render = function (...a) { const res = orig.apply(this, a); if (st.wantSnap) snapshot(); else if (st.rolling) roll(); return res; }; r.__utilSnapPatched = true; } catch {}
+  }
+  let rollC = null, rollX = null;
+  function roll() {   // keep the last pre-burst frame while a Strobe is about to pop
+    const cv = ctx.render?.renderer?.domElement; if (!cv) return;
+    try { if (!rollC) { rollC = document.createElement('canvas'); rollC.width = 480; rollC.height = 270; rollX = rollC.getContext('2d'); }
+      const h = Math.max(1, Math.round(480 * cv.height / Math.max(1, cv.width))); if (rollC.height !== h) rollC.height = h; rollX.drawImage(cv, 0, 0, 480, h); st.rollValid = true; } catch {}
   }
   function snapshot() {
     st.wantSnap = false; const cv = ctx.render?.renderer?.domElement; if (!cv || !actx) return;
@@ -27,7 +33,8 @@ export function createScreenFx(ctx) {
     disabled: false,
     trigger(amount, dur, hold) {
       if (this.disabled) return;
-      build(); patchRender(); st.active = true; st.t = 0; st.dur = dur; st.hold = hold; st.amount = amount; st.wantSnap = true; st.snapped = false;
+      build(); patchRender(); st.active = true; st.t = 0; st.dur = dur; st.hold = hold; st.amount = amount; st.snapped = false; st.wantSnap = true;
+      if (st.rollValid && rollC && actx) { try { after.width = rollC.width; after.height = rollC.height; actx.drawImage(rollC, 0, 0); st.snapped = true; st.wantSnap = false; } catch {} }
     },
     update(dt) {
       if (!st.active) { if (st.level !== 0) { st.level = 0; apply(); } return; }
@@ -36,8 +43,8 @@ export function createScreenFx(ctx) {
       if (t >= st.dur) { st.active = false; st.level = 0; st.afterLevel = 0; apply(); return; }
       st.level = t < st.hold ? 1 : Math.pow(1 - u, 2.2);
       const atk = Math.min(1, t / 0.05);   // instant but not a single-frame pop
-      st.level *= atk;
-      st.afterLevel = t < st.hold * 0.85 ? 0 : Math.min(1, (t - st.hold * 0.85) / 0.15) * Math.pow(1 - u, 1.25) * (0.55 + 0.4 * st.amount);
+      st.level *= atk * 0.975;
+      st.afterLevel = t < st.hold * 0.85 ? 0 : Math.min(1, (t - st.hold * 0.85) / 0.15) * Math.pow(1 - u, 1.1) * (0.7 + 0.28 * st.amount);
       apply();
     },
     clear() { st.active = false; st.level = st.afterLevel = 0; apply(); },

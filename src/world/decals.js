@@ -73,8 +73,8 @@ function drawMural(c, w, h, spec) {
   else if (spec.kind === 'stripes') { for (let i = 0; i < 4; i++) { c.fillStyle = i % 2 ? cream : col; c.fillRect(0, h * (0.1 + i * 0.2), w, h * 0.14); } }
   else { c.beginPath(); c.arc(w / 2, h * 0.55, h * 0.36, 0, 7); c.fill(); c.fillStyle = cream; c.beginPath(); c.arc(w / 2, h * 0.55, h * 0.22, 0, 7); c.fill(); c.strokeStyle = col; c.lineWidth = h * 0.05; for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; c.beginPath(); c.moveTo(w / 2 + Math.cos(a) * h * 0.42, h * 0.55 + Math.sin(a) * h * 0.42); c.lineTo(w / 2 + Math.cos(a) * h * 0.52, h * 0.55 + Math.sin(a) * h * 0.52); c.stroke(); } }
   c.globalAlpha = 1; c.globalCompositeOperation = 'destination-out';
-  for (let i = 0; i < w * h / 55; i++) { c.fillStyle = `rgba(0,0,0,${0.3 + r() * 0.7})`; c.fillRect(r() * w, r() * h, 1 + r() * 4, 1 + r() * 4); }
-  for (let i = 0; i < 6; i++) { c.fillStyle = 'rgba(0,0,0,0.9)'; const x = r() * w, y = r() * h; c.beginPath(); c.ellipse(x, y, 4 + r() * 14, 3 + r() * 8, r() * 3, 0, 7); c.fill(); }
+  for (let i = 0; i < w * h / 160; i++) { c.fillStyle = `rgba(0,0,0,${0.3 + r() * 0.7})`; c.fillRect(r() * w, r() * h, 1 + r() * 3, 1 + r() * 3); }
+  for (let i = 0; i < 3; i++) { c.fillStyle = 'rgba(0,0,0,0.9)'; const x = r() * w, y = r() * h; c.beginPath(); c.ellipse(x, y, 4 + r() * 10, 3 + r() * 6, r() * 3, 0, 7); c.fill(); }
   c.globalCompositeOperation = 'source-over';
 }
 function drawPlaque(c, w, h, spec) {
@@ -112,7 +112,13 @@ function drawBDoor(c, w, h, spec) {
 }
 function drawNiche(c, w, h) { c.clearRect(0, 0, w, h); const bx = w * 0.15, bw = w * 0.7; const path = () => { c.beginPath(); c.moveTo(bx, h); c.lineTo(bx, bw / 2 + 4); c.arc(bx + bw / 2, bw / 2 + 4, bw / 2, Math.PI, 0); c.lineTo(bx + bw, h); c.closePath(); }; path(); c.lineWidth = w * 0.09; c.strokeStyle = 'rgba(70,52,34,0.8)'; c.stroke(); path(); const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(40,28,18,0.75)'); g.addColorStop(1, 'rgba(70,52,34,0.5)'); c.fillStyle = g; c.fill(); }
 function drawClock(c, w, h) { c.clearRect(0, 0, w, h); const cx = w / 2, cy = h / 2, r = w * 0.44; c.fillStyle = '#efe0b8'; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); c.lineWidth = w * 0.05; c.strokeStyle = '#2a9d9f'; c.stroke(); c.fillStyle = '#fff8e4'; c.beginPath(); c.arc(cx, cy, r * 0.86, 0, 7); c.fill(); c.strokeStyle = '#30343a'; c.lineWidth = w * 0.025; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; c.beginPath(); c.moveTo(cx + Math.cos(a) * r * 0.7, cy + Math.sin(a) * r * 0.7); c.lineTo(cx + Math.cos(a) * r * 0.82, cy + Math.sin(a) * r * 0.82); c.stroke(); } c.lineWidth = w * 0.04; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + r * 0.1, cy - r * 0.55); c.stroke(); c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + r * 0.45, cy + r * 0.1); c.stroke(); }
-const DRAW = { ftext: drawFloorText, letter: drawLetter, emblem: drawEmblem, pad: drawPad, window: drawWindow, shutter: drawWindow, grille: drawWindow, mural: drawMural, plaque: drawPlaque, door: drawDoor, shopwin: drawShopWin, shopsign: drawShopSign, vent: drawVent, bdoor: drawBDoor, niche: drawNiche, clock: drawClock };
+function drawArcade(c, w, h, spec) {
+  c.clearRect(0, 0, w, h); const n = 2, cw = w / n, tone = ['#3a2a1e', '#2a3a40', '#4a2a22'][spec.seed % 3];
+  for (let i = 0; i < n; i++) { const x0 = i * cw + cw * 0.1, bw = cw * 0.8, top = h * 0.12 + bw / 2; const path = () => { c.beginPath(); c.moveTo(x0, h * 0.86); c.lineTo(x0, top); c.arc(x0 + bw / 2, top, bw / 2, Math.PI, 0); c.lineTo(x0 + bw, h * 0.86); c.closePath(); };
+    path(); c.lineWidth = w * 0.03; c.strokeStyle = '#f0e2bc'; c.stroke(); path(); const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, tone); g.addColorStop(1, 'rgba(40,30,22,0.7)'); c.fillStyle = g; c.fill();
+    c.save(); path(); c.clip(); c.fillStyle = 'rgba(255,200,140,0.18)'; c.fillRect(x0, h * 0.5, bw, h * 0.4); c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(x0 + bw * 0.1, h * 0.55, bw * 0.8, h * 0.3); c.restore(); }
+}
+const DRAW = { ftext: drawFloorText, letter: drawLetter, emblem: drawEmblem, pad: drawPad, window: drawWindow, shutter: drawWindow, grille: drawWindow, mural: drawMural, plaque: drawPlaque, door: drawDoor, shopwin: drawShopWin, shopsign: drawShopSign, vent: drawVent, bdoor: drawBDoor, niche: drawNiche, clock: drawClock, arcade: drawArcade };
 
 export function buildDecals(D, VB, spawns, sites, VBsky) {
   const reqs = []; // {key, spec, ppm, w, h(m), place:{...}}

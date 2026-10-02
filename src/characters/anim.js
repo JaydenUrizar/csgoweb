@@ -21,7 +21,7 @@ const _pPos = new THREE.Vector3(), _cPos = new THREE.Vector3(), _pQ = new THREE.
 const _qU = new THREE.Quaternion(), _qL = new THREE.Quaternion(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _qc = new THREE.Quaternion(), _qAim = new THREE.Quaternion(), _qHold = new THREE.Quaternion(), _qPL = new THREE.Quaternion();
 const _e = new THREE.Euler(), _pv = new THREE.Vector3(), _pl = new THREE.Vector3(), _lv = new THREE.Vector3();
 const RX90 = new THREE.Quaternion().setFromAxisAngle(X, PI / 2);
-const HAND_LEN = 0.045;
+const HAND_LEN = 0.045, _pouch = new THREE.Vector3();
 
 /** Two-bone IK in parent space. J joint, T target, returns local quats for upper (qU) and lower (qL, relative to upper). */
 function ik2(J, T, l1, l2, pole, qU, qL) {
@@ -50,7 +50,7 @@ function keys(arr, s) {               // arr = [[t, ...values]] smooth interpola
 }
 const _kv = [0, 0, 0, 0, 0, 0, 0, 0];
 const MELEE_K = [[0, 0, 0, 0, 0, 0, 0], [0.3, 0.06, 0.4, 0.18, -1.35, 0.3, 0.55], [0.52, -0.16, 0.0, -0.32, -0.15, 0.1, -0.7], [0.66, -0.1, -0.02, -0.28, -0.05, 0.05, -0.4], [1, 0, 0, 0, 0, 0, 0]];
-const THROW_K = [[0, 0.1, 0.42, 0.5, 1.0, 0, 0], [0.28, -0.06, 0.05, -0.28, -0.55, 0, 0], [0.55, -0.12, -0.2, -0.12, -0.9, 0, 0], [1, 0, 0, 0, 0, 0, 0]];
+const THROW_K = [[0, 0.12, 0.58, 0.38, 1.25, 0, 0], [0.2, 0.0, 0.3, 0.1, 0.6, 0, 0], [0.34, -0.08, 0.1, -0.45, -0.6, 0, 0], [0.62, -0.14, -0.25, -0.2, -1.0, 0, 0], [1, 0, 0, 0, 0, 0, 0]];
 
 export function plantModeOf(ctx, a, m) {
   if (m.dbg && m.dbg.plant != null) return m.dbg.plant;
@@ -305,7 +305,7 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
     }
     const bump = sstep(s / 0.12) * (1 - sstep((s - 0.84) / 0.14));
     const big = cls === 'pistol' ? 0.7 : 1;
-    rx += 0.62 * bump * big; rz -= 0.7 * bump * big; py += 0.07 * bump; px -= 0.06 * bump; pz += 0.05 * bump;
+    rx += 0.42 * bump * big; rz -= 0.5 * bump * big; py += 0.07 * bump; px -= 0.06 * bump; pz += 0.05 * bump;
     if (s > 0.64 && s < 0.8) { const k = Math.sin((s - 0.64) / 0.16 * PI); py -= 0.045 * k; rx -= 0.18 * k; }   // slam the mag home
     if (s > 0.32 && s < 0.5) { px += 0.03 * Math.sin((s - 0.32) / 0.18 * PI); }
     m.reloadW = bump; m.mag.visible = s > 0.3 && s < 0.7 && (cls !== 'shotgun');
@@ -319,9 +319,14 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
   }
   m.hideHeld = false;
   if (m.throwT >= 0) {
-    m.throwT += dt; const s = m.throwT / 0.5;
-    if (s >= 1) m.throwT = -1; else { const k = keys(THROW_K, s); px += k[0]; py += k[1]; pz += k[2]; rx += k[3]; if (cls === 'grenade' && s > 0.28) m.hideHeld = true; }
-  }
+    m.throwT += dt; const s = m.throwT / 0.62;
+    if (s >= 1) { m.throwT = -1; m.ball.visible = false; }
+    else {
+      const k = keys(THROW_K, s); px += k[0]; py += k[1]; pz += k[2]; rx += k[3];
+      if (s < 0.34) { m.ball.visible = true; if (cls === 'grenade') m.hideHeld = true; sp.fy[0] = 0.3 * (1 - s / 0.34); }
+      else { m.ball.visible = false; if (!m.throwRel) { m.throwRel = true; sp.recoilChest[1] -= 1.8; sp.fy[1] -= 5; } }
+    }
+  } else m.throwRel = false;
   // ---- plant / disarm pose (device held low in front, both hands pressing)
   if (plantW > 0.01) {
     const press = Math.sin(m.time * 9) * 0.012 * (pm === 2 ? 1.5 : 1);
@@ -355,6 +360,7 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
     _lv.set(lx, ly, lz);
     // slide the foregrip toward the grip if out of reach
     _p2.copy(_lv).applyQuaternion(_qPL).add(_pl);
+    if (m.reload) { const rs = clamp(m.reload.t / m.reload.dur, 0, 1), pw = sstep((rs - 0.12) / 0.16) * (1 - sstep((rs - 0.5) / 0.14)); _p2.lerp(_pouch.set(-0.14, -0.16, -0.18), pw); }
     _wr.set(-SEG.shoulderX, 0.22, 0).sub(_p2); const dist = _wr.length();
     if (dist > 0.7 && lz < -0.1) { _lv.z += Math.min(0.26, (dist - 0.7) * 0.9); _p2.copy(_lv).applyQuaternion(_qPL).add(_pl); }
     _qb.copy(_qPL).multiply(RX90); _qc.setFromAxisAngle(Y, roll); _qb.multiply(_qc);
@@ -397,7 +403,11 @@ export function onReload(m, cls, dur = 2.0) {
   if (!HOLD[cls] || !HOLD[cls].L) return; if (m.reload) return;
   m.reload = { t: 0, dur: clamp(dur, 0.6, 5) };
 }
-export function onThrow(m) { m.throwT = 0; m.fireT = 0; }
+export function onThrow(m, type) {
+  m.throwT = 0; m.fireT = 0; m.throwRel = false;
+  const c = type === 'strobe' ? 0xfff3c4 : type === 'pulse' ? 0xa78bfa : 0xdde3ea; m.ball.material.color.setHex(c); m.ball.material.emissive.setHex(c);
+  m.sp.fy[1] += 3.5;
+}
 export function onHit(m, dirLocal, damage = 20, crown = false) {
   const sp = m.sp, k = clamp(damage / 100, 0.05, 1) * 5 + 1.5;
   sp.fp[1] += dirLocal.z * k * 0.9; sp.fr[1] += -dirLocal.x * k * 0.9; sp.fy[1] += dirLocal.x * k * 0.35;

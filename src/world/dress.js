@@ -24,15 +24,20 @@ export function dressWorld(D) {
   const sandC = 0xe6cf9f;
 
   // ============================================================ ROOFS over tunnels (toggleable) + arched portals
-  const roofRects = [[-30, 40, -16, 46], [-36, 24, -30, 46], [-42, 24, -30, 30], [-42, 6, -36, 30], [-42, 6, -30, 12], [-36, -16, -30, 12]];
-  for (const [x0, z0, x1, z1] of roofRects) D.slab({ x0, z0, x1, z1, y0: 4.4, y1: 5.7, color: 0xb59470, roof: true, name: 'tunnel-roof' });
-  // beams under tunnel roofs
-  for (const [x0, z0, x1, z1] of roofRects) {
-    const alongX = (x1 - x0) > (z1 - z0);
-    for (let t = 3; t < (alongX ? x1 - x0 : z1 - z0) - 1; t += 5) {
-      if (alongX) D.VBroof.box('wood', x0 + t, 4.05, z0, x0 + t + 0.4, 4.4, z1, rgb(0x7a4f30), { ao: 0.9, top: false });
-      else D.VBroof.box('wood', x0, 4.05, z0 + t, x1, 4.4, z0 + t + 0.4, rgb(0x7a4f30), { ao: 0.9, top: false });
+  const roofRects = [[-30, 40, -16, 46, 'tunapp'], [-36, 24, -30, 46, 'btun1'], [-42, 24, -30, 30, 'btun1'], [-42, 6, -36, 30, 'btun2'], [-42, 6, -30, 12, 'btun2'], [-36, -16, -30, 12, 'btun3']];
+  const TR = { tunapp: [0xd9a070, 0x7a4f30, 0xc4673d], btun1: [0xb8c4c0, 0x5b6d70, 0x2a9d9f], btun2: [0xa5604a, 0x3b3f46, 0xd9a441], btun3: [0xeee4c8, 0x7a4f30, 0x3b6f8f] };
+  for (const [x0, z0, x1, z1, zn] of roofRects) {
+    const [rc, ribc, acc] = TR[zn];
+    D.slab({ x0, z0, x1, z1, y0: 4.4, y1: 5.7, color: rc, roof: true, name: 'tunnel-roof' });
+    const alongX = (x1 - x0) > (z1 - z0), L = alongX ? x1 - x0 : z1 - z0, Wd = alongX ? z1 - z0 : x1 - x0;
+    for (let t = 2.5; t < L - 1.5; t += 5) {
+      // arched rib (visual + collision) across the width, painted per tunnel
+      if (alongX) D.arch({ axis: 'x', cx: x0 + t, cz: (z0 + z1) / 2, w: Wd - 0.9, depth: 0.5, floorY: 0, spring: 3.0, rise: 1.2, topY: 4.45, margin: 0.7, color: ribc === 0x5b6d70 ? 0xcfd8d0 : ribc, roof: false });
+      else D.arch({ axis: 'z', cx: (x0 + x1) / 2, cz: z0 + t, w: Wd - 0.9, depth: 0.5, floorY: 0, spring: 3.0, rise: 1.2, topY: 4.45, margin: 0.7, color: ribc === 0x5b6d70 ? 0xcfd8d0 : ribc, roof: false });
+      // hanging lantern between ribs
+      const lt = t + 2.5; if (lt < L - 1) { const lx = alongX ? x0 + lt : (x0 + x1) / 2, lz = alongX ? (z0 + z1) / 2 : z0 + lt; D.VB.box('plain', lx - 0.02, 3.35, lz - 0.02, lx + 0.02, 4.4, lz + 0.02, rgb(0x30343a), { ao: 1 }); D.VB.box('emissive', lx - 0.17, 2.95, lz - 0.17, lx + 0.17, 3.4, lz + 0.17, mulc(rgb(zn === 'btun1' ? 0x9ae8ff : zn === 'btun3' ? 0xbfe0ff : 0xffb070), 2.8), { ao: 1 }); D.lamps.push({ pos: [lx, 3.2, lz], color: 0xffc080, intensity: 1 }); }
     }
+    void acc;
   }
   // portals (barrel-vaulted blocks): axis z => passage along z
   D.arch({ axis: 'x', cx: -17, cz: 43, w: 6, depth: 2, spring: 3.0, rise: 1.3, topY: 6.6, color: 0xf0c9a0 });         // ES -> tunnels
@@ -44,7 +49,7 @@ export function dressWorld(D) {
   D.arch({ axis: 'x', cx: -19, cz: -43, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.4, color: 0xe8c5a8 });        // tide -> B
   D.arch({ axis: 'x', cx: -19, cz: -23, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.6, color: 0xe8c5a8 });        // palace -> B
   D.arch({ axis: 'z', cx: -33, cz: -15, w: 6, depth: 2, spring: 3.2, rise: 1.2, topY: 7.6, color: 0xdcc394 });        // tunnel mouth
-  D.arch({ axis: 'x', cx: -21, cz: -34, w: 4, depth: 2, floorY: 1.1, spring: 3.0, rise: 0.6, topY: 7.8, color: 0xeadcc0 }); // B window frame
+  D.arch({ axis: 'x', cx: -21, cz: -34, w: 4, depth: 2, floorY: 1.1, spring: 3.0, rise: 0.6, topY: 6.4, color: 0xeadcc0 }); // B window frame
   // jambs/stair gates
   D.arch({ axis: 'x', cx: 11, cz: 7, w: 6, depth: 2, spring: 3.2, rise: 1.0, topY: 8.4, color: 0xe4c595 });          // hub -> short
 

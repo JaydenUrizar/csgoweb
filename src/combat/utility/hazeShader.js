@@ -25,7 +25,7 @@ export const HAZE_FRAG = /* glsl */`
 uniform mat4 projectionMatrix;
 uniform sampler2D uTex; uniform float uTime, uOpacity, uFade, uExposure;
 uniform vec3 uSunDir, uSunCol, uSkyCol, uGroundCol, uAlbedo, uCenter, uCamPos, uFogCol;
-uniform float uCloudR;
+uniform float uCloudR, uFloorY;
 uniform vec3 uGlowPos; uniform vec4 uGlow;
 uniform int uWN; uniform vec4 uWA[8]; uniform vec4 uWB[8]; uniform vec2 uWC[8];
 varying vec2 vP; varying vec4 vC; varying vec4 vB; varying vec3 vCW; varying float vNear;
@@ -36,8 +36,9 @@ float wakeF(vec3 p) {
     if (i >= uWN) break;
     float t = clamp(dot(p - uWA[i].xyz, uWB[i].xyz), 0.0, uWA[i].w);
     float d = distance(p, uWA[i].xyz + uWB[i].xyz * t);
-    float r = uWC[i].x;
-    f *= 1.0 - uWC[i].y * (1.0 - smoothstep(r * 0.6, r, d));
+    float ph = uWB[i].w;
+    float r = uWC[i].x * (1.0 + 0.32 * sin(t * 4.7 + ph) + 0.18 * sin(t * 11.3 + ph * 2.1));
+    f *= 1.0 - uWC[i].y * (1.0 - smoothstep(r * 0.45, r, d));
   }
   return f;
 }
@@ -48,17 +49,19 @@ void main() {
   float seed = vB.x, core = vB.y;
   vec2 uv = rot(seed * 6.2831 + uTime * (0.04 + 0.03 * fract(seed * 7.0))) * vP;
   vec2 o = vec2(fract(seed * 13.7), fract(seed * 5.3));
-  vec4 t1 = texture2D(uTex, uv * 0.42 + o + vec2(uTime * 0.010, -uTime * 0.007));
-  vec4 t2 = texture2D(uTex, uv * 1.05 + o * 1.7 - vec2(uTime * 0.018, uTime * 0.013));
+  vec4 t0 = texture2D(uTex, uv * 0.3 + o * 2.3 + vec2(uTime * 0.017, uTime * 0.011));
+  vec2 wv = (t0.gb - 0.5) * 0.45;                                   // domain warp -> swirling, non-repeating structure
+  vec4 t1 = texture2D(uTex, uv * 0.42 + o + wv + vec2(uTime * 0.03, -uTime * 0.02));
+  vec4 t2 = texture2D(uTex, uv * 0.8 + o * 1.7 + wv * 1.3 - vec2(uTime * 0.05, uTime * 0.035));
   float h = t1.r, det = t2.a;
   float z0 = sqrt(1.0 - r2);
   // thickness through the sphere, broken up by two noise octaves -> ragged wispy silhouette, not a clean disc
-  float dens = 1.0 - exp(-1.9 * z0 * vC.w);
+  float dens = 1.0 - exp(-1.5 * z0 * vC.w);
   float n = (h - 0.5) * 1.15 + (det - 0.5) * 0.55 + (t2.r - 0.5) * 0.4;
-  float a = smoothstep(0.04, 0.85, dens * (0.75 + 0.5 * h) + n * (0.3 + 0.7 * (1.0 - dens)) * 0.75 - 0.06 * r);
+  float a = smoothstep(0.05, 0.8, dens * (0.7 + 0.6 * h) + n * (0.35 + 0.8 * (1.0 - dens)) * 0.9 - 0.1 * r);
   a = min(a, 0.995);
   // sphere normal + noise bump (view space) -> world
-  vec3 nv = normalize(vec3(vP * 0.9 + (t1.gb - 0.5) * 0.9 + (t2.gb - 0.5) * 0.35, z0));
+  vec3 nv = normalize(vec3(vP * 0.9 + (t1.gb - 0.5) * 0.55 + (t2.gb - 0.5) * 0.12, z0));
   vec3 nS = normalize((vec4(nv, 0.0) * viewMatrix).xyz);
   float zf = vC.z + vC.w * z0 * 0.9;
   float ndc = (projectionMatrix[2][2] * zf + projectionMatrix[3][2]) / (-zf);
@@ -74,6 +77,7 @@ void main() {
     a = 1.0 - exp(-tau * wf);
   }
   a *= uOpacity * vB.z * uFade * vNear;
+  { float yy = vCW.y + nS.y * vC.w * 0.55; a *= smoothstep(uFloorY - 0.05, uFloorY + 0.5, yy); }
   if (a < 0.004) discard;
   // ---- lighting: cloud-scale normal (bulge) + a little per-puff structure
   vec3 nC = normalize(vCW - uCenter + vec3(0.0, 0.35 * uCloudR, 0.0));

@@ -49,6 +49,12 @@ void main() {
   float shape = floor(aExtra.w + 0.001);
   float add = clamp((aExtra.w - shape) / 0.99, 0.0, 1.0);
   vec4 mv0 = modelViewMatrix * vec4(p, 1.0);
+  float solidNear = 1.0;
+  if ((shape > 5.5 && shape < 7.5) || (shape > 0.5 && shape < 1.5) || (shape > 9.5 && shape < 10.5)) {   // solid flecks (chip/diamond/disc/dot): never loom near the camera
+    float dz = max(-mv0.z, 0.05);
+    solidNear = smoothstep(0.8, 2.6, dz);
+    size = min(size, dz * 0.045);
+  }
   vec3 vp;
   if (stretched) {
     vec3 vel = v0k * ek + gk;
@@ -74,7 +80,7 @@ void main() {
   float fin = aExtra.y > 0.0 ? smoothstep(0.0, aExtra.y, t) : 1.0;
   vec4 col = mix(aCol0, aCol1, smoothstep(0.0, 1.0, pow(t, aFx.y)));
   if (aFx.x > 0.0) col.a *= 1.0 - smoothstep(aFx.x, 1.0, t);
-  float nearFade = smoothstep(uNear * 0.35, uNear, -mv0.z);
+  float nearFade = smoothstep(uNear * 0.35, uNear, -mv0.z) * solidNear;
   col.a *= fin * nearFade;
   col.rgb *= mix(1.0, nearFade, add);
   vCol = col;

@@ -13,3 +13,6 @@ Scope overlay also drawn by HUD (skipped if `combat.viewmodel.drawsScopeOverlay`
 
 ## Round 2
 Radar now restyles `map.radar` (labels erased, dark silhouette + wall edges, 30 m range, big A/B badges clamped inside the ring, outlined dots + view cone); team-coloured pip tiles; topbar + buy menu share `match.buyTimeLeft` and the same tweened money; menus are near-opaque and fade banners/notices/toasts/prompts; compact 1.4 s round banner; thicker damage arcs with arrowhead; bigger hit markers; redrawn weapon icons.
+
+## Round 3
+Death/spectate: `viewchange` event clears own damage arcs/hit markers, snaps money/vitals (money hidden while spectating), spectate cycling is teammates-first, high-contrast "Tagged out" pill, new `recap.js` killer card (killer, tagger, crown, live remaining charge, damage dealt/taken; mock state `death`). Crosshair gap now `30*(1-exp(-8*spread))` px (obvious during a spray) with a heavier outline. Round intro banner only in buy/freeze (never live), no pistol-round duplicate; notice moved above it. Smaller translucent pips, dead pips dimmed hard. Buy icons scaled by class (pistol/smg smaller) and brighter when unaffordable. Radar label erasure now also masks light glyph strokes, fills dark label plates, opens thin residue and drops islands.

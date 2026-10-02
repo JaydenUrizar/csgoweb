@@ -35,7 +35,7 @@ void main(){
     float rc = clamp(2.0 - dist / uRadius, 0.0, 1.0);
     occ += max(0.0, dot(N, v) - uBias * (-P.z * 0.01 + 0.02)) / (d2 + 0.02) * rc;
   }
-  float ao = 1.0 - clamp(occ * uRadius / fs * uIntensity, 0.0, 1.0);
+  float ao = 1.0 - clamp(occ * uRadius / fs * uIntensity, 0.0, 0.7);
   gl_FragColor = vec4(vec3(ao), 1.0);
 }`;
 
@@ -141,7 +141,7 @@ float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx 
 void main(){
   vec2 uv = vUv, c = uv - 0.5; vec2 ca2 = c * vec2(uAsp, 1.0);
   float r2 = dot(ca2, ca2);
-  float ca = uCA * (0.4 + r2 * 2.4) + uDamage.y * 0.006 + uWhite * 0.004;
+  float ca = uCA * (0.4 + r2 * 2.4) + uDamage.y * 0.003 + uWhite * 0.004;
   vec3 col;
   if (uBlur > 0.002 || ca > 0.0003) {
     vec3 acc = vec3(0.0); float n = 0.0;
@@ -161,6 +161,7 @@ void main(){
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
   col = mix(vec3(l), col, uSat);
   col = (col - 0.46) * uContrast + 0.46;
+  col = col * 0.95 + 0.045;
   col = mix(col, vec3(l), (1.0 - smoothstep(0.0, 0.55, l)) * 0.4);
   col += mix(uShadowTint, uHighTint, smoothstep(0.1, 0.9, l)) * 0.07;
   // vignette
@@ -168,8 +169,8 @@ void main(){
   // damage: directional red edge pulse
   if (uDamage.y > 0.001) {
     vec2 dv = normalize(ca2 + 1e-5); vec2 hd = vec2(sin(uDamage.x), cos(uDamage.x));
-    float dirw = 0.35 + 0.65 * pow(max(dot(dv, hd), 0.0), 1.5);
-    float edge = smoothstep(0.14, 0.5, r2 * 1.6);
+    float dirw = 0.10 + 0.9 * pow(max(dot(dv, hd), 0.0), 3.0);
+    float edge = smoothstep(0.10, 0.45, r2 * 1.6);
     col = mix(col, vec3(0.95, 0.12, 0.10), clamp(edge * dirw * uDamage.y * 0.6, 0.0, 0.7));
   }
   col = mix(col, uTint.rgb, uTint.a * 0.5 * (0.6 + 0.4 * smoothstep(0.0, 0.6, r2 * 1.8)) );
@@ -191,7 +192,7 @@ export function createPost(renderer) {
   const blankTex = (r, g, b, a) => { const t = new THREE.DataTexture(new Uint8Array([r, g, b, a]), 1, 1); t.needsUpdate = true; return t; };
   const whiteTex = blankTex(255, 255, 255, 255), clearTex = blankTex(0, 0, 0, 0), blackTex = blankTex(0, 0, 0, 255);
 
-  const ssaoMat = mk(SSAO_FS, { tDepth: T(), uProjInv: T(new THREE.Matrix4()), uProj11: T(1), uAsp: T(1), uRadius: T(1.1), uIntensity: T(1.5), uBias: T(0.3), uTexel: V2(), uSamples: T(12) });
+  const ssaoMat = mk(SSAO_FS, { tDepth: T(), uProjInv: T(new THREE.Matrix4()), uProj11: T(1), uAsp: T(1), uRadius: T(1.2), uIntensity: T(0.8), uBias: T(0.2), uTexel: V2(), uSamples: T(12) });
   const blurMat = mk(BLUR_FS, { tAO: T(), tDepth: T(), uDir: V2(), uNear: T(0.05), uFar: T(400) });
   const preMat = mk(PRE_FS, { tWorld: T(), tVM: T(), uTexel: V2(), uThr: T(2.0), uKnee: T(0.6), uClamp: T(40) });
   const downMat = mk(DOWN_FS, { tSrc: T(), uTexel: V2() });
@@ -242,7 +243,7 @@ export function createPost(renderer) {
     stats.sceneCalls = info.render.calls; stats.sceneTris = info.render.triangles;
     // ssao
     let aoTex = whiteTex;
-    if (S.ao && aoRT) {
+    if (S.ssao && aoRT) {
       const u = ssaoMat.uniforms; u.tDepth.value = worldRT.depthTexture; u.uProjInv.value.copy(camera.projectionMatrixInverse); u.uProj11.value = camera.projectionMatrix.elements[5]; u.uAsp.value = S.w / S.h;
       u.uTexel.value.set(1 / S.w, 1 / S.h);
       pass(ssaoMat, aoRT);
@@ -282,6 +283,6 @@ export function createPost(renderer) {
     renderer.setRenderTarget(null); renderer.autoClear = true;
   }
 
-  return { S, uniforms: compMat.uniforms, bloomUniforms: preMat.uniforms, ssaoUniforms: ssaoMat.uniforms, configure, render: post, get worldRT() { return worldRT; }, whiteTex,
+  return { S, uniforms: compMat.uniforms, bloomUniforms: preMat.uniforms, ssaoUniforms: ssaoMat.uniforms, configure, render: post, get worldRT() { return worldRT; }, get aoRT() { return aoRT; }, whiteTex,
     dispose() { [worldRT, vmRT, aoRT, aoRT2, ldrRT, shaftRT, ...bloomRT].forEach(dispose); } };
 }

@@ -13,7 +13,7 @@ export function buildModel(ctx, actor, specIn) {
   const spec = completeSpec(specIn, actor.team), tc = teamColor(actor.team);
   const { root, bones } = createBones(); root.rotation.order = 'YXZ';
   const geo = getBodyGeometry(spec.helmet.shape, spec.visor.shape, spec.back.model);
-  const mat = createActorMaterial(); applySpecToMaterial(mat, spec, tc);
+  const mat = createActorMaterial(); applySpecToMaterial(mat, spec, tc, actor.team);
   const mesh = new THREE.SkinnedMesh(geo, mat); mesh.name = 'athlete'; mesh.frustumCulled = false; mesh.castShadow = true; mesh.receiveShadow = true;
   root.add(mesh); root.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(bones); mesh.bind(skeleton);
@@ -29,8 +29,10 @@ export function buildModel(ctx, actor, specIn) {
   };
   const pivot = mk('weaponPivot', chest); attach.weapon = pivot;
   const magGeo = new THREE.BoxGeometry(0.05, 0.15, 0.075), mag = new THREE.Mesh(magGeo, new THREE.MeshStandardMaterial({ color: 0x2b2f38, roughness: 0.5, metalness: 0.4, emissive: tc, emissiveIntensity: 0.6 }));
-  mag.position.set(0, -0.1, -0.01); mag.visible = false; mag.castShadow = false; bones[B.handL].add(mag);
+  mag.scale.set(1.3, 1.25, 1.3); mag.position.set(0, -0.11, -0.01); mag.visible = false; mag.castShadow = false; bones[B.handL].add(mag);
 
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), new THREE.MeshStandardMaterial({ color: 0xdde3ea, roughness: 0.35, metalness: 0.2, emissive: 0xffffff, emissiveIntensity: 0.25 }));
+  ball.position.set(0, -0.09, -0.02); ball.visible = false; ball.castShadow = false; bones[B.handR].add(ball);
   const m = {
     actor, id: actor.id, root, mesh, mat, u: mat.userData.u, bones, skeleton, attach, pivot, spec, teamColor: tc,
     // kinematic state
@@ -43,7 +45,7 @@ export function buildModel(ctx, actor, specIn) {
     // timers
     fireT: 9, reload: null, sw: null, throwT: -1, meleeT: -1, hitFlash: 0, swapPending: null,
     held: { id: null, cls: 'none', obj: null, cache: new Map(), muzzle: null, ball: null },
-    mag, dbg: null, tag: null, spawnT: -1, visible: true, firstPerson: false, hidden: false, auto: false, alive: actor.alive,
+    mag, ball, dbg: null, tag: null, spawnT: -1, visible: true, firstPerson: false, hidden: false, auto: false, alive: actor.alive,
     joints: null, hitDbg: null, label: null,
   };
   m.feet[0].yaw = m.feet[1].yaw = actor.yaw;
@@ -56,7 +58,7 @@ export function applyCosmetics(m, specIn) {
   const spec = completeSpec(specIn, m.actor.team); m.spec = spec;
   const geo = getBodyGeometry(spec.helmet.shape, spec.visor.shape, spec.back.model);
   if (m.mesh.geometry !== geo) m.mesh.geometry = geo;
-  applySpecToMaterial(m.mat, spec, m.teamColor);
+  applySpecToMaterial(m.mat, spec, m.teamColor, m.actor.team);
 }
 
 const _glow = { pistol: 0x66e0ff, smg: 0xffd166, rifle: 0xff9a4a, sniper: 0xb388ff, shotgun: 0xff6a6a, lmg: 0x7dffb0, melee: 0xff5fd0, grenade: 0xffffff, carry: 0xffcf4a };

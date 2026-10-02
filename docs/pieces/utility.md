@@ -17,3 +17,9 @@ Test + strips: `node tools/utility_test.mjs [--quick] [--out shots/utility]` (31
 
 ## Known gaps / ideas
 Smoke is stylised (lobed, soft) rather than CS2's wispy dust; no scene-depth soft particles (cut lines where puffs meet walls); walker wakes not implemented; smoke can spill over low open-top walls (physically fine); no refraction in the Pulse dome; afterimage only when canvas readback works; trajectory ignores actor bodies; Pulse not blocked by smoke.
+
+## Round 3 notes
+* Bots (src/ai/bots/throws.js, edited with orchestrator authorisation): before release the solved arc and again the live aim are simulated (`utility.trajectory`) and `strobe.evaluate` is run for the thrower (assumed turned away) and every teammate (worst case: facing the pop); pops < 6.5 m from the thrower / < 5 m from an ally or amounting to > 0.28 blind are rejected (order kept, up to 6 re-tries). Strobe throwers turn away for the fuse. Haze claims (8 m / 28 s) stop duplicate smokes; haze popping < 8 m from the thrower is rejected. More throws: attackers use utility ~always, new defender plan (`utilPlan(t,'tide')`: timed Haze/Strobe/Pulse on attacker chokes), looser reactive throws. Measure: `node tools/utility_bot_flash.mjs <seed> <rounds> [v]` (seed 2/4 rounds: 14 throws, 1 ally >=0.5 blind vs 10/11 before).
+* Haze: floor-height fade (no flat hard bottom), ground skirt wisps that creep outward, slow swirl/churn + domain-warped noise, stronger erosion; squash 1.7. Wakes: ragged radius (same formula CPU+GPU), core fully clear, widen when sprayed (merge), r 0.85 -> 1.5 m.
+* Strobe overlay is now on `document.body` (z 40) so HUD/menu vignettes cannot grey it; max 0.975 opacity; last pre-burst frame is kept (rolling copy while a Strobe is within 0.4 s of popping) for the afterimage.
+* Preview: arc offset from the hand, floor "shadow" arc, landing ring scaled with distance + beam, near points hidden.

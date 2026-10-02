@@ -12,8 +12,8 @@ const HID = { glove: 0, gloveLight: 1, pad: 2, cuff: 3, team: 4, sleeve: 5, slee
 export function createHandMats() {
   const u = createUber(8, { noTone: [4] });
   const m = { u, material: u.material, team: new THREE.Color(0xff7a2f) };
-  setSub(u, HID.glove, 0x2b303a, 0.82, 0.02); setSub(u, HID.gloveLight, 0x3a414e, 0.7, 0.05); setSub(u, HID.pad, 0x151820, 0.5, 0.6);
-  setSub(u, HID.cuff, 0x191c24, 0.45, 0.7); setGlow(u, HID.team, 0xff7a2f, 2.2);
+  setSub(u, HID.glove, 0x434b59, 0.8, 0.03); setSub(u, HID.gloveLight, 0x636e80, 0.65, 0.06); setSub(u, HID.pad, 0x1a1e26, 0.5, 0.6);
+  setSub(u, HID.cuff, 0x262b35, 0.45, 0.7); setGlow(u, HID.team, 0xff7a2f, 2.2);
   const c = new THREE.Color();
   m.setStyle = (team, suit) => {
     const tc = team === 'tide' ? 0x2fd0ff : 0xff7a2f; setGlow(u, HID.team, tc, 2.2);
@@ -63,28 +63,29 @@ const palm = (p) => {
   p.cyl('cuff', [0, 0, 6.6], 3.9, 4.1, 3.4, 8, { shade: 1.0 });
   p.cyl('team', [0, 0, 8.35], 4.15, 4.15, 0.4, 8);
 };
-const tube = (p) => {   // sleeve tube along +Z, length 100 (scaled to the shoulder); one accent panel on top, dark underside
-  const sides = 8, r0 = 3.1, r1 = 4.8, verts = [], faces = [];
+const tube = (p) => {   // sleeve tube along +Z, length 100 (scaled to the shoulder); 12 facets, accent panel on top, shaded underside
+  const sides = 12, r0 = 3.1, r1 = 4.8, verts = [], faces = [], mats = [], shades = [];
   for (let i = 0; i < sides; i++) { const a = (i / sides) * Math.PI * 2 + Math.PI / sides; verts.push([Math.cos(a) * r0, Math.sin(a) * r0, 0]); }
   for (let i = 0; i < sides; i++) { const a = (i / sides) * Math.PI * 2 + Math.PI / sides; verts.push([Math.cos(a) * r1, Math.sin(a) * r1, 100]); }
-  const mats = [];
   for (let i = 0; i < sides; i++) {
     const a = ((i + 0.5) / sides) * Math.PI * 2 + Math.PI / sides, ny = Math.sin(a), nx = Math.cos(a);
-    mats.push(ny > 0.9 ? 'sleeveTrim' : ny < -0.5 ? 'sleeveDark' : (Math.abs(nx) > 0.9 && ny > 0.2) ? 'sleeve' : 'sleeve');
+    mats.push(ny > 0.93 ? 'sleeveTrim' : ny < -0.4 ? 'sleeveDark' : 'sleeve'); shades.push(0.7 + 0.35 * Math.max(0, ny) + 0.1 * nx);
     const j = (i + 1) % sides; faces.push({ f: [i, j, sides + j, sides + i], w: [nx, ny, 0] });
   }
-  faces.forEach((f, i) => p._build(mats[i], verts, [f], [0, 0, 0], {}));
+  faces.forEach((f, i) => p._build(mats[i], verts, [f], [0, 0, 0], { shade: shades[i] }));
 };
 const ring = (p) => {
-  p.cyl('sleeveDark', [0, 0, 1.4], 3.9, 4.0, 2.8, 8);                              // elastic cuff band
-  p.cyl('sleeveTrim', [0, 0, 3.3], 4.05, 4.05, 0.9, 8);
-  p.cyl('team', [0, 0, 4.1], 4.1, 4.1, 0.35, 8);
-  p.cyl('sleeveDark', [0, 0, 11], 4.0, 4.1, 1.4, 8);                                 // forearm strap
-  p.box('pad', [0, 4.2, 8.5], [4.8, 0.9, 12.5], { bevel: 0.4 });                    // forearm armour plate
-  p.box('sleeveTrim', [0, 4.7, 8.5], [1.4, 0.3, 11]);
-  p.box('team', [0, 4.74, 8.5], [0.45, 0.2, 11.5]);
-  for (const sx of [-1, 1]) p.box('pad', [sx * 3.6, 2.2, 8], [0.9, 3.0, 8], { bevel: 0.3 });   // side plates
-  p.cyl('sleeveDark', [0, 0, 18], 4.3, 4.4, 1.6, 8);
+  p.cyl('sleeveDark', [0, 0, 1.0], 4.3, 4.6, 2.0, 12);                               // flared gauntlet cuff over the glove
+  p.cyl('cuff', [0, 0, 2.6], 4.1, 4.1, 1.2, 12);
+  p.cyl('team', [0, 0, 3.4], 4.15, 4.15, 0.35, 12);
+  p.cyl('sleeveTrim', [0, 0, 4.1], 4.1, 4.1, 0.8, 12);
+  p.box('pad', [0, 4.15, 9], [4.4, 1.0, 11], { bevel: 0.45, tz: [0.8, 1, 1, 1] });  // forearm armour plate
+  p.box('team', [0, 4.72, 9], [0.45, 0.16, 10]);
+  for (const sx of [-1, 1]) { p.box('pad', [sx * 3.5, 2.4, 8.5], [0.9, 2.8, 7], { bevel: 0.3 }); p.box('gloveLight', [sx * 3.62, 2.4, 13.5], [0.5, 1.0, 1.4], { bevel: 0.15 }); }
+  p.cyl('sleeveDark', [0, 0, 15.5], 3.95, 4.05, 1.6, 12);                            // strap
+  p.box('cuff', [0, 4.1, 15.5], [1.4, 0.5, 1.8], { bevel: 0.15 });                    // buckle
+  p.cyl('sleeveDark', [0, 0, 23], 4.2, 4.3, 1.4, 12);
+  p.cyl('sleeveTrim', [0, 0, 24.2], 4.25, 4.25, 0.5, 12);
 };
 
 const FINGER_X = [-3.05, -1.02, 1.02, 3.05], FINGER_Z = [-4.3, -4.5, -4.3, -3.9], PROX = [3.9, 4.3, 3.9, 3.3];

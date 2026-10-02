@@ -121,7 +121,7 @@ class Cloud {
       const core = sstep(9, 26, c);
       A.die[idx] = H.fadeStart - 0.6 + core * 2.6 + hash1(idx) * 1.0;
     }
-    this.gfx.finalize(this);
+    this.gfx.finalize(this); this.gfx.skirtPass?.(this);
   }
   fadeAt(die, t) { return 1 - sstep(die, die + 2.4, t); }
   /** Raw cell density 0..1 (birth ramp x dissolve). */
@@ -150,13 +150,19 @@ class Cloud {
       const w = this.wakes[n]; if (w.visualOnly && !includeVisual) continue;
       const s = w.strength * w.amt(this.age); if (s <= 0.001) continue;
       const px = x - w.ox, py = y - w.oy, pz = z - w.oz; let t = px * w.dx + py * w.dy + pz * w.dz; t = t < 0 ? 0 : t > w.len ? w.len : t;
-      const ex = px - w.dx * t, ey = py - w.dy * t, ez = pz - w.dz * t; const d = Math.sqrt(ex * ex + ey * ey + ez * ez); const r = w.radius(this.age);
-      if (d < r) f *= 1 - s * (1 - sstep(r * 0.6, r, d));
+      const ex = px - w.dx * t, ey = py - w.dy * t, ez = pz - w.dz * t; const d = Math.sqrt(ex * ex + ey * ey + ez * ez); const r = w.radius(this.age) * (1 + 0.32 * Math.sin(t * 4.7 + w.ph) + 0.18 * Math.sin(t * 11.3 + w.ph * 2.1));
+      if (d < r) f *= 1 - s * (1 - sstep(r * 0.45, r, d));
     }
     return f;
   }
   addWake(o, d, len, radius, strength, life, visualOnly = false) {
-    const w = { ox: o.x, oy: o.y, oz: o.z, dx: d.x, dy: d.y, dz: d.z, len, r0: radius, strength, life, t0: this.age, visualOnly,
+    // a spray widens the channel it already opened instead of stacking thin holes
+    if (!visualOnly && len > 0.5) for (const k of this.wakes) {
+      if (k.visualOnly || k.len < 0.5 || this.age - k.t0 > 0.9) continue;
+      if (Math.abs(k.ox - o.x) + Math.abs(k.oy - o.y) + Math.abs(k.oz - o.z) < 1.6 && k.dx * d.x + k.dy * d.y + k.dz * d.z > 0.985) { k.r0 = Math.min(1.5, k.r0 + 0.2); k.t0 = this.age; k.len = Math.max(k.len, len); k.strength = Math.max(k.strength, strength); return k; }
+    }
+    this.wakeSerial = (this.wakeSerial || 0) + 1;
+    const w = { ph: this.wakeSerial * 2.399 + this.id, ox: o.x, oy: o.y, oz: o.z, dx: d.x, dy: d.y, dz: d.z, len, r0: radius, strength, life, t0: this.age, visualOnly,
       amt: null, radius: null };
     w.amt = (age) => { const a = age - w.t0; return a < 0.25 ? 1 : Math.max(0, 1 - (a - 0.25) / (w.life - 0.25)); };
     w.radius = (age) => w.r0 * (1 + 0.7 * Math.min(1, (age - w.t0) / 1.2));
@@ -201,7 +207,7 @@ export function createHaze(ctx, W, shared) {
       uSunDir: shared.sunDir, uSunCol: shared.sunCol, uSkyCol: shared.skyCol, uGroundCol: shared.groundCol, uAlbedo: { value: new THREE.Color(0.80, 0.81, 0.84) },
       uCenter: { value: new THREE.Vector3() }, uCloudR: { value: 3 }, uCamPos: { value: new THREE.Vector3() }, uGlowPos: { value: new THREE.Vector3() }, uGlow: { value: new THREE.Vector4() },
       uWN: { value: 0 }, uWA: { value: [0, 1, 2, 3, 4, 5, 6, 7].map(() => new THREE.Vector4()) }, uWB: { value: [0, 1, 2, 3, 4, 5, 6, 7].map(() => new THREE.Vector4()) }, uWC: { value: [0, 1, 2, 3, 4, 5, 6, 7].map(() => new THREE.Vector2()) },
-      uExposure: shared.exposure, uFogCol: shared.fogCol,
+      uFloorY: { value: 0 }, uExposure: shared.exposure, uFogCol: shared.fogCol,
     };
     const mat = new THREE.ShaderMaterial({ vertexShader: HAZE_VERT, fragmentShader: HAZE_FRAG, uniforms: u, transparent: true, depthWrite: false, depthTest: true, side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; mesh.renderOrder = 50; mesh.name = 'haze-cloud';
@@ -209,16 +215,16 @@ export function createHaze(ctx, W, shared) {
     const P = { n: 0, px: new Float32Array(CAP), py: new Float32Array(CAP), pz: new Float32Array(CAP), tx: new Float32Array(CAP), ty: new Float32Array(CAP), tz: new Float32Array(CAP),
       ox: new Float32Array(CAP), oy: new Float32Array(CAP), oz: new Float32Array(CAP), tox: new Float32Array(CAP), toy: new Float32Array(CAP), toz: new Float32Array(CAP),
       cnt: new Float32Array(CAP), sx: new Float32Array(CAP), sy: new Float32Array(CAP), sz: new Float32Array(CAP), rad: new Float32Array(CAP), t0: new Float32Array(CAP),
-      seed: new Float32Array(CAP), core: new Float32Array(CAP), die: new Float32Array(CAP), sat: new Uint8Array(CAP), key: new Float32Array(CAP), sv: new Float32Array(CAP).fill(0.7), svI: 0 };
+      seed: new Float32Array(CAP), core: new Float32Array(CAP), die: new Float32Array(CAP), sat: new Uint8Array(CAP), key: new Float32Array(CAP), sv: new Float32Array(CAP).fill(0.7), svI: 0, vx: new Float32Array(CAP), vz: new Float32Array(CAP), am: new Float32Array(CAP).fill(1) };
     const order = new Uint16Array(CAP);
     const cmp = (a, b) => P.key[b] - P.key[a];
     return { mesh, geo, iA, iB, mat, u, P, order, cmp,
-      reset(cl) { P.n = 0; P.svI = 0; P.sv.fill(0.7); geo.instanceCount = 0; mesh.visible = true; u.uFade.value = 1; u.uGlow.value.w = 0; },
+      reset(cl) { P.n = 0; P.svI = 0; P.sv.fill(0.7); P.vx.fill(0); P.vz.fill(0); P.am.fill(1); P.sat.fill(0); geo.instanceCount = 0; mesh.visible = true; u.uFade.value = 1; u.uGlow.value.w = 0; },
       onCell(cl, i, j, k, p, parentIdx) {
         const b = (i >> 1) + NB * ((j >> 1) + NB * (k >> 1)); let pi = cl.A.blockPuff[b];
         if (pi < 0) {
           if (P.n >= CAP - 64) return; pi = P.n++; cl.A.blockPuff[b] = pi;
-          P.cnt[pi] = 0; P.sx[pi] = P.sy[pi] = P.sz[pi] = 0; P.t0[pi] = cl.age; P.seed[pi] = hash1(pi * 3.1 + cl.id * 17.7); P.core[pi] = 0.3; P.die[pi] = 1e9; P.sat[pi] = 0;
+          P.cnt[pi] = 0; P.sx[pi] = P.sy[pi] = P.sz[pi] = 0; P.t0[pi] = cl.age; P.seed[pi] = hash1(pi * 3.1 + cl.id * 17.7); P.core[pi] = 0.3; P.die[pi] = 1e9; P.sat[pi] = 0; P.vx[pi] = P.vz[pi] = 0; P.am[pi] = 1;
           if (parentIdx >= 0) cl.cellPos(parentIdx, _v2); else _v2.copy(p);
           P.px[pi] = _v2.x; P.py[pi] = _v2.y; P.pz[pi] = _v2.z; P.ox[pi] = P.oy[pi] = P.oz[pi] = P.tox[pi] = P.toy[pi] = P.toz[pi] = 0;
         }
@@ -245,12 +251,28 @@ export function createHaze(ctx, W, shared) {
           for (let sat = 0; sat < 3; sat++) if (core < 0.85 && P.n < CAP - 2 && !c) {
             const gl = Math.hypot(gx, gy, gz); if (gl < 1e-3) break;
             const s = P.n++; const jt = hash1(pi * 5.3 + 1.7 + sat * 9.1);
-            P.cnt[s] = 0; P.rad[s] = 0.32 + 0.5 * jt; P.t0[s] = cl.age + jt * 0.25; P.seed[s] = hash1(s * 3.1 + cl.id * 17.7); P.core[s] = core * 0.5; P.sat[s] = 1;
+            P.cnt[s] = 0; P.rad[s] = 0.32 + 0.5 * jt; P.t0[s] = cl.age + jt * 0.25; P.seed[s] = hash1(s * 3.1 + cl.id * 17.7); P.core[s] = core * 0.5; P.sat[s] = 1; P.vx[s] = P.vz[s] = 0; P.am[s] = 1;
             const off = 0.25 + 0.3 * hash1(pi * 2.9 + sat);
             P.tx[s] = P.px[s] = P.tx[pi] + gx / gl * off + (hash1(pi + 11 + sat * 3) - 0.5) * 0.9; P.ty[s] = P.py[s] = P.ty[pi] + gy / gl * off + (hash1(pi + 23 + sat * 3) - 0.5) * 0.7; P.tz[s] = P.pz[s] = P.tz[pi] + gz / gl * off + (hash1(pi + 37 + sat * 3) - 0.5) * 0.9;
             P.ox[s] = P.oy[s] = P.oz[s] = P.tox[s] = P.toy[s] = P.toz[s] = 0; P.die[s] = P.die[pi] - 0.5 - jt * 0.4;
             _v.set(P.tx[s], P.ty[s], P.tz[s]); const c2 = W.closest(_v, P.rad[s] * 0.7); if (c2) P.rad[s] *= 0.6;
           }
+        }
+      },
+      skirtPass(cl) {   // low ground-hugging wisps that creep outward along the floor
+        const A = cl.A; let made = 0;
+        for (let n = 0; n < cl.count && made < 110 && P.n < CAP - 1; n++) {
+          const idx = A.filled[n], i = idx % N, j = ((idx / N) | 0) % N, k = (idx / NN) | 0; if (j !== K_BELOW) continue;
+          if (hash1(idx * 1.37 + cl.id) > 0.75) continue;
+          let ox = 0, oz = 0;
+          for (let d = 0; d < 6; d++) { if (DIRS[d][1] !== 0) continue; if (A.state[(i + DIRS[d][0]) + N * (j + N * (k + DIRS[d][2]))] !== 2) { ox += DIRS[d][0]; oz += DIRS[d][2]; } }
+          const l = Math.hypot(ox, oz); if (l < 0.5) continue; ox /= l; oz /= l;
+          cl.cellPos(idx, _v); _v.x += ox * 0.45; _v.z += oz * 0.45; _v.y = cl.floorY + 0.28 + hash1(idx * 3.3) * 0.2;
+          if (W.closest(_v, 0.45)) continue;
+          const s = P.n++; const jt = hash1(idx * 7.1 + 3);
+          P.cnt[s] = 0; P.rad[s] = 0.6 + 0.5 * jt; P.t0[s] = cl.age + jt * 0.3; P.seed[s] = hash1(s * 3.1 + cl.id * 17.7); P.core[s] = 0; P.sat[s] = 2; P.am[s] = 0.6;
+          P.tx[s] = P.px[s] = _v.x; P.ty[s] = P.py[s] = _v.y; P.tz[s] = P.pz[s] = _v.z; P.ox[s] = P.oy[s] = P.oz[s] = P.tox[s] = P.toy[s] = P.toz[s] = 0;
+          const sp = 0.1 + 0.22 * hash1(idx * 5.9); P.vx[s] = ox * sp; P.vz[s] = oz * sp; P.die[s] = H.fadeStart - 1.0 + hash1(idx) * 1.0; made++;
         }
       },
       update(cl, dt, time, cam) {
@@ -269,6 +291,7 @@ export function createHaze(ctx, W, shared) {
         camDirSet(cam);
         let cnt = 0, gmax = 0;
         for (let i = 0; i < n; i++) {
+          if (P.sat[i] === 2 && age < 6) { P.tx[i] += P.vx[i] * dt; P.tz[i] += P.vz[i] * dt; }
           P.px[i] += (P.tx[i] - P.px[i]) * k; P.py[i] += (P.ty[i] - P.py[i]) * k; P.pz[i] += (P.tz[i] - P.pz[i]) * k;
           P.ox[i] += (P.tox[i] - P.ox[i]) * ko; P.oy[i] += (P.toy[i] - P.oy[i]) * ko; P.oz[i] += (P.toz[i] - P.oz[i]) * ko;
           const ta = age - P.t0[i]; if (ta < 0) continue;
@@ -276,12 +299,14 @@ export function createHaze(ctx, W, shared) {
           const fade = 1 - sstep(P.die[i], P.die[i] + 2.4, age); if (fade <= 0.002 || g <= 0.01) continue;
           const sd = P.seed[i], wob = 1 + 0.045 * Math.sin(age * 0.8 + sd * 40) ;
           const rise = age > P.die[i] ? (age - P.die[i]) * 0.12 : 0;
-          const x = P.px[i] + P.ox[i] + Math.sin(age * 0.45 + sd * 30) * 0.2, y = P.py[i] + P.oy[i] + rise + Math.sin(age * 0.37 + sd * 50) * 0.14, z = P.pz[i] + P.oz[i] + Math.cos(age * 0.41 + sd * 20) * 0.2;
+          let bx = P.px[i] + P.ox[i], bz = P.pz[i] + P.oz[i];
+          if (P.sat[i] !== 2) { const ang = Math.sin(age * 0.23 + sd * 11) * 0.14 * (1 - 0.5 * P.core[i]), ca = Math.cos(ang), sa = Math.sin(ang), rx = bx - cl.centre.x, rz = bz - cl.centre.z; bx = cl.centre.x + rx * ca - rz * sa; bz = cl.centre.z + rx * sa + rz * ca; }
+          const x = bx + Math.sin(age * 0.45 + sd * 30) * 0.2, y = P.py[i] + P.oy[i] + rise + Math.sin(age * 0.37 + sd * 50) * 0.14, z = bz + Math.cos(age * 0.41 + sd * 20) * 0.2;
           const R = P.rad[i] * g * wob * (0.8 + 0.2 * fade);
           const j = cnt++; P.key[j] = (x - camPos.x) * camDir.x + (y - camPos.y) * camDir.y + (z - camPos.z) * camDir.z;
           // stash into scratch slots of the sorted buffers (unsorted first)
           scratch[j * 8] = x; scratch[j * 8 + 1] = y; scratch[j * 8 + 2] = z; scratch[j * 8 + 3] = R;
-          scratch[j * 8 + 4] = sd; scratch[j * 8 + 5] = P.core[i]; scratch[j * 8 + 6] = Math.min(1, g * 2.5) * fade; scratch[j * 8 + 7] = P.sv[i];
+          scratch[j * 8 + 4] = sd; scratch[j * 8 + 5] = P.core[i]; scratch[j * 8 + 6] = Math.min(1, g * 2.5) * fade * P.am[i]; scratch[j * 8 + 7] = P.sv[i];
           if (R > gmax) gmax = R;
         }
         for (let j = 0; j < cnt; j++) order[j] = j;
@@ -290,12 +315,12 @@ export function createHaze(ctx, W, shared) {
         for (let q = 0; q < cnt; q++) { const s = order[q] * 8, o = q * 4; a[o] = scratch[s]; a[o + 1] = scratch[s + 1]; a[o + 2] = scratch[s + 2]; a[o + 3] = scratch[s + 3]; b[o] = scratch[s + 4]; b[o + 1] = scratch[s + 5]; b[o + 2] = scratch[s + 6]; b[o + 3] = scratch[s + 7]; }
         iA.needsUpdate = iB.needsUpdate = true; geo.instanceCount = cnt; mesh.visible = cnt > 0;
         // uniforms
-        u.uTime.value = time + cl.id * 7.3; u.uCenter.value.copy(cl.centre); u.uCloudR.value = Math.max(1.5, cl.radius);
+        u.uTime.value = time + cl.id * 7.3; u.uFloorY.value = cl.floorY; u.uCenter.value.copy(cl.centre); u.uCloudR.value = Math.max(1.5, cl.radius);
         u.uCamPos.value.copy(camPos);
         const wa = u.uWA.value, wb = u.uWB.value, wc = u.uWC.value; let wi = 0;
         for (let q = 0; q < cl.wakes.length && wi < 8; q++) {
           const w = cl.wakes[q]; if (w.visualOnly && false) continue; const amt = w.strength * w.amt(cl.age); if (amt <= 0.001) continue;
-          wa[wi].set(w.ox, w.oy, w.oz, w.len); wb[wi].set(w.dx, w.dy, w.dz, 0); wc[wi].set(w.radius(cl.age), amt); wi++;
+          wa[wi].set(w.ox, w.oy, w.oz, w.len); wb[wi].set(w.dx, w.dy, w.dz, w.ph); wc[wi].set(w.radius(cl.age), amt); wi++;
         }
         u.uWN.value = wi;
         // glow (flash/pulse lighting the cloud)

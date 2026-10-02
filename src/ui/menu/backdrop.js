@@ -189,7 +189,7 @@ export function createBackdrop(ctx) {
       const w = 3 + rand() * 7, h = L.h[0] + rand() * (L.h[1] - L.h[0]), x = (rand() - .5) * L.spread, d = 3 + rand() * 6;
       const m = new THREE.Mesh(track(new THREE.BoxGeometry(w, h, d)), mat); m.position.set(x, h / 2 - 1, L.z + rand() * 6); skyline.add(m);
       const rows = Math.min(6, Math.floor(h / 4));
-      for (let r = 0; r < rows && wi < winCount; r++) if (rand() > .45) {
+      for (let r = 0; r < rows && wi < winCount; r++) if (false) {
         dummy.position.set(x + (rand() - .5) * (w - 1.2), 1 + r * 3.6 + rand() * 1.5, m.position.z + d / 2 + .02); dummy.scale.set(.7, .42, 1); dummy.updateMatrix();
         wins.setMatrixAt(wi, dummy.matrix); col.setHex(rand() > .5 ? 0xffb066 : 0x66d8ff).multiplyScalar(.7 + rand() * .6); wins.setColorAt(wi, col); wi++;
       }
@@ -198,15 +198,15 @@ export function createBackdrop(ctx) {
   wins.count = wi; wins.instanceMatrix.needsUpdate = true; if (wins.instanceColor) wins.instanceColor.needsUpdate = true; skyline.add(wins);
 
   // beacon ring gate behind the athletes
-  const gate = new THREE.Group(); gate.position.set(0, 3.2, -9); scene.add(gate);
+  const gate = new THREE.Group(); gate.position.set(.6, 2.8, -8); scene.add(gate);
   const ringMat = (c, i) => track(new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: i, roughness: .5, toneMapped: false }));
-  const ringA = new THREE.Mesh(track(new THREE.TorusGeometry(5.2, .07, 8, 96, Math.PI)), ringMat(EMBER, 3)); ringA.rotation.z = -Math.PI / 2 + 0; gate.add(ringA);
-  const ringB = new THREE.Mesh(track(new THREE.TorusGeometry(5.2, .07, 8, 96, Math.PI)), ringMat(TIDE, 3)); ringB.rotation.z = Math.PI / 2; gate.add(ringB);
-  const ringC = new THREE.Mesh(track(new THREE.TorusGeometry(4.4, .025, 6, 96)), ringMat(0xffffff, 1.4)); gate.add(ringC);
-  const ringD = new THREE.Mesh(track(new THREE.TorusGeometry(6.4, .02, 6, 128)), ringMat(0x7fa8c8, .9)); gate.add(ringD);
+  const ringA = new THREE.Mesh(track(new THREE.TorusGeometry(3.7, .04, 8, 96, Math.PI)), ringMat(EMBER, 2.2)); ringA.rotation.z = -Math.PI / 2 + 0; gate.add(ringA);
+  const ringB = new THREE.Mesh(track(new THREE.TorusGeometry(3.7, .04, 8, 96, Math.PI)), ringMat(TIDE, 2.2)); ringB.rotation.z = Math.PI / 2; gate.add(ringB);
+  const ringC = new THREE.Mesh(track(new THREE.TorusGeometry(3.1, .02, 6, 96)), ringMat(0xffffff, .9)); gate.add(ringC);
+  const ringD = new THREE.Mesh(track(new THREE.TorusGeometry(4.5, .015, 6, 128)), ringMat(0x7fa8c8, .5)); gate.add(ringD);
   const ticks = new THREE.Group(); gate.add(ticks);
   const tickGeo = track(new THREE.BoxGeometry(.06, .5, .06));
-  for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2; const tk = new THREE.Mesh(tickGeo, ringMat(i % 4 === 0 ? 0xffffff : 0x4a6a88, i % 4 === 0 ? 1.6 : .5)); tk.position.set(Math.cos(a) * 5.75, Math.sin(a) * 5.75, 0); tk.rotation.z = a; ticks.add(tk); }
+  for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2; const tk = new THREE.Mesh(tickGeo, ringMat(i % 4 === 0 ? 0xffffff : 0x4a6a88, i % 4 === 0 ? 1.6 : .5)); tk.position.set(Math.cos(a) * 4.1, Math.sin(a) * 4.1, 0); tk.rotation.z = a; ticks.add(tk); }
 
   // floor: reflective polished deck + emissive grid + team pads
   const floorBase = new THREE.Mesh(track(new THREE.CircleGeometry(80, 48)), track(new THREE.MeshStandardMaterial({ color: 0x080c14, roughness: .25, metalness: .7 })));
@@ -245,15 +245,15 @@ export function createBackdrop(ctx) {
   // light shafts
   const shaftMat = track(new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
-    uniforms: { c: { value: new THREE.Color(0xffa060) }, a: { value: .16 }, t: { value: 0 } },
+    uniforms: { c: { value: new THREE.Color(0xffa060) }, a: { value: .08 }, t: { value: 0 } },
     vertexShader: 'varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }',
-    fragmentShader: 'varying vec2 vU; uniform vec3 c; uniform float a, t; void main(){ float e = smoothstep(0.,.5,vU.x)*smoothstep(1.,.5,vU.x); float f = smoothstep(0.,.15,vU.y)*smoothstep(1.,.3,vU.y); float fl = .8+.2*sin(t*.7+vU.x*9.); gl_FragColor = vec4(c*e*f*a*fl, 1.); }',
+    fragmentShader: 'varying vec2 vU; uniform vec3 c; uniform float a, t; void main(){ float e = pow(smoothstep(0.,.5,vU.x)*smoothstep(1.,.5,vU.x), 1.6); float f = smoothstep(0.,.35,vU.y)*smoothstep(1.,.5,vU.y); float fl = .8+.2*sin(t*.7+vU.x*9.); gl_FragColor = vec4(c*e*f*a*fl, 1.); }',
   }));
   const shafts = new THREE.Group(); scene.add(shafts);
   const shaftGeo = track(new THREE.PlaneGeometry(1, 1));
   for (let i = 0; i < 7; i++) {
     const m = new THREE.Mesh(shaftGeo, i % 3 === 0 ? track(shaftMat.clone()) : shaftMat);
-    if (m.material !== shaftMat) { m.material.uniforms = { c: { value: new THREE.Color(TIDE) }, a: { value: .1 }, t: { value: 0 } }; }
+    if (m.material !== shaftMat) { m.material.uniforms = { c: { value: new THREE.Color(TIDE) }, a: { value: .05 }, t: { value: 0 } }; }
     const w = 1.2 + rand() * 2.4; m.scale.set(w, 22, 1); m.position.set(-8 + i * 3 + rand() * 2, 8, -6 - rand() * 4); m.rotation.z = -.5 + rand() * .15; m.userData.s = rand() * 6; shafts.add(m);
   }
 
@@ -288,14 +288,14 @@ export function createBackdrop(ctx) {
   // athletes
   const heroes = [];
   const layout = [
-    { team: 'tide', x: -1.4, z: .35, yaw: .95, h: 1.86, variant: 0 },
-    { team: 'tide', x: -.48, z: .9, yaw: .8, h: 1.76, variant: 1 },
-    { team: 'ember', x: .48, z: .9, yaw: -.8, h: 1.8, variant: 2 },
-    { team: 'ember', x: 1.4, z: .35, yaw: -.95, h: 1.9, variant: 1 },
-    { team: 'tide', x: -3.4, z: -2.4, yaw: .6, h: 1.82, variant: 2, back: true },
-    { team: 'ember', x: 3.4, z: -2.4, yaw: -.6, h: 1.82, variant: 0, back: true },
-    { team: 'tide', x: -5.2, z: -5, yaw: .3, h: 1.8, variant: 1, back: true },
-    { team: 'ember', x: 5.2, z: -5, yaw: -.3, h: 1.8, variant: 1, back: true },
+    { team: 'tide', x: -1.4, z: .35, yaw: .95, h: 1.86, variant: 0, weapon: 'rail' },
+    { team: 'tide', x: -.5, z: .95, yaw: .55, h: 1.76, variant: 1, weapon: 'halo', crouch: 1 },
+    { team: 'ember', x: .5, z: .75, yaw: -.35, h: 1.8, variant: 2, weapon: 'zip' },
+    { team: 'ember', x: 1.45, z: .3, yaw: -1.0, h: 1.9, variant: 1, weapon: 'arc' },
+    { team: 'tide', x: -3.3, z: -2.4, yaw: .9, h: 1.82, variant: 2, weapon: 'lance', back: true },
+    { team: 'ember', x: 3.2, z: -2.2, yaw: -.7, h: 1.82, variant: 0, weapon: 'scatter', back: true },
+    { team: 'tide', x: -5.0, z: -5, yaw: .4, h: 1.8, variant: 1, weapon: 'pip', back: true },
+    { team: 'ember', x: 5.0, z: -5, yaw: -.5, h: 1.8, variant: 1, weapon: 'twin', back: true },
   ];
   let usingReal = false;
   // Real in-game athletes: spawn detached dummy actors through ctx.characters and re-parent their model roots into this scene.
@@ -305,7 +305,7 @@ export function createBackdrop(ctx) {
     try {
       const a = createActor({ name: 'Showcase' + idx, team: spec.team }); a.pos.set(spec.x, 0, spec.z); a.yaw = Math.PI + spec.yaw; a.alive = true; a.isBot = true; a.cosmetics = { team: spec.team };
       const m = C.spawn(a, { materialise: false }); const root = m?.root; if (!root?.isObject3D) { C.remove?.(a); return null; }
-      m.dbg = { ...(m.dbg || {}), weapon: spec.team === 'ember' ? 'arc' : 'rail' };
+      m.dbg = { ...(m.dbg || {}), weapon: spec.weapon || 'arc', crouch: spec.crouch || 0, pitch: (idx % 3 - 1) * .12 };
       scene.add(root); root.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(root), hgt = box.max.y - box.min.y;
       if (!isFinite(hgt) || hgt < 1.2 || hgt > 3) { C.remove?.(a); return null; }
@@ -355,12 +355,15 @@ export function createBackdrop(ctx) {
   // ---------- state ----------
   const mouse = { x: 0, y: 0, sx: 0, sy: 0 };
   const mood = { name: 'main', x: 0, dim: 0, push: 0, tx: 0, tdim: 0, tpush: 0 };
-  let T = 0, active = false, saved = null, origRender = null;
+  let T = 0, active = false, saved = null, origRender = null, low = !!ctx.params.get('lowfx'), suspended = false, lastT = 0, slow = 0, nFrames = 0;
+  const applyLow = () => { if (reflector) reflector.visible = !low; veil.material.opacity = low ? 1 : (reflector ? .72 : 1); motes.visible = !low; shafts.visible = !low; };
+  applyLow();
   addEventListener('pointermove', (e) => { mouse.x = (e.clientX / innerWidth) * 2 - 1; mouse.y = (e.clientY / innerHeight) * 2 - 1; });
   const look = V(0, 1.2, 0);
 
   function update(dt) {
-    if (!active) return;
+    if (!active || suspended) return;
+    const nowT = performance.now(); if (lastT && !ctx.manualStepping) { const fr = nowT - lastT; if (fr < 1000) { slow = slow * .95 + fr * .05; if (++nFrames > 90 && !low && slow > 70) { low = true; applyLow(); } } } lastT = nowT;
     T += dt;
     mouse.sx += (mouse.x - mouse.sx) * Math.min(1, dt * 2.6); mouse.sy += (mouse.y - mouse.sy) * Math.min(1, dt * 2.6);
     const k = 1 - Math.exp(-dt * 2.2);
@@ -390,7 +393,8 @@ export function createBackdrop(ctx) {
   }
 
   function render() {
-    if (!active) return;
+    if (!active || suspended) return;
+    if (low) { const st = { tm: R.toneMapping, ac: R.autoClear }; R.toneMapping = THREE.ACESFilmicToneMapping; R.autoClear = true; R.setRenderTarget(null); R.render(scene, camera); R.toneMapping = st.tm; R.autoClear = st.ac; camera.aspect = R.domElement.width / R.domElement.height; camera.updateProjectionMatrix(); return; }
     ensureComposer();
     const st = { tm: R.toneMapping, ex: R.toneMappingExposure, ac: R.autoClear };
     R.toneMapping = THREE.ACESFilmicToneMapping; R.autoClear = true;
@@ -400,6 +404,7 @@ export function createBackdrop(ctx) {
 
   const api = {
     free: null,
+    setLow(v) { low = !!v; applyLow(); }, get low() { return low; }, suspend(v) { suspended = !!v; lastT = 0; },
     get active() { return active; },
     get usingReal() { return usingReal; },
     scene, camera,

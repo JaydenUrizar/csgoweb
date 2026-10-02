@@ -1,0 +1,25 @@
+{"piece":"vfx","round":2,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"FP rifle spray. Ours is Arc in a live match (h_f00) vs CS2 t4_028. Our 8-point yellow star flash is about 180px wide and sits on the crosshair, hiding the exact spot being aimed at. CS2 keeps the sightline clear."},
+ {"pair":2,"picked":"ref","truth":"ours","why":"FP engagement at about 25m. Ours is a spectated bot fight (y_f08) vs CS2 t1_020. CS2's coloured mist on the enemy is an unmistakable hit cue. Ours reads well (warm streak, enemy flash, impact rings on the crate) but shows no clear hit confirmation on the body at range."},
+ {"pair":3,"picked":"ref","truth":"ref","why":"Third-person tracer + hit/tag-out. Ours is vfx-lab 'fight' at 0.2s vs CS2 t2_029. Our confetti burst and rings read clearly but look like flat, noisy flecks. CS2's single long tracer and mist are more cohesive and easier to parse."}],
+"winner_overall":"ref","score":6.6,
+"biggest_gap":"FP muzzle flash covers the aim point during automatic fire. Repro: ?test=1&seed=1&match=1&phase=live, combat.debug.give(null,'arc'), hold fire for 1.6s (shots/critic-vfx/h_crop.png, z_f00-03, pair1.png). The Arc muzzle sits about 40px from screen centre. Each shot draws an 8-point star about 180px wide at 960x540, visible on 4 consecutive frames (about 67ms), then a grey smoke puff, also on the crosshair. At 600rpm the target is hidden about 60% of the spray, and the wall impacts at 7.5m can't be seen at all while firing. CS2: the FP flash lasts 1-2 frames, is small and varied, and sits low-right, away from the crosshair. Fix: limit FP flash duration to 1-2 frames, shrink it 40-50% for automatics, clip or offset it away from a central radius of about 60px, and randomise the shape per shot. The muzzle position itself also needs a viewmodel-side check.",
+"other_gaps":[
+ "Hit confirmation on bodies at range is still weak in real play: in a spectated bot fight at about 25m (y_zoom.png), you see small warm sparks and white impact rings on cover but no clear tagger-coloured mist on the victim. I could not reproduce the new bodySpark in-map (pinned bots took 0 hits), so it remains unverified outside the lab.",
+ "Bullet-hole decals: rows of dark holes are readable on the brick floor (w_post05/w_post3). On dark or teal surfaces the bright rim turns them into glowing white 'o' rings (y_zoom.png), which looks like a sticker and adds clutter after a spray. Tone the rim down to brief heat that cools to dark within about 0.3s.",
+ "Large opaque white square and disc flecks, 15-25px, hang near the camera when teammates run or land within 1-3m during a spray (e_s2.png f24 to post2, e_s3.png). They look like paper confetti or UI noise. The source is probably the footstep or land puff chip shapes. Make near-camera flecks smaller and fade them by camera distance.",
+ "Incoming near-miss tracers widen into a cyan cone about 250px wide near the camera on the last frame (d_in.png frame 5). It reads well, but cap the screen width so it doesn't flash over the view.",
+ "The tag-out confetti (lab 'fight') is noisy: dozens of flat multicolour flecks plus floor rings per target. It reads well but lacks cohesion next to CS2's single, clean mist.",
+ "Firing a rifle raises renderer calls from 113 to 155 (+42) during a spray, back to 113 0.5s later. I could not attribute this to vfx (it may be viewmodel shells), but it should be checked."],
+"bugs":[
+ "Not vfx (map/collision): Arc rounds hit an invisible surface about 7.5m ahead, behind the hanging banner in spawn, so impact decals end up hidden behind the banner (z_zoom.png, impact projections in the f6 log).",
+ "Not vfx (player): spectating a bot still draws the local player's own pistol viewmodel (y_s.png, c_sheet.png), and the camera swings on spectate.",
+ "No console errors in any run."],
+"strengths":[
+ "Tracers fixed since R1: outgoing and incoming shots now read as saturated, tagger-coloured HDR streaks for 3-4 frames, and the incoming comet is readable (d_in.png, y_f08).",
+ "Distant enemy muzzle flash at about 25m is a small, crisp, readable star (y_zoom.png).",
+ "Impacts: the hot flash, then ring, then dust puff timing is good (lab impact-tile). Floor bullet holes stay readable for seconds.",
+ "Cheap: vfx.update averages 0.03-0.06ms during a spray (max 0.7-4.9ms spikes on a heavily loaded swiftshader host).",
+ "No console errors."],
+"pass":false}

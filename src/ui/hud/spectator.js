@@ -17,7 +17,8 @@ export const css = `
 .spec .hint{margin-top:8px;display:flex;justify-content:center;gap:22px;font:600 14px/16px var(--font);letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.72);text-shadow:0 1px 2px #000}
 .spec .hint span{display:inline-flex;align-items:center;gap:6px}.spec .hint svg{width:13px;height:13px}
 .spec .hint kbd{font:700 12px/16px var(--font);padding:0 6px;border-radius:3px;background:#eef1f6;color:#141a26;box-shadow:0 2px 0 #7b8494}
-.spec .out{position:absolute;left:0;right:0;top:-34px;text-align:center;font:700 16px/18px var(--font);letter-spacing:.22em;color:#ffb9ad;text-transform:uppercase;text-shadow:0 1px 3px #000}
+.spec .out{position:absolute;left:50%;top:-38px;transform:translateX(-50%);padding:3px 14px;border-radius:3px;text-align:center;font:700 16px/20px var(--font);letter-spacing:.2em;color:#fff;background:rgba(176,24,34,.94);box-shadow:0 0 0 1px rgba(255,170,160,.55) inset,0 3px 10px rgba(0,0,0,.5);text-transform:uppercase;white-space:nowrap}
+.spec .out:empty{display:none}
 `;
 
 export function create(H) {
@@ -37,7 +38,7 @@ export function create(H) {
       if (S.name !== v.name + col) { S.name = v.name + col; av.innerHTML = emblem(v.name, col); }
       setNm(v.name); setHp(String(Math.max(0, Math.round(v.hp ?? 0)))); tHb(`scaleX(${clamp((v.hp ?? 0) / 100, 0, 1).toFixed(3)})`);
       const m = H.R.match; const ph = m?.phase;
-      setOut(ph === 'roundEnd' ? 'Round over' : H.local?.alive === false ? 'Tagged out — respawn next round' : '');
+      setOut(ph === 'roundEnd' ? 'Round over' : H.local?.alive === false ? 'Tagged out · respawn next round' : '');
     },
   };
 }

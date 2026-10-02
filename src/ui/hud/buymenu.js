@@ -24,13 +24,13 @@ export const css = `
 .it .hk{position:absolute;left:6px;top:4px;font:700 12px/12px var(--font);color:rgba(255,255,255,.55)}
 .it .nmx{position:absolute;right:6px;top:4px;font:600 13px/13px var(--font);letter-spacing:.03em;color:rgba(255,255,255,.88);text-align:right;white-space:nowrap}
 .it .pr{position:absolute;right:6px;bottom:4px;font:700 14px/14px var(--font);color:#8fe3a0;font-variant-numeric:tabular-nums;letter-spacing:.02em}
-.it .ig{position:absolute;left:12px;right:12px;top:16px;bottom:16px;display:flex;align-items:center;justify-content:center;color:#bcd9ff}
+.it .ig{position:absolute;left:8px;right:8px;top:13px;bottom:14px;display:flex;align-items:center;justify-content:center;color:#d3e6ff}
 .it .ig .ic{height:100%;width:auto;max-width:100%}
 .it .ig .ic-g{height:100%}
 .it .st{position:absolute;left:6px;bottom:4px;display:flex;gap:4px;align-items:center}
 .it .st svg{width:13px;height:13px}
 .it.poor{color:rgba(160,170,190,.55);background:linear-gradient(180deg,rgba(30,36,48,.55),rgba(22,26,36,.55))}
-.it.poor .ig{color:rgba(150,160,180,.35)}.it.poor .pr{color:#ff8b7a}.it.poor .nmx{color:rgba(190,198,214,.5)}
+.it.poor .ig{color:rgba(178,190,214,.5)}.it.poor .pr{color:#ff8b7a}.it.poor .nmx{color:rgba(190,198,214,.5)}
 .it.lock{opacity:.5}.it.lock .ig{color:rgba(150,160,180,.3)}.it.lock .pr{color:rgba(255,255,255,.4)}
 .it.owned{box-shadow:0 0 0 1px rgba(143,227,160,.7) inset}
 .it.eq{box-shadow:0 0 0 1.5px #ffd25a inset}
@@ -100,6 +100,7 @@ export function create(H) {
       c.items.forEach((it, ii) => {
         const el = h('div', 'it', col, `<span class="hk">${ii + 1}</span><span class="nmx">${it.name || NAMES[it.id] || it.id}</span><div class="ig">${icon(it.id)}</div><span class="pr">${fmtMoney(it.cost)}</span><span class="st"></span><span class="rs"></span><span class="fl"></span>`);
         el.dataset.id = it.id; el.dataset.ci = ci; el.dataset.ii = ii;
+        { const ic = el.querySelector('.ig .ic-w'); const k = catOf(it); if (ic) ic.style.height = ({ pistol: '58%', smg: '80%', util: '84%', gear: '84%' })[k] || '100%'; }
         el.addEventListener('click', () => purchase(it));
         el.addEventListener('mouseenter', () => { S.hover = it; });
         el.addEventListener('mouseleave', () => { if (S.hover === it) S.hover = null; });

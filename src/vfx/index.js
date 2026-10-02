@@ -132,7 +132,7 @@ export function create(ctx) {
   function bodySpark(x, y, z, normal, o) {
     const L = lod(x, y, z); if (L <= 0.2) return;
     basis(normal?.x ?? 0, normal?.y ?? 1, normal?.z ?? 0);
-    const c = lin(o.color ?? 0xbfefff), n = P.n(9 * L), k = distToCam(x, y, z) > 20 ? 1.5 : 1;
+    const c = lin(o.color ?? 0xbfefff), n = P.n(9 * L), k = Math.min(2.6, 1.2 + distToCam(x, y, z) / 22);
     E.reset(); E.pos(x, y, z); E.life = 0.12; E.s0 = 0.22 * k; E.s1 = 0.5 * k; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd() * 3; E.col(1.8 + c[0] * 2.4, 1.8 + c[1] * 2.4, 1.8 + c[2] * 2.4, 1, c[0] * 1.5, c[1] * 1.5, c[2] * 1.5, 0); P.emit(now, E);
     for (let i = 0; i < P.n(4 * L); i++) {                               // soft coloured light-mist (the stylised 'I hit' cue)
       cone(1.0); const sp = 0.6 + rnd() * 1.4;
@@ -161,7 +161,7 @@ export function create(ctx) {
     // light energy ring decal (or ripple)
     if (key === 'glass') decals.add(t, x, y, z, nx, ny, nz, 0.7, 0.1 * sc, 0.65 * sc, DECAL.RIPPLE, rnd(), tint[0] * 1.2 + 0.5, tint[1] * 1.2 + 0.7, tint[2] * 1.2 + 0.8, 1);
     else if (key === 'water') rings.add(t, x, y + 0.01, z, 0, 1, 0, 0.9, 0.08 * sc, 0.75 * sc, DECAL.WATER, rnd(), 0.9, 1, 1, 0.9);
-    else decals.add(t, x, y, z, nx, ny, nz, 24, 0.4 * sc, 0.4 * sc, DECAL.IMPACT, rnd(), 0.8 + tint[0] * 2.2, 0.8 + tint[1] * 2.2, 0.8 + tint[2] * 2.2, 1.0, dust[0] * 0.14, dust[1] * 0.13, dust[2] * 0.12, 0.95);
+    else decals.add(t, x, y, z, nx, ny, nz, 24, 0.4 * sc, 0.4 * sc, DECAL.IMPACT, rnd(), 0.5 + tint[0] * 1.4, 0.5 + tint[1] * 1.4, 0.5 + tint[2] * 1.4, 0.9, dust[0] * 0.14, dust[1] * 0.13, dust[2] * 0.12, 0.95);
     // hot flash
     E.reset(); E.pos(x + nx * 0.03, y + ny * 0.03, z + nz * 0.03); E.life = 0.09; E.s0 = 0.34 * sc; E.s1 = 0.5 * sc; E.shape = S.STAR; E.add = 1; E.fadeIn = 0.0; E.rot = rnd() * 3;
     E.col(2.6 * (0.6 + tint[0] * 0.4), 2.3 * (0.6 + tint[1] * 0.4), 2.1 * (0.6 + tint[2] * 0.4), 0.9, 1, 0.8, 0.6, 0); P.emit(t, E);
@@ -294,14 +294,31 @@ export function create(ctx) {
     if (isView) {
       const vm = ctx.combat?.viewmodel?.muzzle || api.viewMuzzleOverride; if (!vm || !PV) return;
       vm.getWorldPosition(_mp); vm.getWorldDirection(_md).negate();
-      flashAt(PV, _mp, _md, pw * 0.62, warm, true);
-      vmL.t = 0; vmL.life = 0.06; vmL.peak = 1.2 * pw; vmLight.position.copy(_mp).addScaledVector(_md, 0.12); vmLight.color.setRGB(warm[0] * 1.6 + 0.4, warm[1] * 1.1 + 0.2, warm[2] * 0.6);
+      if (api.fpFlash === 'off' || (api.fpFlash === 'auto' && vmod?.muzzleWorld)) return;    // the viewmodel piece draws its own FP flash; avoid doubling
+      const tid = typeof tagger === 'string' ? tagger : tagger?.id, def = ctx.combat?.taggers?.[tid];
+      const auto = !!def && def.cycle < 0.2;
+      viewFlash(_mp, _md, pw, warm, auto);
+      vmL.t = 0; vmL.life = 0.035; vmL.peak = 0.8 * Math.min(pw, 1.2); vmLight.position.copy(_mp).addScaledVector(_md, 0.12); vmLight.color.setRGB(warm[0] * 1.6 + 0.4, warm[1] * 1.1 + 0.2, warm[2] * 0.6);
     } else if (actor) {
       const d = distToCam(actor.pos.x, actor.pos.y, actor.pos.z); if (d > 90) return;
       muzzleWorld(actor, _mp); if (o.dir) _md.copy(o.dir); else actor.forward(_md);
       flashAt(P, _mp, _md, pw * (d > 40 ? 0.8 : 1), warm, false);
       lightPulse(_mp.x + _md.x * 0.3, _mp.y + _md.y * 0.3, _mp.z + _md.z * 0.3, warm[0] * 1.4 + 0.3, warm[1] * 1.0 + 0.15, warm[2] * 0.5, 16 * pw, 8, 0.08);
     }
+  }
+  const _nd = new THREE.Vector3();
+  /** First-person flash: 1-2 frames, small, varied, and pushed away from the screen centre so it never hides the aim point. */
+  function viewFlash(p, d, pw, c, auto) {
+    const t = now, vc = R.viewCamera; let x = p.x, y = p.y, z = p.z;
+    if (vc) {
+      _nd.copy(p).project(vc); const r = Math.hypot(_nd.x, _nd.y), MIN = 0.26;
+      if (r < MIN) { let ux = _nd.x, uy = _nd.y; if (r < 0.02) { ux = 0.8; uy = -0.6; } else { ux /= r; uy /= r; } if (uy > 0.2) uy = -0.2; _nd.x = ux * MIN; _nd.y = uy * MIN; _nd.unproject(vc); x = _nd.x; y = _nd.y; z = _nd.z; }
+    }
+    const k = (auto ? 0.7 : 1.1) * pw * (0.75 + rnd() * 0.5), life = 0.03;
+    E.reset(); E.pos(x, y, z); E.life = life; E.s0 = 0.07 * k; E.s1 = 0.15 * k; E.shape = rnd() < 0.5 ? S.STAR : S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd() * 6.28;
+    E.col(3.2 * (0.75 + c[0] * 0.25), 2.2 * (0.75 + c[1] * 0.25), 1.0 * (0.75 + c[2] * 0.25), 1, 2.0, 0.9, 0.35, 0); PV.emit(t, E);
+    E.reset(); E.pos(x, y, z); E.life = life * 1.3; E.s0 = 0.06 * k; E.s1 = 0.14 * k; E.shape = S.GLOW; E.add = 1; E.fadeIn = 0; E.col(2.2, 1.3, 0.55, 0.6, 1.1, 0.45, 0.12, 0); PV.emit(t, E);
+    if (rnd() < 0.8) { E.reset(); E.pos(x, y, z); const sp = 12 + rnd() * 8; E.vel(d.x * sp + (rnd() - 0.5) * 3, d.y * sp + (rnd() - 0.5) * 3, d.z * sp + (rnd() - 0.5) * 3); E.life = 0.04; E.s0 = 0.02 * k; E.s1 = 0.008; E.stretch = 0.012; E.shape = S.STREAK; E.add = 1; E.fadeIn = 0; E.col(3, 1.8, 0.7, 1, 1.5, 0.5, 0.1, 0); PV.emit(t, E); }
   }
   function flashAt(ps, p, d, pw, c, view) {
     const t = now, k = view ? 1 : 1;
@@ -368,7 +385,7 @@ export function create(ctx) {
     E.reset(); E.pos(x, y, z); E.life = 0.2; E.s0 = 0.4; E.s1 = 1.1 * sc; E.shape = S.GLOW; E.add = 1; E.fadeIn = 0; E.col(0.8 + c[0], 0.8 + c[1], 0.8 + c[2], 0.6, c[0], c[1], c[2], 0); P.emit(now, E);
     E.reset(); E.pos(x, y, z); E.life = 0.14; E.s0 = 0.7; E.s1 = 1.3 * sc; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.col(3.2, 3.2, 3.2, 1, light[0] * 2, light[1] * 2, light[2] * 2, 0); P.emit(now, E);
     rings.add(now, x, gy + 0.03, z, 0, 1, 0, 0.75, 0.3, 1.5, DECAL.PULSE, rnd(), c[0] * 0.8 + 0.3, c[1] * 0.8 + 0.3, c[2] * 0.8 + 0.3, 0.6);
-    lightPulse(x, y + 0.3, z, c[0] * 1.2 + 0.2, c[1] * 1.2 + 0.2, c[2] * 1.2 + 0.2, 22, 10, 0.32);
+    lightPulse(x, y + 0.3, z, c[0] * 1.2 + 0.2, c[1] * 1.2 + 0.2, c[2] * 1.2 + 0.2, 12, 8, 0.28);
     sparkleBurst(x, y, z, c[0], c[1], c[2], 28, 1);
     const nS = (n) => Math.max(4, Math.round(n * shards.scale * Math.max(0.5, L)));
     const emitBody = (kind, n, fn) => {
@@ -385,8 +402,8 @@ export function create(ctx) {
         shards.add(kind, px, py, pz, cx * sp + dx * push, up + hh * 0.5, cz * sp + dz * push, sz * 0.7, sz * 1.5, sz * 0.7, cc[0], cc[1], cc[2], cc === dark ? 0.15 : 0.45, 3 + rnd() * 0.9, -17, 0.15, 0.34, 0, (rnd() - 0.5) * 22, (rnd() - 0.5) * 22, (rnd() - 0.5) * 22, gy, rnd());
       });
     } else if (style === 'confetti') {
-      const pal = [c, light, comp, an1, an2, [1.4, 1.35, 1.1], c];
-      emitBody(KIND.quad, nS(110), (kind, i, px, py, pz, cx, cz, hh) => {
+      const pal = [c, light, c, [1.5, 1.5, 1.5], c, an1];
+      emitBody(KIND.quad, nS(70), (kind, i, px, py, pz, cx, cz, hh) => {
         const sp = 1.6 + rnd() * 3.6, cc = pal[i % pal.length], sz = 0.06 + rnd() * 0.06;
         shards.add(kind, px, py, pz, cx * sp + dx * 1.5, 3.5 + rnd() * 4.5, cz * sp + dz * 1.5, sz, sz * (1.4 + rnd()), 1, cc[0], cc[1], cc[2], 0.55, 3.4 + rnd() * 1.4, -5.5, 2.6, 0.1, 5.5, (rnd() - 0.5) * 16, (rnd() - 0.5) * 16, (rnd() - 0.5) * 16, gy, rnd());
       });
@@ -654,7 +671,7 @@ export function create(ctx) {
   // ---- public API ---------------------------------------------------------------------------------------------------
   const api = {
     particles: P, longParticles: PL, viewParticles: PV, decals, rings, tracers, ambient, beacon, screenFx: screen,
-    spec: () => new Spec(), get now() { return now; }, SHAPE, DECAL, autoHaze: true, characterDriven: true, autoUtility: () => { const u = ctx.combat?.utility; return !u || u.__stub || u.selfFx === false; }, lightPulse, glint, sparkleBurst,
+    spec: () => new Spec(), get now() { return now; }, SHAPE, DECAL, autoHaze: true, fpFlash: 'auto', characterDriven: true, autoUtility: () => { const u = ctx.combat?.utility; return !u || u.__stub || u.selfFx === false; }, lightPulse, glint, sparkleBurst,
     tracer(from, to, color, style, o) {
       if (o == null && typeof style === 'object' && style) { o = style; style = o.style; }
       // combat passes the tagger id as `style` (e.g. 'arc'): resolve to that tagger's look

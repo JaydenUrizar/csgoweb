@@ -43,7 +43,7 @@ void main() {
   // foreshortened (near-axial) tracers: widen into a hot blob so they still read
   float axial = length(ax.xy) / max(length(ax), 1e-4);
   float blob = 1.0 + (1.0 - smoothstep(0.1, 0.5, axial)) * 1.8;
-  float hw = max(w * 0.5, minW * 0.5) * blob;
+  float hw = min(max(w * 0.5, minW * 0.5) * blob, uPx * max(-pv.z, 0.1) * 45.0);   // cap ~90px wide
   float thin = clamp(w / max(minW, 1e-5), 0.8, 1.0);
   pv += side * corner.x * hw;
   float nearFade = smoothstep(uNear * 0.3, uNear, -pv.z);

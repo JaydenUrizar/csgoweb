@@ -18,7 +18,7 @@ export function createTutorial(ctx, A) {
   const next = h('button', { onClick: () => advance() }, 'Next step');
   const el = h('div', { class: 'fx-card fx-tut', hidden: true, 'aria-live': 'polite' },
     h('div', { class: 'hd' }, h('span', null, 'Training'), stepName, stepDots),
-    title, text, keys, h('div', { class: 'bar' }, fill), h('div', { class: 'ft' }, hint, h('span', { style: { display: 'flex', gap: '1rem' } }, next, skip)));
+    title, text, keys, h('div', { class: 'bar' }, fill), h('div', { class: 'ft' }, hint, h('span', { style: { display: 'flex', gap: 'calc(1*var(--u))' } }, next, skip)));
   const off = [];
   const mine = (d) => !d?.actor || d.actor === ctx.localActor;
   function bind() {
@@ -33,9 +33,9 @@ export function createTutorial(ctx, A) {
   function render() {
     const s = steps[S.i]; if (!s) return;
     el.classList.remove('done', 'ok'); el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
-    stepName.textContent = `· ${S.i + 1}/${steps.length} ${s.name}`; stepName.style.marginLeft = '.3rem'; stepName.style.color = 'var(--mute)';
+    stepName.textContent = `· ${S.i + 1}/${steps.length} ${s.name}`; stepName.style.marginLeft = 'calc(.3*var(--u))'; stepName.style.color = 'var(--mute)';
     title.textContent = s.title; text.textContent = s.text; hint.textContent = s.hint; fill.style.width = '0%';
-    keys.replaceChildren(...s.keys().flatMap((grp, i) => [...(i ? [h('span', { style: { margin: '0 .3rem' } }, '·')] : []), ...grp.map((k) => h('span', { class: 'fx-key' }, k))]));
+    keys.replaceChildren(...s.keys().flatMap((grp, i) => [...(i ? [h('span', { style: { margin: '0 calc(.3*var(--u))' } }, '·')] : []), ...grp.map((k) => h('span', { class: 'fx-key' }, k))]));
     [...stepDots.children].forEach((d, i) => { d.className = i < S.i ? 'd' : i === S.i ? 'c' : ''; });
     next.textContent = S.i === steps.length - 1 ? 'Finish' : 'Next step (N)';
   }
@@ -63,6 +63,7 @@ export function createTutorial(ctx, A) {
     debugFinish() { finish(); },
     update(dt) {
       if (!S.active) return;
+      const ph = ctx.match?.phase; el.style.visibility = (ph === 'roundEnd' || ph === 'matchEnd' || ph === 'halftime') ? 'hidden' : '';
       if (S.i >= steps.length) { S.finishT -= dt; if (S.finishT <= 0) api.stop(); return; }
       const a = ctx.localActor; const s = steps[S.i]; if (!a) return;
       const dx = a.pos.x - S.lastX, dz = a.pos.z - S.lastZ, d = Math.hypot(dx, dz); if (d < 2) S.dist += d; S.lastX = a.pos.x; S.lastZ = a.pos.z;

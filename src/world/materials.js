@@ -13,7 +13,7 @@ export function makeMaterials(ctx, T, atlas) {
   const M = {};
   for (const k of TEXTURED) {
     const m = flat(); m.map = T[k] || null; m.vertexColors = true; m.needsUpdate = true; m.name = 'map-' + k;
-    if (k === 'metal' || k === 'ribbed' || k === 'deck') { if ('roughness' in m) m.roughness = 0.6; if ('metalness' in m) m.metalness = 0.25; }
+    if (k === 'metal' || k === 'ribbed' || k === 'deck') { if ('roughness' in m) m.roughness = 0.6; if ('metalness' in m) m.metalness = 0.0; }
     if (k === 'tile') { if ('roughness' in m) m.roughness = 0.45; }
     M[k] = m;
   }

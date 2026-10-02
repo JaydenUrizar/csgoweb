@@ -17,3 +17,6 @@ Soft-particle depth path implemented but needs `ctx.render.depthTexture` (call `
 ## Round 2
 Tracers rebuilt: >=5px quad (~2-3px hot core), HDR x3.2, saturated tagger colour with white core, longer streaks (len 5-20 m), foreshortened (incoming) tracers widen to a blob, min lifetime 0.11 s. Impacts: tagger-coloured streak spray, bigger flash/ring, dark bullet-hole decal (24 s, fades last 30%). Tag-hit: coloured light-mist + streaks (`bodySpark`). Shatter handler (`character:shatter(ed)`) is flash+light+sparkles only; floor rings capped 1.5 m. Shaders pre-warmed on boot:done. vfx.update CPU: idle 0.005 ms, stress max 2.5 ms (lab 'fight' x2 + shards).
 Inspect: `node tools/vfx_sheet.mjs tracer-volley impact-tile --times 0.017,0.05,0.1`.
+
+## Round 3
+FP muzzle flash: viewmodel piece draws its own (see docs/requests/viewmodel-from-vfx-1.md); vfx skips FP flash when `viewmodel.muzzleWorld` exists (`ctx.vfx.fpFlash='auto'|'on'|'off'`); vfx's own FP flash is 0.03 s, half size for autos, pushed >= 0.26 NDC from centre. Bullet-hole rim now brief neutral heat (0.3 s) then dark hole. Solid flecks (chip/diamond/disc/dot) shrink and fade near the camera. Incoming tracer width capped ~90 px. Confetti palette tightened (team/white). bodySpark scales with distance. Lab: `muzzle-view`, `hitping`, `shards-confetti`.

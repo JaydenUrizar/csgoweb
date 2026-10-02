@@ -50,9 +50,17 @@ export function create(H) {
     // erase labels / site letters by known bounding boxes
     const toPx = (x, z) => [(x - rect.minX) / (rect.maxX - rect.minX) * w, (z - rect.minZ) / (rect.maxZ - rect.minZ) * hh];
     const pxm = w / (rect.maxX - rect.minX);                       // processed px per metre
-    const box = (cx, cz, hw, hh2) => { const [px, py] = toPx(cx, cz); for (let y = Math.max(0, Math.floor(py - hh2)); y <= Math.min(hh - 1, Math.ceil(py + hh2)); y++) for (let x = Math.max(0, Math.floor(px - hw)); x <= Math.min(w - 1, Math.ceil(px + hw)); x++) mask[y * w + x] = 1; };
-    for (const co of (map?.callouts || [])) { const p = co.pos; if (!p || !co.name) continue; box(p.x, p.z, (co.name.length * 1.7 * 0.62 / 2 + 0.6) * pxm, 1.6 * pxm); }
+    const box = (cx, cz, hw, hh2) => {
+      const [px, py] = toPx(cx, cz); const x0 = Math.max(1, Math.floor(px - hw)), x1 = Math.min(w - 2, Math.ceil(px + hw)), y0 = Math.max(1, Math.floor(py - hh2)), y1 = Math.min(hh - 2, Math.ceil(py + hh2));
+      let ring = 0, on = 0; for (let x = x0 - 1; x <= x1 + 1; x++) for (const y of [y0 - 1, y1 + 1]) { ring++; on += open[y * w + x]; } for (let y = y0; y <= y1; y++) for (const x of [x0 - 1, x1 + 1]) { ring++; on += open[y * w + x]; }
+      const plate = ring > 0 && on / ring > 0.8;      // label sits on a dark plate fully surrounded by floor: fill it in
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const i = y * w + x; if (plate) open[i] = 1; mask[i] = 1; }
+    };
+    for (const co of (map?.callouts || [])) { const p = co.pos; if (!p || !co.name) continue; box(p.x, p.z, (co.name.length * 1.7 * 0.66 / 2 + 1.4) * pxm, 1.9 * pxm); }
     for (const k of Object.keys(map?.sites || {})) { const c = map.sites[k].center; if (c) box(c.x, c.z, 4.6 * pxm, 4.6 * pxm); }
+    // text strokes are much lighter than any floor tone: mask (and dilate) them too, wherever they are
+    { const hi = new Uint8Array(N); for (let i = 0; i < N; i++) if (open[i] && lum[i] > 166) hi[i] = 1;
+      for (let y = 1; y < hh - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; if (hi[i] || hi[i - 1] || hi[i + 1] || hi[i - w] || hi[i + w] || hi[i - w - 1] || hi[i - w + 1] || hi[i + w - 1] || hi[i + w + 1]) mask[i] = 1; } }
     // diffuse neighbours into masked open pixels
     let remaining = 0; for (let i = 0; i < N; i++) { if (mask[i] && !open[i]) mask[i] = 0; if (mask[i]) remaining++; }
     for (let it = 0; it < 40 && remaining > 0; it++) {
@@ -65,6 +73,20 @@ export function create(H) {
       if (!upd.length) break;
       for (let k = 0; k < upd.length; k += 2) { lum[upd[k]] = upd[k + 1]; mask[upd[k]] = 0; remaining--; }
     }
+    for (let i = 0; i < N; i++) if (mask[i]) { open[i] = 0; mask[i] = 0; }   // label pixels over solid rock: drop
+    // morphological opening (3x3 erode + dilate) removes strokes <= 2 px: antialiased glyph residue over rock
+    { const er = new Uint8Array(N);
+      for (let y = 1; y < hh - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; er[i] = open[i] && open[i - 1] && open[i + 1] && open[i - w] && open[i + w] && open[i - w - 1] && open[i - w + 1] && open[i + w - 1] && open[i + w + 1] ? 1 : 0; }
+      const di = new Uint8Array(N);
+      for (let y = 1; y < hh - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; di[i] = er[i] || er[i - 1] || er[i + 1] || er[i - w] || er[i + w] || er[i - w - 1] || er[i - w + 1] || er[i + w - 1] || er[i + w + 1] ? 1 : 0; }
+      for (let i = 0; i < N; i++) open[i] = open[i] && di[i] ? 1 : 0; }
+    // drop tiny islands (leftover glyph fragments)
+    { const seen = new Uint8Array(N), stack = new Int32Array(N); const minA = Math.max(30, Math.round(9 * pxm * pxm * 0.25));
+      for (let s0 = 0; s0 < N; s0++) {
+        if (!open[s0] || seen[s0]) continue; let sp = 0, cnt = 0; const comp = []; stack[sp++] = s0; seen[s0] = 1;
+        while (sp) { const i = stack[--sp]; cnt++; comp.push(i); const x = i % w; if (x > 0 && open[i - 1] && !seen[i - 1]) { seen[i - 1] = 1; stack[sp++] = i - 1; } if (x < w - 1 && open[i + 1] && !seen[i + 1]) { seen[i + 1] = 1; stack[sp++] = i + 1; } if (i >= w && open[i - w] && !seen[i - w]) { seen[i - w] = 1; stack[sp++] = i - w; } if (i < N - w && open[i + w] && !seen[i + w]) { seen[i + w] = 1; stack[sp++] = i + w; } }
+        if (cnt < minA) for (const i of comp) open[i] = 0;
+      } }
     // ink
     const out = tg.createImageData(w, hh), o = out.data;
     for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) {

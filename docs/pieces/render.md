@@ -78,3 +78,10 @@ Inspect: `?test=1&seed=1&scene=render-gallery`, `?scene=render-fx` (`__game.ctx.
 * **Sky occlusion / interior ambient** (`src/render/skyocc.js`): after `ctx.map` exists, render bakes a 0.75 m grid over `ctx.map.bounds` (uses `map.raycast/heightAt/visible/lamps`) with sky openness, ceiling height and lamp pools. A global hook on `THREE.Material.prototype.onBeforeCompile` scales indirect light for every lit material under a ceiling (darker, warmer, lamp pools). No map changes needed. Toggle: `render.debug.toggle('skyocc', bool)`; tune `render.debug.skyOcc.U.uSkyOccMin / uLampK / uSkyWarm`.
 * Grade: shadows desaturated + slight cool split-tone, contrast 1.14, sat 1.06. Real-map check: `node shots/render/views.mjs prefix "mid,b-tunnel,hub-arches"`.
 * Mid-doors: door leaves were black only because they were in direct shadow under the arch with ambient ~0; now lit by the occluded-but-floored ambient (min 0.34).
+
+## Round 3 changes
+* Exposure 0.86, env 0.46, hemi 0.16, brighter warm env horizon/ground, toe lift (+0.045), vignette 0.10, contrast 1.2, brighter cleaner sky/horizon.
+* SSAO was never running (`S.ao` typo) - now active (radius 1.2, intensity 0.8, max 0.7 darkening); toggling changes ~4-8% of pixels by >20 levels.
+* Global hook also adds world-space macro/micro value variation + roughness variation to every lit material (breaks up flat floors).
+* Damage effect: directional edge pulse (pow 3 around hit direction), faster decay, smaller CA.
+* Stats tool: `node shots/render/game.mjs <prefix>` (11 real-match HUD-off frames) then `python3 shots/render/stats.py shots/render/<prefix>_*.png` (mine: median ~0.47, p5 ~0.15, dark<0.06 ~1%; CS2 refs `reference/cs2/ss_*.jpg`: median 0.42, p5 0.18, dark 0.6%).

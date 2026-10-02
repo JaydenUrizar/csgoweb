@@ -23,63 +23,63 @@ const DARK = 0x262932, DARK2 = 0x1a1c21, VEST = 0x2c303a, PLATE = 0x3b404d, SOLE
 function baseParts() {
   const P = [];
   const add = (pts, bone, role, color, ao) => P.push(part(pts, bone, role, color, ao));
-  // ---- pelvis / hips
-  add(place(boxP(0.36, 0.17, 0.25, 0.035, 0.38, 0.26), { y: 0.945 }), B.pelvis, 'suit');
-  add(place(boxP(0.41, 0.07, 0.28, 0.02), { y: 1.03 }), B.pelvis, 'dark', DARK2);
-  add(place(boxP(0.09, 0.05, 0.03, 0.01), { y: 1.03, z: -0.148 }), B.pelvis, 'accent');
-  for (const s of [-1, 1]) add(place(boxP(0.07, 0.11, 0.13, 0.02), { x: s * 0.225, y: 0.94, z: 0.02 }), B.pelvis, 'dark', DARK);
+  // ---- pelvis / hips (bulkier: reads at 30 m)
+  add(place(boxP(0.40, 0.18, 0.27, 0.04, 0.42, 0.28), { y: 0.945 }), B.pelvis, 'suit');
+  add(place(boxP(0.45, 0.075, 0.30, 0.02), { y: 1.035 }), B.pelvis, 'dark', DARK2);
+  add(place(boxP(0.10, 0.055, 0.03, 0.01), { y: 1.035, z: -0.16 }), B.pelvis, 'accent');
+  for (const s of [-1, 1]) add(place(boxP(0.08, 0.12, 0.15, 0.02), { x: s * 0.245, y: 0.94, z: 0.02 }), B.pelvis, 'dark', DARK);
   // ---- waist
-  add(place(boxP(0.33, 0.2, 0.23, 0.04, 0.38, 0.25), { y: 1.13 }), B.spine, 'suit');
+  add(place(boxP(0.37, 0.2, 0.25, 0.04, 0.43, 0.27), { y: 1.13 }), B.spine, 'suit');
   // ---- chest: tag-vest, plate, emblem, yoke, pack, back band
-  add(place(boxP(0.42, 0.30, 0.29, 0.05, 0.52, 0.31), { y: 1.375 }), B.chest, 'dark', VEST);
-  add(place(boxP(0.30, 0.20, 0.05, 0.02, 0.34, 0.05), { y: 1.395, z: -0.165 }), B.chest, 'dark', PLATE);
-  for (const s of [-1, 1]) add(place(boxP(0.075, 0.03, 0.014, 0.004), { x: s * 0.038, y: 1.42, z: -0.196, rz: -s * 0.55, s: 1 }), B.chest, 'team');
-  add(place(boxP(0.03, 0.05, 0.014, 0.004), { y: 1.365, z: -0.196 }), B.chest, 'team');
-  add(place(boxP(0.56, 0.07, 0.28, 0.03, 0.5, 0.26), { y: 1.5 }), B.chest, 'suit');
-  add(place(boxP(0.30, 0.32, 0.13, 0.03), { y: 1.36, z: 0.21 }), B.chest, 'dark', DARK);
-  add(place(boxP(0.33, 0.045, 0.02, 0.005), { y: 1.445, z: 0.281 }), B.chest, 'team');
-  add(place(boxP(0.035, 0.22, 0.02, 0.005), { y: 1.335, z: 0.281 }), B.chest, 'team');
+  add(place(boxP(0.46, 0.31, 0.32, 0.055, 0.60, 0.34), { y: 1.375 }), B.chest, 'dark', VEST);
+  add(place(boxP(0.34, 0.21, 0.05, 0.02, 0.38, 0.05), { y: 1.395, z: -0.185 }), B.chest, 'dark', PLATE);
+  for (const s of [-1, 1]) add(place(boxP(0.085, 0.034, 0.014, 0.004), { x: s * 0.042, y: 1.42, z: -0.216, rz: -s * 0.55 }), B.chest, 'team');
+  add(place(boxP(0.034, 0.055, 0.014, 0.004), { y: 1.365, z: -0.216 }), B.chest, 'team');
+  add(place(boxP(0.64, 0.075, 0.30, 0.03, 0.56, 0.28), { y: 1.5 }), B.chest, 'suit');
+  add(place(boxP(0.34, 0.34, 0.14, 0.03), { y: 1.36, z: 0.235 }), B.chest, 'dark', DARK);
+  add(place(boxP(0.37, 0.05, 0.02, 0.005), { y: 1.445, z: 0.312 }), B.chest, 'team');
+  add(place(boxP(0.04, 0.24, 0.02, 0.005), { y: 1.335, z: 0.312 }), B.chest, 'team');
   for (const s of [-1, 1]) {
-    add(place(sphereP(0.125, 0.085, 0.135, 0), { x: s * 0.315, y: 1.475 }), B.chest, 'suit');
-    add(place(boxP(0.014, 0.05, 0.10, 0.004), { x: s * 0.437, y: 1.465 }), B.chest, 'team');
+    add(place(sphereP(0.14, 0.095, 0.15, 0), { x: s * 0.335, y: 1.475 }), B.chest, 'suit');
+    add(place(boxP(0.016, 0.06, 0.12, 0.004), { x: s * 0.472, y: 1.465 }), B.chest, 'team');
   }
   // ---- team identity bands (always on, readable from every angle)
-  add(place(boxP(0.405, 0.045, 0.285, 0.008), { y: 1.085 }), B.spine, 'team');
-  add(place(boxP(0.54, 0.035, 0.30, 0.008, 0.52, 0.30), { y: 1.5 }), B.chest, 'team');
-  add(place(frustumP(0.092, 0.092, 0.028, 8), { y: 1.515 }), B.neck, 'team');
-  add(place(boxP(0.06, 0.12, 0.02, 0.006), { y: 1.69, z: 0.168 }), B.head, 'team');
+  add(place(boxP(0.44, 0.05, 0.30, 0.008), { y: 1.085 }), B.spine, 'team');
+  add(place(boxP(0.62, 0.04, 0.32, 0.008, 0.58, 0.31), { y: 1.5 }), B.chest, 'team');
+  add(place(frustumP(0.1, 0.1, 0.03, 8), { y: 1.515 }), B.neck, 'team');
+  add(place(boxP(0.07, 0.13, 0.02, 0.006), { y: 1.69, z: 0.172 }), B.head, 'team');
   // ---- neck + head base
-  add(place(frustumP(0.06, 0.055, 0.09, 6), { y: 1.545 }), B.neck, 'dark', DARK2);
-  add(place(boxP(0.20, 0.06, 0.10, 0.02), { y: 1.575, z: 0.075 }), B.head, 'dark', DARK);
-  add(place(boxP(0.12, 0.06, 0.07, 0.02), { y: 1.55, z: -0.105 }), B.head, 'dark', DARK2);
+  add(place(frustumP(0.068, 0.062, 0.09, 6), { y: 1.545 }), B.neck, 'dark', DARK2);
+  add(place(boxP(0.22, 0.06, 0.10, 0.02), { y: 1.575, z: 0.075 }), B.head, 'dark', DARK);
+  add(place(boxP(0.13, 0.06, 0.07, 0.02), { y: 1.55, z: -0.105 }), B.head, 'dark', DARK2);
   for (const s of [-1, 1]) {
     add(place(frustumP(0.052, 0.052, 0.04, 8), { x: s * 0.158, y: 1.645, rz: Math.PI / 2 }), B.head, 'dark', DARK);
     add(place(frustumP(0.03, 0.03, 0.05, 8), { x: s * 0.166, y: 1.645, rz: Math.PI / 2 }), B.head, 'team');
   }
-  // ---- arms
+  // ---- arms (thick sleeves, bracers, mitt gloves)
   for (const s of [-1, 1]) {
     const uA = s < 0 ? B.uArmL : B.uArmR, fA = s < 0 ? B.fArmL : B.fArmR, hA = s < 0 ? B.handL : B.handR, x = s * 0.27;
-    add(place(frustumP(0.082, 0.068, 0.34, 6), { x, y: 1.28 }), uA, 'suit');
-    add(place(sphereP(0.068, 0.062, 0.068, 0), { x, y: 1.11 }), fA, 'dark', DARK);
-    add(place(frustumP(0.068, 0.06, 0.2, 6), { x, y: 1.0 }), fA, 'suit');
-    add(place(frustumP(0.07, 0.066, 0.12, 6), { x, y: 0.835 }), fA, 'dark', DARK);
-    add(place(frustumP(0.076, 0.076, 0.03, 6), { x, y: 0.915 }), fA, 'team');
-    add(place(boxP(0.092, 0.09, 0.115, 0.022, 0.10, 0.115), { x, y: 0.725 }), hA, 'dark', DARK2);
-    add(place(boxP(0.03, 0.06, 0.05, 0.01), { x: x + s * 0.052, y: 0.755, z: -0.02 }), hA, 'dark', DARK2);
+    add(place(frustumP(0.1, 0.085, 0.34, 6), { x, y: 1.28 }), uA, 'suit');
+    add(place(sphereP(0.085, 0.078, 0.085, 0), { x, y: 1.11 }), fA, 'dark', DARK);
+    add(place(frustumP(0.084, 0.074, 0.2, 6), { x, y: 1.0 }), fA, 'suit');
+    add(place(frustumP(0.088, 0.082, 0.12, 6), { x, y: 0.835 }), fA, 'dark', DARK);
+    add(place(frustumP(0.094, 0.094, 0.03, 6), { x, y: 0.915 }), fA, 'team');
+    add(place(boxP(0.11, 0.1, 0.13, 0.025, 0.12, 0.13), { x, y: 0.72 }), hA, 'dark', DARK2);
+    add(place(boxP(0.035, 0.07, 0.06, 0.01), { x: x + s * 0.062, y: 0.75, z: -0.02 }), hA, 'dark', DARK2);
   }
-  // ---- legs
+  // ---- legs (thicker thighs / shins, big boots)
   for (const s of [-1, 1]) {
     const uL = s < 0 ? B.uLegL : B.uLegR, lL = s < 0 ? B.lLegL : B.lLegR, fT = s < 0 ? B.footL : B.footR, x = s * 0.115;
-    add(place(frustumP(0.108, 0.09, 0.44, 7), { x, y: 0.69 }), uL, 'suit');
-    add(place(boxP(0.02, 0.3, 0.07, 0.005), { x: x + s * 0.104, y: 0.70 }), uL, 'team');
-    add(place(frustumP(0.093, 0.093, 0.035, 7), { x, y: 0.33 }), lL, 'team');
-    add(place(sphereP(0.08, 0.07, 0.07, 0), { x, y: 0.47, z: -0.05 }), lL, 'dark', DARK);
-    add(place(frustumP(0.088, 0.066, 0.36, 7), { x, y: 0.29 }), lL, 'suit');
-    add(place(boxP(0.09, 0.22, 0.04, 0.012, 0.08, 0.04), { x, y: 0.31, z: -0.066 }), lL, 'dark', PLATE);
-    add(place(frustumP(0.07, 0.077, 0.11, 7), { x, y: 0.125 }), fT, 'dark', BOOT);
-    add(place(boxP(0.13, 0.09, 0.26, 0.03, 0.115, 0.21), { x, y: 0.04, z: -0.06 }), fT, 'dark', BOOT);
-    add(place(boxP(0.135, 0.032, 0.285, 0.01), { x, y: 0.016, z: -0.065 }), fT, 'dark', SOLE);
-    add(place(boxP(0.105, 0.055, 0.065, 0.02), { x, y: 0.05, z: -0.185 }), fT, 'accent');
+    add(place(frustumP(0.125, 0.104, 0.44, 7), { x, y: 0.69 }), uL, 'suit');
+    add(place(boxP(0.024, 0.3, 0.08, 0.005), { x: x + s * 0.12, y: 0.70 }), uL, 'team');
+    add(place(frustumP(0.108, 0.108, 0.04, 7), { x, y: 0.33 }), lL, 'team');
+    add(place(sphereP(0.095, 0.085, 0.085, 0), { x, y: 0.47, z: -0.05 }), lL, 'dark', DARK);
+    add(place(frustumP(0.104, 0.078, 0.36, 7), { x, y: 0.29 }), lL, 'suit');
+    add(place(boxP(0.11, 0.22, 0.045, 0.012, 0.1, 0.045), { x, y: 0.31, z: -0.08 }), lL, 'dark', PLATE);
+    add(place(frustumP(0.085, 0.092, 0.11, 7), { x, y: 0.125 }), fT, 'dark', BOOT);
+    add(place(boxP(0.15, 0.1, 0.29, 0.03, 0.13, 0.23), { x, y: 0.045, z: -0.065 }), fT, 'dark', BOOT);
+    add(place(boxP(0.155, 0.034, 0.31, 0.01), { x, y: 0.017, z: -0.07 }), fT, 'dark', SOLE);
+    add(place(boxP(0.12, 0.06, 0.07, 0.02), { x, y: 0.055, z: -0.2 }), fT, 'accent');
   }
   return P;
 }

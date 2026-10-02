@@ -26,7 +26,7 @@ export const HAZE = {
   budget: 1500,         // base cell budget (open air); confined clouds get `bonus` more
   bonus: 1700,            // cells filled (=112 m^3): sphere-ish in the open, longer in corridors
   maxRadius: 10.5,         // hard cap on flood distance from the seed
-  squash: 1.5,            // vertical distance weight (>1 => flatter dome)
+  squash: 1.7,            // vertical distance weight (>1 => flatter dome)
   seedHeight: 1.1,       // seed sits this far above the resting grenade (clamped by ceilings)
   expandTime: 1.15,       // seconds for the front to reach full size
   life: 18,               // seconds until fully gone

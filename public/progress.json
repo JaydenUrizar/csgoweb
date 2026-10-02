@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-02T08:15:20.122Z",
+ "updated": "2026-10-02T10:57:15.375Z",
  "wave": 3,
  "phase": "Round 2 critics — blind comparison vs CS2 again",
  "pieces": [
@@ -8,9 +8,9 @@
    "name": "Rendering, lighting & post-FX",
    "group": "look",
    "status": "judging",
-   "round": 2,
-   "score": 5.6,
-   "gap": "The ambient/shadow term is wrong. Surfaces outside the sun take an unoccluded, oversaturated blue sky term. Reproduce: ?test=1&seed=1&match=1, hide the HUD, then __game.ctx.map.debug.setView('mid' | 'long' | 'a-door' | 'b-tunnel')",
+   "round": 3,
+   "score": 6.3,
+   "gap": "Global exposure and shade fill are far too low, so the whole game reads as dusk or overcast and shadowed areas crush. Measured on 11 HUD-off gameplay frames vs 8 CS2 frames: median luminance 0.19 vs 0.40, p5 0.06 vs 0.17, pixels b",
    "history": [
     {
      "t": "2026-10-02T01:29:37.047Z",
@@ -18,18 +18,25 @@
      "winner": "ref",
      "score": 5.6,
      "gap": "The ambient/shadow term is wrong. Surfaces outside the sun take an unoccluded, oversaturated blue sky term. Reproduce: ?test=1&seed=1&match=1, hide the HUD, then __game.ctx.map.debug.setView('mid' | 'long' | 'a-door' | 'b-tunnel')"
+    },
+    {
+     "t": "2026-10-02T10:57:14.832Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 6.3,
+     "gap": "Global exposure and shade fill are far too low, so the whole game reads as dusk or overcast and shadowed areas crush. Measured on 11 HUD-off gameplay frames vs 8 CS2 frames: median luminance 0.19 vs 0.40, p5 0.06 vs 0.17, pixels b"
     }
    ],
-   "updated": "2026-10-02T08:15:19.391Z"
+   "updated": "2026-10-02T10:57:14.832Z"
   },
   {
    "id": "map",
    "name": "Map — Crux Station",
    "group": "world",
    "status": "judging",
-   "round": 2,
-   "score": 5.2,
-   "gap": "Detail density and facade variety. Every lane (Long 38,*,26->-20; Short/Catwalk 14.5,*,-8; Mid lane; Tunnels) is two 8-12 m walls in the same large-brick sandstone with the same small arched window. Floors are huge empty tile fiel",
+   "round": 3,
+   "score": 6.4,
+   "gap": "Material and colour monotony in the big spaces. The Round 2 facade kit shows up in the lanes (Mid Lane, Outer Long, Tide Spawn look good) but not in the largest surfaces. (1) The tunnels are all one dim brown brick with the same b",
    "history": [
     {
      "t": "2026-10-02T01:29:37.124Z",
@@ -37,9 +44,16 @@
      "winner": "ref",
      "score": 5.2,
      "gap": "Detail density and facade variety. Every lane (Long 38,*,26->-20; Short/Catwalk 14.5,*,-8; Mid lane; Tunnels) is two 8-12 m walls in the same large-brick sandstone with the same small arched window. Floors are huge empty tile fiel"
+    },
+    {
+     "t": "2026-10-02T10:57:14.895Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 6.4,
+     "gap": "Material and colour monotony in the big spaces. The Round 2 facade kit shows up in the lanes (Mid Lane, Outer Long, Tide Spawn look good) but not in the largest surfaces. (1) The tunnels are all one dim brown brick with the same b"
     }
    ],
-   "updated": "2026-10-02T08:15:19.442Z"
+   "updated": "2026-10-02T10:57:14.895Z"
   },
   {
    "id": "nav",
@@ -103,9 +117,9 @@
    "name": "First-person viewmodels & animation",
    "group": "feel",
    "status": "judging",
-   "round": 2,
-   "score": 4.8,
-   "gap": "Weapon silhouettes/finish read as stacked boxes with a skin that destroys form. Repro: ?test=1&seed=1&match=1&phase=live, give arc/rail/halo/lance/scatter/storm (shots/critic-viewmodel/g_sheet1.png, g_sheet2.png). The default in-m",
+   "round": 3,
+   "score": 5.3,
+   "gap": "Framing: long arms sit far too central and too big, so the muzzle and muzzle flash land on the crosshair. Repro: ?test=1&seed=3&match=1&phase=live, combat.debug.give(localActor,'arc'), hold fire (shots/critic-viewmodel/r2/fire_she",
    "history": [
     {
      "t": "2026-10-02T06:28:18.606Z",
@@ -113,9 +127,16 @@
      "winner": "ref",
      "score": 4.8,
      "gap": "Weapon silhouettes/finish read as stacked boxes with a skin that destroys form. Repro: ?test=1&seed=1&match=1&phase=live, give arc/rail/halo/lance/scatter/storm (shots/critic-viewmodel/g_sheet1.png, g_sheet2.png). The default in-m"
+    },
+    {
+     "t": "2026-10-02T10:57:15.169Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 5.3,
+     "gap": "Framing: long arms sit far too central and too big, so the muzzle and muzzle flash land on the crosshair. Repro: ?test=1&seed=3&match=1&phase=live, combat.debug.give(localActor,'arc'), hold fire (shots/critic-viewmodel/r2/fire_she"
     }
    ],
-   "updated": "2026-10-02T08:15:19.645Z",
+   "updated": "2026-10-02T10:57:15.169Z",
    "note": "Builder was stopped mid-work; awaiting go-ahead to relaunch"
   },
   {
@@ -123,9 +144,9 @@
    "name": "Utility (Haze / Strobe / Pulse)",
    "group": "feel",
    "status": "judging",
-   "round": 2,
-   "score": 5.8,
-   "gap": "What the smoke shows and what blocksLine reports do not match after bullets pass through it. Repro: utility-lab, spawn haze at (0,0.07,14), wait 3 s, place actor B at (1.5,0,9), stand at eye (-0.5,1.62,21) and emit 5 'weapon:fire'",
+   "round": 3,
+   "score": 6.3,
+   "gap": "Bot Strobes blind their own team far more often than the enemy. I ran 2 rich bot-lab matches (test=1&scene=bot-lab&view=none, seeds 2 and 5, credits 9000, 4 rounds each) and logged util:blind. There were 11 bot strobes. Only 3 bli",
    "history": [
     {
      "t": "2026-10-02T06:28:18.405Z",
@@ -133,18 +154,25 @@
      "winner": "ref",
      "score": 5.8,
      "gap": "What the smoke shows and what blocksLine reports do not match after bullets pass through it. Repro: utility-lab, spawn haze at (0,0.07,14), wait 3 s, place actor B at (1.5,0,9), stand at eye (-0.5,1.62,21) and emit 5 'weapon:fire'"
+    },
+    {
+     "t": "2026-10-02T10:57:15.234Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 6.3,
+     "gap": "Bot Strobes blind their own team far more often than the enemy. I ran 2 rich bot-lab matches (test=1&scene=bot-lab&view=none, seeds 2 and 5, credits 9000, 4 rounds each) and logged util:blind. There were 11 bot strobes. Only 3 bli"
     }
    ],
-   "updated": "2026-10-02T08:15:19.692Z"
+   "updated": "2026-10-02T10:57:15.234Z"
   },
   {
    "id": "avatars",
    "name": "Characters & animation",
    "group": "look",
    "status": "judging",
-   "round": 2,
-   "score": 5.4,
-   "gap": "Cosmetics override team identity. Resolved cosmetic specs ignore the team, and in shots/critic-avatars/m4.json actor 3 (ember) and actor 4 (tide) have byte-identical specs (suit base #1a0b3d, magenta #ff2cd6 accent, holo circuit p",
+   "round": 3,
+   "score": 6.2,
+   "gap": "The team lock covers only the suit hue, so Ember still camouflages on the sand map and secondary colours carry the wrong team. Repro: ?test=1&seed=7&match=1&phase=live, advance(8), then dump ctx.characters.model(a).u. Tide #6 helm",
    "history": [
     {
      "t": "2026-10-02T01:29:37.379Z",
@@ -152,9 +180,16 @@
      "winner": "ref",
      "score": 5.4,
      "gap": "Cosmetics override team identity. Resolved cosmetic specs ignore the team, and in shots/critic-avatars/m4.json actor 3 (ember) and actor 4 (tide) have byte-identical specs (suit base #1a0b3d, magenta #ff2cd6 accent, holo circuit p"
+    },
+    {
+     "t": "2026-10-02T10:57:14.956Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 6.2,
+     "gap": "The team lock covers only the suit hue, so Ember still camouflages on the sand map and secondary colours carry the wrong team. Repro: ?test=1&seed=7&match=1&phase=live, advance(8), then dump ctx.characters.model(a).u. Tide #6 helm"
     }
    ],
-   "updated": "2026-10-02T08:15:19.491Z"
+   "updated": "2026-10-02T10:57:14.957Z"
   },
   {
    "id": "cosmetics",
@@ -180,9 +215,9 @@
    "name": "VFX & juice",
    "group": "look",
    "status": "judging",
-   "round": 2,
-   "score": 5.6,
-   "gap": "Tracers are effectively invisible in real play. Own pip shots at 7.5m show as faint 1px grey dashes (shots/critic-vfx/g_fire_0-1.png). In vfx-lab, tracer-beam and tracer-comet are a barely visible dotted line or a dot (frames/trac",
+   "round": 3,
+   "score": 6.6,
+   "gap": "FP muzzle flash covers the aim point during automatic fire. Repro: ?test=1&seed=1&match=1&phase=live, combat.debug.give(null,'arc'), hold fire for 1.6s (shots/critic-vfx/h_crop.png, z_f00-03, pair1.png). The Arc muzzle sits about ",
    "history": [
     {
      "t": "2026-10-02T01:29:37.614Z",
@@ -190,9 +225,16 @@
      "winner": "ref",
      "score": 5.6,
      "gap": "Tracers are effectively invisible in real play. Own pip shots at 7.5m show as faint 1px grey dashes (shots/critic-vfx/g_fire_0-1.png). In vfx-lab, tracer-beam and tracer-comet are a barely visible dotted line or a dot (frames/trac"
+    },
+    {
+     "t": "2026-10-02T10:57:15.027Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 6.6,
+     "gap": "FP muzzle flash covers the aim point during automatic fire. Repro: ?test=1&seed=1&match=1&phase=live, combat.debug.give(null,'arc'), hold fire for 1.6s (shots/critic-vfx/h_crop.png, z_f00-03, pair1.png). The Arc muzzle sits about "
     }
    ],
-   "updated": "2026-10-02T08:15:19.537Z"
+   "updated": "2026-10-02T10:57:15.028Z"
   },
   {
    "id": "audio",
@@ -248,9 +290,9 @@
    "name": "HUD",
    "group": "ui",
    "status": "judging",
-   "round": 2,
-   "score": 7.3,
-   "gap": "Radar readability. In a live match (?test=1&seed=1&match=1, any position, e.g. F1920_prot_e_second.png / L1280_08_mid.png) the radar is a pale grey map on black with dozens of rotated 4-6px callout labels sprinkled over it (unread",
+   "round": 3,
+   "score": 7.6,
+   "gap": "Death to spectate is the weakest HUD moment. Reproduce with ?test=1&seed=3&match=1&phase=live: give the local actor 'arc', place it at (0,y,-28) and let Zed/Tango tag you (shots/critic-hud/1280/12_after.png and 1920/12_after.png).",
    "history": [
     {
      "t": "2026-10-02T01:29:37.459Z",
@@ -258,18 +300,25 @@
      "winner": "ours",
      "score": 7.3,
      "gap": "Radar readability. In a live match (?test=1&seed=1&match=1, any position, e.g. F1920_prot_e_second.png / L1280_08_mid.png) the radar is a pale grey map on black with dozens of rotated 4-6px callout labels sprinkled over it (unread"
+    },
+    {
+     "t": "2026-10-02T10:57:15.096Z",
+     "round": 3,
+     "winner": "tie",
+     "score": 7.6,
+     "gap": "Death to spectate is the weakest HUD moment. Reproduce with ?test=1&seed=3&match=1&phase=live: give the local actor 'arc', place it at (0,y,-28) and let Zed/Tango tag you (shots/critic-hud/1280/12_after.png and 1920/12_after.png)."
     }
    ],
-   "updated": "2026-10-02T08:15:19.599Z"
+   "updated": "2026-10-02T10:57:15.096Z"
   },
   {
    "id": "menu",
    "name": "Menus, settings & onboarding",
    "group": "ui",
    "status": "judging",
-   "round": 2,
-   "score": 6.6,
-   "gap": "Every in-match overlay (pause, settings-from-pause, F1 cheat-sheet, tutorial card) renders BELOW the HUD. Repro: normal URL -> Play -> Esc (or pointer unlock) -> Settings; or press F1 in game. The radar, scorebar, round banner/kil",
+   "round": 3,
+   "score": 7.4,
+   "gap": "The settings sheet is the screen players use most, and it is not up to CS2. (1) At 1280x720 the Crosshair tab's Length, Gap and Thickness sliders shrink to 42px tracks (measured with getBoundingClientRect; 149px at 1920), so they ",
    "history": [
     {
      "t": "2026-10-02T06:28:18.542Z",
@@ -277,9 +326,16 @@
      "winner": "ref",
      "score": 6.6,
      "gap": "Every in-match overlay (pause, settings-from-pause, F1 cheat-sheet, tutorial card) renders BELOW the HUD. Repro: normal URL -> Play -> Esc (or pointer unlock) -> Settings; or press F1 in game. The radar, scorebar, round banner/kil"
+    },
+    {
+     "t": "2026-10-02T10:57:15.320Z",
+     "round": 3,
+     "winner": "ref",
+     "score": 7.4,
+     "gap": "The settings sheet is the screen players use most, and it is not up to CS2. (1) At 1280x720 the Crosshair tab's Length, Gap and Thickness sliders shrink to 42px tracks (measured with getBoundingClientRect; 149px at 1920), so they "
     }
    ],
-   "updated": "2026-10-02T08:15:19.743Z"
+   "updated": "2026-10-02T10:57:15.320Z"
   },
   {
    "id": "perf",
@@ -293,6 +349,11 @@
   }
  ],
  "log": [
+  {
+   "t": "2026-10-02T10:57:15.374Z",
+   "text": "Round 2 critics: scores rose (render 6.3, map 6.4, avatars 6.2, vfx 6.6, HUD 7.6, viewmodel 5.3, utility 6.3, menu 7.4) but none pass. Round 3 builders done; critics re-judging.",
+   "kind": "critic"
+  },
   {
    "t": "2026-10-02T08:15:19.337Z",
    "text": "WAVE 3 — Round 2 critics — blind comparison vs CS2 again",

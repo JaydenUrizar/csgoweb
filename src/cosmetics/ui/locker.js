@@ -45,7 +45,7 @@ export function createLocker(ctx, api) {
     if (L.root) return;
     if (!document.getElementById('fx-locker-css')) {
       const st = document.createElement('style'); st.id = 'fx-locker-css'; st.textContent = CSS; document.head.appendChild(st);
-      if (!document.getElementById('fx-locker-font')) { const lk = document.createElement('link'); lk.id = 'fx-locker-font'; lk.rel = 'stylesheet'; lk.href = FONT_LINK; lk.onerror = () => {}; document.head.appendChild(lk); }
+      // fonts: the HUD/menu modules ship bundled Barlow Condensed @font-face (no CDN request; menu round 3)
     }
     const root = L.root = document.createElement('div'); root.id = 'fx-locker'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'Locker');
     root.innerHTML = `

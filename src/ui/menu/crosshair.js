@@ -118,7 +118,7 @@ export function createCrosshairDesigner(ctx, kit, toast = () => {}) {
   const swatches = ['#6dff9a', '#ffffff', '#2fd0ff', '#ffe14d', '#ff7a2f', '#ff4dd2', '#ff3b3b'];
   const swWrap = h('div', { class: 'fx-sw' }, swatches.map((c) => h('button', { style: { '--c': c }, 'aria-label': c, onClick: () => put({ color: c }) })));
   const hue = h('input', { type: 'range', class: 'fx-hue', min: 0, max: 359, step: 1, 'aria-label': 'Hue' });
-  const hex = h('input', { class: 'fx-num', type: 'text', maxlength: 7, style: { width: '6.6rem', textTransform: 'uppercase' } });
+  const hex = h('input', { class: 'fx-num', type: 'text', maxlength: 7, style: { width: 'calc(6.6*var(--u))', textTransform: 'uppercase' } });
   const hsl2hex = (H) => { const l = .6, a = Math.min(l, 1 - l); const f = (n) => { const k = (n + H / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); }; return '#' + f(0) + f(8) + f(4); };
   hue.addEventListener('input', () => put({ color: hsl2hex(+hue.value) }));
   hex.addEventListener('focus', () => { ctx.input.captureKeys = true; }); hex.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') hex.blur(); });
@@ -134,16 +134,16 @@ export function createCrosshairDesigner(ctx, kit, toast = () => {}) {
   const pasteBtn = h('button', { class: 'fx-btn sm', onClick: async () => { try { doImport(await navigator.clipboard.readText()); } catch { codeIn.focus(); say('Paste the code, then press Enter'); } } }, 'Paste');
   const R = (l, d, ctl, o) => C.row(l, d, ctl, o);
   const left = h('div', null,
-    C.group('Style', R('Shape', null, reg(styleP)), R('Colour', null, h('div', { style: { display: 'flex', flexDirection: 'column', gap: '.6rem', alignItems: 'stretch', flex: 1 } }, swWrap, h('div', { style: { display: 'flex', gap: '.8rem', alignItems: 'center' } }, hue, hex)), { tall: true })),
+    C.group('Style', R('Shape', null, reg(styleP)), R('Colour', null, h('div', { style: { display: 'flex', flexDirection: 'column', gap: 'calc(.6*var(--u))', alignItems: 'stretch', flex: 1 } }, swWrap, h('div', { style: { display: 'flex', gap: 'calc(.8*var(--u))', alignItems: 'center' } }, hue, hex)), { tall: true })),
     C.group('Geometry', R('Length', null, reg(size)), R('Gap', 'Distance from centre', reg(gap)), R('Thickness', null, reg(thick))),
     C.group('Extras', R('Centre dot', null, reg(dot)), R('Outline', 'Improves contrast on bright maps', reg(outl)), R('Dynamic spread', 'Widens when moving & firing', reg(dyn))));
-  const right = h('div', { class: 'fx-xh-prev' }, view,
+  const right = h('div', { class: 'fx-xh-prev' }, view, h('div', { class: 'side' },
     h('div', { class: 'fx-xh-bg' }, ...bgBtns, h('span', { style: { flex: 1 } }), ...zoomBtns),
     h('div', { class: 'fx-xh-bg' }, ...modeBtns),
-    h('div', { class: 'fx-lab', style: { marginTop: '1.3rem' } }, 'Share code', h('em', null, 'Import / export')),
+    h('div', { class: 'fx-lab', style: { marginTop: 'calc(1.3*var(--u))' } }, 'Share code', h('em', null, 'Import / export')),
     h('div', { class: 'fx-code' }, codeIn, copyBtn, pasteBtn),
-    h('div', { style: { marginTop: '.9rem', display: 'flex', gap: '.5rem' } }, h('button', { class: 'fx-btn sm ghost', onClick: () => put({ ...XH_DEFAULT }) }, 'Reset crosshair'), h('button', { class: 'fx-btn sm ghost', onClick: () => put({ style: 'classic', size: 3, gap: 2, thickness: 1, color: '#ffffff', dot: false, outline: true, dynamic: false }) }, 'Preset: Pro white')));
-  const el = h('div', { class: 'fx-xh' }, left, right);
+    h('div', { style: { marginTop: 'calc(.9*var(--u))', display: 'flex', gap: 'calc(.5*var(--u))' } }, h('button', { class: 'fx-btn sm ghost', onClick: () => put({ ...XH_DEFAULT }) }, 'Reset crosshair'), h('button', { class: 'fx-btn sm ghost', onClick: () => put({ style: 'classic', size: 3, gap: 2, thickness: 1, color: '#ffffff', dot: false, outline: true, dynamic: false }) }, 'Preset: Pro white'))));
+  const el = h('div', { class: 'fx-xh' }, right, left);
   refreshAll();
   return { el, refresh: refreshAll, start() { if (running) return; running = true; state.t = 0; frame(); }, stop() { running = false; cancelAnimationFrame(raf); } };
 }

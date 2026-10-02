@@ -86,7 +86,7 @@ if (process.argv[2] === 'genpaths') {
   const RB = 0.62;
   const clearR = (x, y, z) => { const up = hit(x, y + 0.05, z, 0, 1, 0, HGT); if (up >= 0 && up < HGT - 0.06) return false; for (const hh of [0.55, 1.0, 1.7]) for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; const dd = hit(x, y + hh, z, Math.cos(a), 0, Math.sin(a), RB); if (dd >= 0 && dd < RB - 0.01) return false; } return true; };
   const good = new Map(); for (const n of nodes.values()) if (clearR(n.x, n.y, n.z)) good.set(n, true);
-  const gnbrs = (n) => nbrs(n).filter(([m]) => good.has(m) && m.y - n.y <= 0.5);
+  const gnbrs = (n) => nbrs(n).filter(([m]) => good.has(m) && m.y - n.y <= 0.5 && m.y - n.y >= -0.6);
   const yFor = (x, z) => (x >= 11.5 && x <= 17.5 && z <= -16 && z >= -26.5) || (x >= 11.5 && x < 22 && z <= -26 && z >= -32) ? 3.0 : (x >= 22 && x < 48 && z < -12) ? 1.5 : (x < -22 && x > -47 && z < -20 && z > -47) ? -1.4 : 0;
   const nearG = (x, z) => { const y = yFor(x, z); let best = null, bd = 1e9; for (const n of good.keys()) { const dd = Math.hypot(n.x - x, n.z - z) + Math.abs(n.y - y) * 3; if (dd < bd) { bd = dd; best = n; } } return best; };
   const out = [];
@@ -111,3 +111,6 @@ if (process.argv[2] === 'los2') {
   let k = 0; for (let xa = -15; xa <= 15 && k < 12; xa += 2) for (let za = 39; za <= 49; za += 2) for (let xb = -15; xb <= 15; xb += 2) for (let zb = -49; zb <= -39; zb += 2) if (vis([xa, za], [xb, zb]) && k < 12) { k++; const xAt = (z) => (xa + (xb - xa) * (za - z) / (za - zb)).toFixed(1); console.log([xa, za, xb, zb].join(','), 'x@z12', xAt(12), 'x@-15', xAt(-15), 'x@-26', xAt(-26), 'x@-38', xAt(-38)); }
 }
 if (process.argv[2] === 'dbg3') { for (const [x,z,y] of [[16.9,-26.2,3.0],[15.4,-17,3.0],[1.5,10,0]]) { const up = hit(x,y+0.05,z,0,1,0,HGT); const hs=[]; for (const hh of [0.55,1.0,1.7]) for (let k=0;k<8;k++){const a=k/8*Math.PI*2; const dd=hit(x,y+hh,z,Math.cos(a),0,Math.sin(a),R); if(dd>=0&&dd<R) hs.push([hh,k,dd.toFixed(2)]);} console.log(x,z,y,'up',up.toFixed?.(2),JSON.stringify(hs), 'floors', floorsAt(x,z).map(f=>f.toFixed(2)).join(',')); } for (const n of NODES) { const m = nearest(n.x, n.z, n.elevated ? 3.0 : undefined, true); const dd = m ? Math.hypot(m.x - n.x, m.z - n.z) : 99; if (dd > 0.6) console.log('BADNODE', n.id, n.x, n.z); } }
+if (process.argv[2] === 'spawnscan') {
+  for (const [name, x0, x1, z0, z1] of [['ES', -16, 16, 38, 50], ['TS', -16, 16, -50, -38]]) { const cells = new Map(); for (let x = x0; x < x1; x += 0.5) for (let z = z0; z < z1; z += 0.5) { const fl = floorsAt(x, z).filter((f) => f < 4); for (const f of fl) if (f > 0.05) { const k = Math.round(x / 2) * 2 + ',' + Math.round(z / 2) * 2 + ',' + f.toFixed(1); cells.set(k, (cells.get(k) || 0) + 1); } } console.log(name, [...cells.keys()].join(' | ')); }
+}

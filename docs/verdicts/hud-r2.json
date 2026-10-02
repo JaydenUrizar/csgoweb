@@ -1,0 +1,26 @@
+{"piece":"hud","round":2,
+"blind":[
+ {"pair":1,"picked":"ours","truth":"ours","why":"Buy menu, 1280x720 live (shots/critic-hud/1280/02_buy.png vs t1_011). Ours: near-opaque panel, red/green affordability, EQUIPPED tag, loadout panel and a buy timer that matches. It reads faster than CS2's faint small type. It loses on icons: the SMG, rifle and heavy silhouettes (Zip/Hum/Arc/Halo/Scatter/Storm/Lance/Rail) are near-identical grey blobs."},
+ {"pair":2,"picked":"ref","truth":"ref","why":"Mid-firefight (1280/11_fight10 vs t1_020). CS2 keeps the play area calm with thin, low-weight elements. Ours has a heavy saturated pip bar and chunky vitals, and its tiny static green crosshair gets lost in the muzzle flash. CS2's radar also shows more of the map."},
+ {"pair":3,"picked":"ours","truth":"ours","why":"Top strip after death (radar, topbar, feed). Ours has crisper score and timer, a readable assist feed entry, A/B badges inside the ring and a clear callout. CS2's strip is fainter."}],
+"winner_overall":"tie","score":7.6,
+"biggest_gap":"Death to spectate is the weakest HUD moment. Reproduce with ?test=1&seed=3&match=1&phase=live: give the local actor 'arc', place it at (0,y,-28) and let Zed/Tango tag you (shots/critic-hud/1280/12_after.png and 1920/12_after.png). 0.3 s after death the view hard-cuts to 'SPECTATING Echo' and goes wrong in three ways. (1) Your own red damage arc from Zed is still drawn above the crosshair over Echo's view, so it falsely signals that Echo is taking fire from ahead. (2) Money tweens from your $800 down to Echo's $100 (it reads $106 mid-tween). (3) There is no killer or damage recap; the only cue is low-contrast pink 'TAGGED OUT — RESPAWN NEXT ROUND' text over a bright floor. CS2 clears the damage indicators on death, holds a short death cam on the killer, and shows a killer card (name, weapon, remaining HP, damage given and taken). On spectate it snaps vitals and money to the target with no tween.",
+"other_gaps":[
+ "Radar residue: erasing the labels leaves garbled outlined glyph scribbles (a 'ꟸꟸꟸ'-like smear under the player near Tide Mid/Mid, plus small 'K'/'KK' marks) at both 720p and 1080p (shots/critic-hud/radar_zoom.png). Erase the label strokes and their outlines completely, or bake the radar without labels. Also, two enemies 6 m ahead showed as only one dot.",
+ "Crosshair dynamics: after an 18-round Arc spray (spread 0.057 to 0.143), the crosshair shows no visible gap growth and stays about 20 px green at 1080p, where muzzle flash and smoke swallow it (1920/11_fight4.png). Either commit to a static crosshair with an outline and dot that survives the VFX, or make the spread visibly drive the gap.",
+ "The round-start banner still sits at y≈140–290 of 1080 for more than 1.3 s into live play. The 'X PICKED UP THE BEACON' pill overlaps its top rule, and 'PISTOL ROUND' appears twice (topbar and banner). CS2 shows no centre banner at round start.",
+ "Buy-menu weapon icons don't distinguish one weapon from another. Unaffordable items are dark grey on navy, and the Lance and Rail icons look nearly the same as Halo. The panel's $ header also overlaps the dimmed radar ring.",
+ "Top pip bar: ten saturated, fully opaque 40 px tiles dominate the top-centre at all times. CS2's portraits are smaller and translucent, and they dim for dead players more strongly than our grey X tile does.",
+ "Hit markers last under 0.25 s (the gallery 'hit' state after step(0.25) shows nothing). That is fine for timing, but I could not land a hit in the live test to judge their weight in a real fight."],
+"bugs":[
+ "Your own damage-direction arc stays drawn over the spectated teammate's view after death (1280/12_after.png, 1920/12_after.png; deterministic with seed=3).",
+ "Spectate switch tweens the money counter from your balance to the target's ($106 shown).",
+ "Radar label-erasure artifacts are visible on the minimap.",
+ "No console or page errors in live runs at 720p or 1080p, or in the gallery runs. HUD perfAvg is 0.40–0.46 ms. p95 is 3–5 ms and the max is 77–109 ms, but the spikes are irregular and were measured at load average 24–30 on 4 cores, so they are probably host contention. Not confirmed."],
+"strengths":[
+ "Round-1 fixes landed. Menus are near-opaque, and banners and toasts fade under them. The buy timer matches between the topbar and the menu. The radar is now a dark silhouette with wall edges, A/B badges clamped inside the ring, a view cone, a callout label and team-coloured chevrons.",
+ "Typography and numeric hierarchy are strong (Barlow Condensed) and legible at both 720p and 1080p.",
+ "The scoreboard is clean: team rules, BOT tags, credits column, round strip, and the topbar stays visible above it.",
+ "The damage arcs are thicker now and have arrowheads, and the low-HP red vignette plus the red HP numeral read instantly.",
+ "Colourblind deut remaps the teams to yellow/blue across the pips, radar and score. The armed and disarm states (red BEACON ARMED timer, progress ring) are clear."],
+"pass":false}

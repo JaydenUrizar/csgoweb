@@ -40,12 +40,12 @@ export function create(ctx) {
   // ------------------------------------------------------------------ state
   let base = 'boot';            // boot | main | pause | end | game | starting
   const overlays = [];          // stack of overlay screen names: settings | help | credits | cheat
-  let lastFocus = null, lockerOpen = false, lastOpts = null, endDelay = -1, extModal = 0, cheatOpen = false, bootAbort = false;
+  const focusStack = []; let lastFocus = null, lockerOpen = false, lastOpts = null, endDelay = -1, extModal = 0, cheatOpen = false, bootAbort = false;
   let inMenuWorld = false;
 
   // Lazy: nothing is built (and render.render is never touched) unless the menu world is actually shown.
   let _bd = null; const bdGet = () => (_bd ||= createBackdrop(ctx));
-  const backdrop = { enter: () => bdGet()?.enter(), leave: () => _bd?.leave(), warm: () => bdGet()?.warm(), setMood: (m) => _bd?.setMood(m), snapMood: () => _bd?.snapMood(), update: (dt) => _bd?.update(dt), dispose: () => _bd?.dispose(), get real() { return _bd; } };
+  const backdrop = { enter: () => bdGet()?.enter(), leave: () => _bd?.leave(), warm: () => bdGet()?.warm(), setMood: (m) => _bd?.setMood(m), suspend: (v) => _bd?.suspend(v), snapMood: () => _bd?.snapMood(), update: (dt) => _bd?.update(dt), dispose: () => _bd?.dispose(), get real() { return _bd; } };
   const prefs = () => ({ difficulty: 'pro', side: 'random', map: 'crux', ...(S.get('menuPrefs') || {}) });
 
   const A = {
@@ -53,7 +53,7 @@ export function create(ctx) {
     pref: { get: (k) => prefs()[k], set: (k, v) => S.set('menuPrefs', { ...prefs(), [k]: v }) },
     name: () => get('playerName') || 'You',
     binds: () => bindsNow(),
-    toast, play: (o) => play(o), playAgain: () => play(lastOpts || {}), toMenu: () => leaveMatch(), resume: () => resume(),
+    econLog: () => econLog, toast, play: (o) => play(o), playAgain: () => play(lastOpts || {}), toMenu: () => leaveMatch(), resume: () => resume(),
     confirmLeave: () => confirmLeave(), open: (n, arg) => openOverlay(n, arg), back: () => back(), openLocker: () => openLocker(),
     fullscreen: async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch { toast('Fullscreen blocked by browser'); } },
     replayTutorial: () => { S.set('tutorialDone', false); toast('Tutorial will start in your next match'); },
@@ -86,6 +86,7 @@ export function create(ctx) {
   root.append(scrim, grain, main.el, pause.el, help.el, credits.el, settings.el, cheat.el, tutorial.el, boot.el, toastEl, fpsEl, wipe);
   for (const s of [main, pause, help, credits, settings, cheat]) s.el.classList.remove('on');
   wireSfx(root, ctx);
+  root.addEventListener('pointerover', (e) => { const b = e.target.closest?.('.fx-mi,.fx-pb,.fx-tab,.fx-go,.fx-seg>button'); if (b && document.activeElement !== b && root.contains(document.activeElement) && !settings.capturing && e.pointerType === 'mouse') b.focus({ preventScroll: true }); });
   ctx.menu_nameChanged = () => main.refreshName();
   ctx.menu_applySettings = () => applySettings();
 
@@ -106,14 +107,14 @@ export function create(ctx) {
     scrim.style.opacity = v ? 1 : 0;
     if (v) backdrop.enter(); else backdrop.leave();
   }
-  function focusIn(el) { requestAnimationFrame(() => nav.focusFirst(el)); }
+  function focusIn(el) { const go = () => { if (!el.contains(document.activeElement) || document.activeElement === el) nav.focusFirst(el); }; requestAnimationFrame(go); setTimeout(go, 140); setTimeout(go, 450); }
   function activeScopeEl() { const top = overlays[overlays.length - 1]; return top ? screens[top].el : screens[base]?.el; }
   function setBase(name) {
     base = name; for (const n of ['main', 'pause', 'end']) { const s = n === 'end' ? end : screens[n]; if (s) setOn(s, n === name); }
     syncHud(); captureKeys(name !== 'game'); ctx.events.emit('menu:state', { state: name });
   }
   function showOverlay(name, arg) {
-    const below = activeScopeEl(); if (below) below.inert = true; lastFocus = document.activeElement;
+    const below = activeScopeEl(); lastFocus = document.activeElement; focusStack.push(lastFocus); if (below) below.inert = true;
     overlays.push(name); setOn(screens[name], true); screens[name].el.inert = false; syncHud();
     if (name === 'settings') settings.open(arg || settings.active); if (name === 'help') help.refresh(); if (name === 'cheat') cheat.refresh();
     if (inMenuWorld) backdrop.setMood(name === 'settings' || name === 'help' || name === 'credits' ? 'side' : 'main');
@@ -127,9 +128,9 @@ export function create(ctx) {
     setOn(screens[name], false); const below = activeScopeEl(); if (below) below.inert = false;
     ctx.events.emit('ui:close', { owner: 'menu', name }); ctx.events.emit('ui:click');
     if (!overlays.length && inMenuWorld) backdrop.setMood('main');
-    const f = lastFocus; if (f && document.contains(f) && f !== document.body) requestAnimationFrame(() => f.focus({ preventScroll: true })); else focusIn(below);
+    const f = focusStack.pop();  if (f && document.contains(f) && f !== document.body) (f.focus({ preventScroll: true }), setTimeout(() => f.focus({ preventScroll: true }), 60)); else focusIn(below);
   }
-  function clearOverlays() { while (overlays.length) { const n = overlays.pop(); setOn(screens[n], false); screens[n].el.inert = false; } syncHud(); for (const s of [main, pause]) s.el.inert = false; if (end) end.el.inert = false; }
+  function clearOverlays() { focusStack.length = 0; while (overlays.length) { const n = overlays.pop(); setOn(screens[n], false); screens[n].el.inert = false; } syncHud(); for (const s of [main, pause]) s.el.inert = false; if (end) end.el.inert = false; }
 
   // ------------------------------------------------------------------ main menu / boot
   async function showMain({ instant = false } = {}) {
@@ -180,15 +181,20 @@ export function create(ctx) {
   }
   function openPause() {
     if (base !== 'game') return;
-    pause.refresh(); clearOverlays(); setBase('pause'); try { ctx.input?.unlock?.(); } catch {} ctx.engine && (ctx.engine.paused = true); try { ctx.match?.pause?.(); } catch {} tutorial.show(false);
+    pause.refresh(); pause.hint(false); clearOverlays(); setBase('pause'); try { ctx.input?.unlock?.(); } catch {} ctx.engine && (ctx.engine.paused = true); try { ctx.match?.pause?.(); } catch {} tutorial.show(false);
     ctx.events.emit('ui:open', { owner: 'menu', name: 'pause' }); ctx.events.emit('game:pause', { paused: true }); focusIn(pause.el);
   }
-  function resume() {
+  function finishResume() {
     if (base !== 'pause') return; clearOverlays(); setOn(pause, false);
-    try { ctx.input?.lock?.(); } catch {}
     setBase('game'); ctx.engine && (ctx.engine.paused = false); try { ctx.match?.resume?.(); } catch {} tutorial.show(true);
     ctx.events.emit('ui:close', { owner: 'menu', name: 'pause' }); ctx.events.emit('game:pause', { paused: false }); ctx.events.emit('ui:click');
-    setTimeout(() => { if (base === 'game' && !ctx.input?.locked && !test) openPause(); }, 350);
+  }
+  // Click-to-resume: request the lock; the pause UI only closes once the browser grants it (Esc is not a user-activation key in real Chrome).
+  function resume() {
+    if (base !== 'pause') return;
+    try { ctx.input?.lock?.(); } catch {}
+    if (ctx.input?.locked) { finishResume(); return; }
+    pause.hint(true); setTimeout(() => { if (base === 'pause' && !ctx.input?.locked) pause.hint(true, true); }, 450);
   }
   function confirmLeave() {
     const box = h('div', { class: 'fx-confirm' }, h('div', { class: 'fx-card' }, h('h4', null, 'Leave match?'), h('p', null, 'Your progress in this match will be lost.'),
@@ -227,8 +233,8 @@ export function create(ctx) {
   function openLocker() {
     const c = ctx.cosmetics;
     if (!c || c.__stub || typeof c.openLocker !== 'function') { toast('Locker unavailable'); return; }
-    lockerOpen = true; document.documentElement.classList.remove('fx-menu'); setOn(main, false); backdrop.setMood('locker');
-    const done = () => { if (!lockerOpen) return; lockerOpen = false; document.documentElement.classList.toggle('fx-menu', inMenuWorld); if (base === 'main') { setOn(main, true); backdrop.setMood('main'); focusIn(main.el); } };
+    lockerOpen = true; document.documentElement.classList.remove('fx-menu'); setOn(main, false); backdrop.suspend(true);
+    const done = () => { if (!lockerOpen) return; lockerOpen = false; backdrop.suspend(false); document.documentElement.classList.toggle('fx-menu', inMenuWorld); if (base === 'main') { setOn(main, true); backdrop.setMood('main'); focusIn(main.el); } };
     try { const r = c.openLocker({ onClose: done, side: ctx.match?.playerTeam || (prefs().side === 'tide' ? 'tide' : 'ember') }); if (r && typeof r.then === 'function') r.then(done, done); } catch (e) { ctx.errors.push('menu locker ' + e); done(); }
     const off = ctx.events.on('ui:close', (d) => { if ((d?.name || d?.id) === 'locker') { off(); done(); } });
     const esc = (e) => { if (e.code === 'Escape' && lockerOpen) setTimeout(() => { if (lockerOpen && (c.isOpen ? !c.isOpen() : !document.querySelector('#ui [data-fx-locker]'))) { /* keep open: cosmetics owns Esc */ } }, 0); };
@@ -252,8 +258,8 @@ export function create(ctx) {
   ctx.events.on('ui:open', (d) => { if (d?.owner !== 'menu') extModal++; });
   ctx.events.on('ui:close', (d) => { if (d?.owner !== 'menu') extModal = Math.max(0, extModal - 1); });
   ctx.events.on('input:unlock', () => { if (base !== 'game') return; setTimeout(() => { if (base === 'game' && !ctx.input.locked && !extModal && !lockerOpen) openPause(); }, 60); });
-  ctx.events.on('input:lock', () => { if (base === 'pause' && !overlays.length && !wipe.classList.contains('on')) resume(); });
-  ctx.events.on('locker:close', () => { if (lockerOpen) { lockerOpen = false; document.documentElement.classList.toggle('fx-menu', inMenuWorld); if (base === 'main') { setOn(main, true); backdrop.setMood('main'); focusIn(main.el); } } });
+  ctx.events.on('input:lock', () => { if (base === 'pause' && !overlays.length && !wipe.classList.contains('on')) finishResume(); });
+  ctx.events.on('locker:close', () => { if (lockerOpen) { lockerOpen = false; backdrop.suspend(false); document.documentElement.classList.toggle('fx-menu', inMenuWorld); if (base === 'main') { setOn(main, true); backdrop.setMood('main'); focusIn(main.el); } } });
   ctx.events.on('match:end', (d) => { if (base === 'game') { endDelay = 2.6; ctx._menuEndData = d; } });
   addEventListener('keydown', (e) => {
     if (e.code === 'F1') { e.preventDefault(); if (base === 'game') { cheatOpen = !cheatOpen; cheat.refresh(); setOn(cheat, cheatOpen); syncHud(); } else if (base === 'main') { overlays.includes('cheat') ? back() : openOverlay('help'); } else if (overlays[overlays.length - 1] === 'cheat') back(); return; }

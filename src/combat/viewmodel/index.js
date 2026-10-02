@@ -11,8 +11,8 @@ import { setGauge } from './builder.js';
 import { createFx, frand, seedFx } from './fx.js';
 
 const DEG = Math.PI / 180, TAU = Math.PI * 2;
-const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _p2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _col = new THREE.Color();
-const _piv = new THREE.Vector3(0, 0.02, 0.26);       // point the rig rotates about (behind the grip -> weapon sweeps like it is held from the shoulder)
+const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _p2 = new THREE.Vector3(), _p3 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _col = new THREE.Color();
+const _piv0 = new THREE.Vector3(0, 0.02, 0.26), _piv = new THREE.Vector3(0, 0.02, 0.26);       // point the rig rotates about (behind the grip -> weapon sweeps like it is held from the shoulder)
 const CH6 = ['w', 'rh', 'lh'], CH1 = ['rc', 'lc'];
 const MARKS_QUIET = new Set(['draw']);
 
@@ -56,7 +56,8 @@ export function createViewmodel(ctx) {
     scopeIn: false, scopeT: 0, zoomLevel: 0, fovMul: 1,
     bobPhase: 0, bobAmp: 0, sprint: 0, crouch: 0, air: 0, hpLow: 0, lookVX: 0, lookVY: 0, lastGround: true, jumpAt: -9, landAt: -9, speed: 0,
     pending: null, hidden: false, consumed: false, plantOn: false, thrown: false, meleeSide: 0, lastEv: {},
-    lightPunch: 0,
+    lightPunch: 0, fit: [0, 0], fitAspect: 0,
+    spectating: false,
   };
   const kick = new Spring(6, 260, 21), climb = new Spring(6, 32, 8), look = new Spring(6, 70, 11), land = new Spring(6, 170, 13), jump = new Spring(6, 90, 10), scopeSp = new Spring(1, 120, 16);
   let partSp = {}, chA = {}, chB = {}, partNames = [];
@@ -102,7 +103,27 @@ export function createViewmodel(ctx) {
     handR.root.visible = !!h.r; handL.root.visible = !!h.l;
     fx.setCellColor(model.mats.glowColor);
     refreshStyle();
+    fitRest();
     rig.visible = false; S.fresh = true;   // stay hidden until the next update() has posed the rig (no first-frame flash at the camera)
+  }
+
+  // ---------------------------------------------------------------- framing: put the muzzle where CS2 puts it (lower-right third, clear of the crosshair)
+  const FIT = { rifle: [0.25, -0.12], smg: [0.25, -0.12], shotgun: [0.25, -0.12], heavy: [0.23, -0.12], sniper: [0.21, -0.1] };
+  const _fl = new THREE.Vector3(), _ft = new THREE.Vector3();
+  function fitRest() {
+    S.fit[0] = S.fit[1] = 0; S.fitAspect = viewCamera.aspect;
+    const T = FIT[S.meta?.cls]; if (!T || !S.model) return;
+    const vf = vFovOf(settings.fov || 68); if (Math.abs(viewCamera.fov - vf) > 0.01) { viewCamera.fov = vf; viewCamera.updateProjectionMatrix(); }
+    const rest = S.prof.rest;
+    _e.set(rest.r[0] * DEG, rest.r[1] * DEG, rest.r[2] * DEG, 'YXZ'); _q.setFromEuler(_e); _p.copy(_piv).sub(_p2.copy(_piv).applyQuaternion(_q));
+    const sv = [rig.position.x, rig.position.y, rig.position.z], sq = rig.quaternion.clone(), svis = rig.visible;
+    rig.quaternion.copy(_q); rig.position.set(rest.p[0] * 0.01 + _p.x, rest.p[1] * 0.01 + _p.y, rest.p[2] * 0.01 + _p.z);
+    viewCamera.updateMatrixWorld(true); root.updateMatrixWorld(true); muzzleObj.updateWorldMatrix(true, false);
+    muzzleObj.getWorldPosition(_fl); viewCamera.worldToLocal(_fl);
+    const ndc = _ft.copy(_fl).applyMatrix4(viewCamera.projectionMatrix);
+    _ft.set(T[0], T[1], ndc.z).applyMatrix4(viewCamera.projectionMatrixInverse);
+    S.fit[0] = (_ft.x - _fl.x) * 100; S.fit[1] = (_ft.y - _fl.y) * 100;
+    rig.position.set(sv[0], sv[1], sv[2]); rig.quaternion.copy(sq); rig.visible = svis;
   }
   const skinOf = (s) => (s && s.taggerSkin ? s.taggerSkin : s || null);
 
@@ -309,7 +330,8 @@ export function createViewmodel(ctx) {
     const idle = 1 - clamp(S.bobAmp * 1.6, 0, 0.8);
     const spr = S.sprint, ap = S.air, cr = S.crouch;
     const rest = pr.rest;
-    let x = rest.p[0] * 0.01 + settings.offsetX * 0.01, y = rest.p[1] * 0.01 + settings.offsetY * 0.01, z = rest.p[2] * 0.01 + settings.offsetZ * 0.01;
+    if (Math.abs(viewCamera.aspect - S.fitAspect) > 0.01) fitRest();
+    let x = (rest.p[0] + S.fit[0]) * 0.01 + settings.offsetX * 0.01, y = (rest.p[1] + S.fit[1]) * 0.01 + settings.offsetY * 0.01, z = rest.p[2] * 0.01 + settings.offsetZ * 0.01;
     let rx = rest.r[0] * DEG, ry = rest.r[1] * DEG, rz = rest.r[2] * DEG;
     // idle breathing
     const br = Math.sin(t * 1.55), br2 = Math.sin(t * 0.83 + 1.3), hp = 1 + S.hpLow * 1.4;
@@ -334,6 +356,7 @@ export function createViewmodel(ctx) {
       rx = lerp(rx, 0, e * 0.9); ry = lerp(ry, 0, e * 0.9); rz = lerp(rz, 0, e);
     }
     // apply rig with pivot compensation
+    _piv.copy(pr.pivot ? _p3.set(pr.pivot[0], pr.pivot[1], pr.pivot[2]) : _piv0);
     _e.set(rx, ry, rz, 'YXZ'); _q.setFromEuler(_e); _p.copy(_piv).sub(_p2.copy(_piv).applyQuaternion(_q));
     rig.quaternion.copy(_q); rig.position.set(x + _p.x, y + _p.y, z + _p.z);
     // parts
@@ -351,7 +374,7 @@ export function createViewmodel(ctx) {
     void frac;
     // scope zoom
     S.fovMul = meta.scope ? lerp(1, meta.scope.zoom[Math.min(S.zoomLevel, meta.scope.zoom.length - 1)], smooth(0.35, 1, sc)) : 1;
-    const hide = !S.visible || S.hidden || (meta.scope && sc > 0.93);
+    const hide = !S.visible || S.hidden || S.spectating || ctx.localActor?.alive === false || (meta.scope && sc > 0.93);
     S.fresh = false; rig.visible = !hide; handR.root.visible = !hide && !!hd.r; handL.root.visible = !hide && !!hd.l;
     // fov
     const vf = vFovOf(settings.fov || 68); if (Math.abs(viewCamera.fov - vf) > 0.01) { viewCamera.fov = vf; viewCamera.updateProjectionMatrix(); }
@@ -380,6 +403,10 @@ export function createViewmodel(ctx) {
   ctx.events?.on?.('land', (e) => { if (isMe(e?.actor) && S.time - S.landAt > 0.15) doLand(clamp((e?.speed ?? 6) / 9, 0.25, 1.4)); });
   ctx.events?.on?.('footstep', (e) => { if (e?.actor && e.actor === ctx.localActor && S.bobAmp > 0.15) { const d = S.bobPhase - Math.round(S.bobPhase / Math.PI) * Math.PI; S.bobPhase -= d * 0.3; } });
 
+
+  // spectating another actor (or a dead local actor): the local viewmodel must not render
+  ctx.events?.on?.('spectate', (e) => { S.spectating = !!(e?.actor && e.actor !== ctx.localActor); });
+  ctx.events?.on?.('round:start', () => { S.spectating = false; });
 
   // ---- beacon plant / disarm arm animation, driven by the match piece's events
   let plantPrev = null, restoreAt = -1;

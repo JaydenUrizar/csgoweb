@@ -105,7 +105,7 @@ export function create(ctx) {
     const z = zoneAt(p.x, p.z);
     let best = null, bd = 1e9; for (const c of callouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z) / c.radius; if (d < 1.0 && d < bd && Math.abs(p.y - c.pos.y) < 4.2) { bd = d; best = c; } }
     if (best) return best;
-    if (z === 'btun') { let b2 = null, d2 = 1e9; for (const c of tunnelCallouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z); if (d < d2) { d2 = d; b2 = c; } } return b2; }
+    if (z && z.startsWith('btun') && z !== 'btunmouth') { let b2 = null, d2 = 1e9; for (const c of tunnelCallouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z); if (d < d2) { d2 = d; b2 = c; } } return b2; }
     const nm = ZONE_CALLOUT[z]; return nm ? callouts.find((c) => c.name === nm) || null : null;
   };
   const calloutAtOld = (p) => { let best = null, bd = 1e9; for (const c of callouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z) / c.radius; if (d < 1.0 && d < bd && Math.abs(p.y - c.pos.y) < 4.2) { bd = d; best = c; } } return best; };

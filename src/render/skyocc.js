@@ -9,6 +9,26 @@ const CELL = 0.75;
 const HOOK_FS = `
 uniform sampler2D tSkyOcc; uniform vec4 uSkyRect; uniform vec2 uSkyDim; uniform vec3 uSkyWarm; uniform vec3 uLampCol; uniform float uSkyOccOn, uSkyOccMin, uLampK;
 `;
+// macro/micro value variation on every lit surface (breaks up flat floors); also drives a roughness variation
+const VAR_FN = `
+float vh_(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float vn_(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(vh_(i), vh_(i + vec3(1,0,0)), f.x), mix(vh_(i + vec3(0,1,0)), vh_(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(vh_(i + vec3(0,0,1)), vh_(i + vec3(1,0,1)), f.x), mix(vh_(i + vec3(0,1,1)), vh_(i + vec3(1,1,1)), f.x), f.y), f.z); }
+`;
+const VAR_COLOR = `
+float mvar_ = 0.5;
+{
+  vec3 wv_ = transpose(mat3(viewMatrix)) * (-vViewPosition) + cameraPosition;
+  vec3 fn_ = normalize(cross(dFdx(wv_), dFdy(wv_)));
+  float up_ = smoothstep(0.5, 0.95, abs(fn_.y));
+  vec3 q_ = wv_ * vec3(1.0, 1.0, 1.0);
+  float big_ = vn_(q_ * 0.22) * 0.65 + vn_(q_ * 0.9) * 0.35, fine_ = vn_(q_ * 4.1);
+  mvar_ = big_;
+  float v_ = (big_ - 0.5) * (0.20 + 0.14 * up_) + (fine_ - 0.5) * 0.07;
+  diffuseColor.rgb *= 1.0 + v_;
+}
+`;
 const HOOK_CODE = `
 if (uSkyOccOn > 0.5) {
   vec3 wp_ = transpose(mat3(viewMatrix)) * (-vViewPosition) + cameraPosition;
@@ -35,8 +55,9 @@ export function createSkyOcc() {
   };
   const hook = (sh) => {
     if (!sh.fragmentShader || !sh.fragmentShader.includes('#include <lights_fragment_end>')) return;
+    sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n' + VAR_COLOR).replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = clamp(roughnessFactor * (0.78 + 0.44 * mvar_), 0.04, 1.0);');
     for (const k in U) sh.uniforms[k] = U[k];
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + HOOK_FS).replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + HOOK_CODE);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + VAR_FN + HOOK_FS).replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + HOOK_CODE);
   };
   const st = { job: null, done: false };
   const _o = new THREE.Vector3(), _d = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0), _a = new THREE.Vector3(), _b = new THREE.Vector3();

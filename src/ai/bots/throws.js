@@ -36,14 +36,14 @@ export function createThrows(B) {
     const bots = t.bots || [];
     if (kind === 'ember') {
       const lists = EXEC_TARGETS[S] || {};
-      let delay = 0;
+      let delay = 0, rot = 0;
       for (const b of bots) {
         const ai = b.ai, inv = b.actor.inventory, have = inv?.utility || [];
-        if (!have.length || ai.rng() > 0.35 + 0.65 * ai.diff.util) continue;
+        if (!have.length || ai.rng() > 0.8 + 0.2 * ai.diff.util) continue;
         const key = ai.routeKey && lists[ai.routeKey] ? ai.routeKey : Object.keys(lists)[0];
         const tg = (lists[key] || []).map(node).filter(Boolean);
         if (!tg.length) continue;
-        let i = 0;
+        let i = (rot++) % tg.length;
         for (const type of new Set(have)) {
           const nd = tg[i++ % tg.length];
           if (type === 'haze') addOrder(b, 'haze', nd.pos, 'exec', { site: S, delay: 0.2 + delay, ttl: 40 });
@@ -52,13 +52,27 @@ export function createThrows(B) {
           delay += 0.5;
         }
       }
+    } else if (kind === 'tide') {
+      // defenders: early Haze on the attackers' chokes, Strobe/Pulse where they will funnel (delayed into the live phase, thrown when in range)
+      const CH = { A: ['long-doors', 'long-cargo', 'catwalk-top', 'catwalk-stairs'], B: ['tun-corner-1', 'tun-bend', 'tun-mouth', 'b-conn-entry'], MID: ['mid-doors', 'hub-pillar-e', 'hub-pillar-w'] };
+      let rot = 0;
+      for (const b of bots) {
+        const ai = b.ai, have = b.actor.inventory?.utility || []; if (!have.length) continue;
+        const tg = (CH[ai.anchorSite] || CH.MID).map(node).filter(Boolean); if (!tg.length) continue;
+        let i = (rot++) % tg.length;
+        for (const type of new Set(have)) {
+          if (ai.rng() > 0.6 + 0.4 * ai.diff.util) continue;
+          const nd = tg[i++ % tg.length];
+          addOrder(b, type, nd.pos, 'live', { site: ai.anchorSite, ttl: 70, delay: 8 + ai.rng() * 22, popUp: type === 'strobe' ? 2.0 : 0, minD: type === 'haze' ? 9 : 6, maxD: 26 });
+        }
+      }
     } else if (kind === 'retake') {
       const bc = ctx.match?.beacon; if (!bc) return;
       const spots = (ctx.map?.nodes?.list || []).filter((n) => n.site === S && ['cover', 'hold', 'angle', 'lurk'].includes(n.type) && n.pos.distanceTo(bc.pos) < 20 && n.pos.distanceTo(bc.pos) > 3);
       for (const b of bots) {
         const ai = b.ai, have = b.actor.inventory?.utility || []; let i = 0;
         for (const type of new Set(have)) {
-          if (ai.rng() > 0.3 + 0.7 * ai.diff.util) continue;
+          if (ai.rng() > 0.75 + 0.25 * ai.diff.util) continue;
           const sp = spots.length ? spots[(i++ + Math.floor(ai.rng() * spots.length)) % spots.length] : null;
           if (type === 'haze' && sp) addOrder(b, 'haze', sp.pos, 'retake', { site: S, ttl: 18, delay: 0.3 });
           else if (type === 'strobe') addOrder(b, 'strobe', bc.pos, 'retake', { site: S, ttl: 18, popUp: 2.2, delay: 1.0, minD: 5, maxD: 24 });
@@ -100,6 +114,32 @@ export function createThrows(B) {
     return null;
   }
 
+  // ------------------------------------------------------------------------------------------------ safety / coordination
+  const claims = B.hazeClaims = B.hazeClaims || [];
+  const claimed = (p) => { const t = B.now; for (let i = claims.length - 1; i >= 0; i--) { const c = claims[i]; if (t - c.t > 28) { claims.splice(i, 1); continue; } if (Math.hypot(c.x - p.x, c.z - p.z) < 8) return true; } return false; };
+  /** worst blind amount any ally (incl. the thrower, assumed to turn away) would take from a strobe popping at `pos`; also rejects pops near allies / the thrower */
+  function strobeRisk(a, pos) {
+    const T = U(); if (!T?.strobe?.evaluate) return 0; let worst = 0;
+    if (Math.hypot(pos.x - a.pos.x, pos.z - a.pos.z) < 6.5) return 1;
+    for (const m of ctx.actors) {
+      if (!m.alive || m.team !== a.team) continue;
+      let r;
+      if (m === a) { const y = m.yaw, pp = m.pitch; m.yaw = y + Math.PI; m.pitch = 0; r = T.strobe.evaluate(pos, m); m.yaw = y; m.pitch = pp; }
+      else {   // worst case: the ally may turn to face the pop point while it is in flight
+        const dx = pos.x - m.pos.x, dz = pos.z - m.pos.z; if (Math.hypot(dx, dz) < 5) return 1;
+        const y = m.yaw, pp = m.pitch; m.yaw = Math.atan2(-dx, -dz); m.pitch = 0; r = T.strobe.evaluate(pos, m); m.yaw = y; m.pitch = pp; }
+      if (r && r.amount > worst) worst = r.amount;
+    }
+    return worst;
+  }
+  /** predicted pop point of the next throw with the given proxy aim; null if unsafe */
+  const _pp = new THREE.Vector3();
+  function unsafe(a, type, pos) {
+    if (type === 'strobe') return strobeRisk(a, pos) > 0.28;
+    if (type === 'haze') return Math.hypot(pos.x - a.pos.x, pos.z - a.pos.z) < 8;
+    return false;
+  }
+
   const tpv = new THREE.Vector3();
   // ------------------------------------------------------------------------------------------------ per-tick state machine
   /** returns true while the bot's weapon/aim is owned by the throw */
@@ -117,6 +157,8 @@ export function createThrows(B) {
         const T_ = B.T?.[a.team]; let pick_ = null;
         for (const o of u.orders) {
           if (o.when === 'exec' && !(T_?.go && now - (T_.goneAt || 0) >= o.delay)) continue;
+          if (o.when === 'live' && !(ctx.match?.phase === 'live' && (ctx.match.phaseTime || 0) >= o.delay)) continue;
+          if (o.type === 'haze' && claimed(o.target)) { u.orders.splice(u.orders.indexOf(o), 1); continue; }
           if (o.when === 'retake' && !(T_?.retake?.stage === 'push' && now - (T_.retake.pushAt || 0) >= o.delay)) continue;
           const dx = o.target.x - a.pos.x, dz = o.target.z - a.pos.z, d = Math.hypot(dx, dz);
           if (d < o.minD || d > o.maxD) continue;
@@ -137,6 +179,11 @@ export function createThrows(B) {
         else ok = stepSolve(ai, o, now);
         if (ok === null) { if (now - u.t > 3.5) { u.state = 'idle'; u.cur = null; } return false; }
         if (!ok) { o.tries++; if (o.tries >= 2) u.orders.splice(u.orders.indexOf(o), 1); u.cur = null; u.state = 'idle'; u.cooldown = now + 0.8; return false; }
+        { // predicted pop point with the solved aim must be safe for the thrower + teammates
+          proxy.yaw = u.best.yaw; proxy.pitch = u.best.pitch; proxy.ex = a.pos.x; proxy.ey = a.pos.y + (a.eyeHeight || K.eye); proxy.ez = a.pos.z; proxy.vel.set(0, 0, 0);
+          const pts = T.trajectory(proxy, o.type, u.best.power, out); _pp.copy(pts[pts.length - 1]);
+          if (unsafe(a, o.type, _pp)) { o.unsafe = (o.unsafe || 0) + 1; if (o.unsafe >= 6) u.orders.splice(u.orders.indexOf(o), 1); u.cur = null; u.state = 'idle'; u.cooldown = now + 1.2; return false; }
+        }
         u.yaw = u.best.yaw; u.pitch = u.best.pitch; u.power = u.best.power;
         inv.utilSel = o.type; ctx.combat.switchTo(a, 4); u.equippedAt = now; u.state = 'equip'; u.busy = true; u.t = now;
         return true;
@@ -154,6 +201,10 @@ export function createThrows(B) {
         if (!o || (enemyNear && now - u.t < 0.5) || inv.current !== 4) { if (!o || inv.current !== 4) { abort(ai, now); return false; } }
         aimAt(ai, u);
         const eyaw = Math.abs(wrapPi(u.yaw - ai.aim.yaw)), epit = Math.abs(u.pitch - ai.aim.pitch), spd = a.move?.speed || 0;
+        if ((eyaw < 0.02 && epit < 0.02) && now - u.t > 0.1) {      // re-check with the real aim and the allies' current facing
+          const pts = T.trajectory(a, o.type, u.power, out); _pp.copy(pts[pts.length - 1]);
+          if (unsafe(a, o.type, _pp)) { o.unsafe = (o.unsafe || 0) + 1; if (o.unsafe >= 6) u.orders.splice(u.orders.indexOf(o), 1); abort(ai, now); return false; }
+        }
         if ((eyaw < 0.012 && epit < 0.012 && spd < 0.7 && now - u.t > 0.12) || now - u.t > 1.4) {
           // press: strong = fire, weak = aim, medium = both; release after a few ticks -> throw
           u.state = 'press'; u.t = now; u.releaseT = now + 0.06;
@@ -170,21 +221,21 @@ export function createThrows(B) {
       case 'release': {
         u.busy = true; u.hold = true; aimAt(ai, u); u.fire = u.aimBtn = false;
         if (T.count(a, u.cur.type) < u.cnt0 || now - u.t > 0.5) {
-          if (T.count(a, u.cur.type) < u.cnt0) { u.thrown++; B.tel.throws = (B.tel.throws || 0) + 1; B.tel.throwsBy = B.tel.throwsBy || {}; B.tel.throwsBy[u.cur.type] = (B.tel.throwsBy[u.cur.type] || 0) + 1; B.callout(ai.bot, 'util', u.cur.target, u.cur.type); }
+          if (T.count(a, u.cur.type) < u.cnt0) { u.thrown++; B.tel.throws = (B.tel.throws || 0) + 1; B.tel.throwsBy = B.tel.throwsBy || {}; B.tel.throwsBy[u.cur.type] = (B.tel.throwsBy[u.cur.type] || 0) + 1; B.callout(ai.bot, 'util', u.cur.target, u.cur.type); if (u.cur.type === 'haze') claims.push({ x: u.cur.target.x, z: u.cur.target.z, t: now }); u.turn = u.cur.type === 'strobe'; }
           const i = u.orders.indexOf(u.cur); if (i >= 0) u.orders.splice(i, 1);
           u.cur = null; u.state = 'after'; u.t = now; u.cooldown = now + 1.0;
         }
         return true;
       }
       case 'after': {
-        u.busy = true; u.hold = true; u.fire = u.aimBtn = false; if (now - u.t < 0.45) aimAt(ai, u);
-        if (now - u.t > 0.9) { u.state = 'idle'; u.busy = false; u.hold = false; ctx.combat.switchTo(a, inv.slots?.[1] ? 1 : 2); ai.slotCool = now + 0.5; return false; }
+        u.busy = true; u.hold = true; u.fire = u.aimBtn = false; if (u.turn || now - u.t < 0.45) aimAt(ai, u);
+        if (now - u.t > (u.turn ? 1.95 : 0.9)) { u.turn = false; u.state = 'idle'; u.busy = false; u.hold = false; ctx.combat.switchTo(a, inv.slots?.[1] ? 1 : 2); ai.slotCool = now + 0.5; return false; }
         return true;
       }
     }
     return false;
   }
-  function aimAt(ai, u) { const it = ai.aim.it; it.kind = 3; it.yaw = u.yaw; it.pitch = u.pitch; }
+  function aimAt(ai, u) { const it = ai.aim.it; it.kind = 3; it.yaw = u.turn ? u.yaw + Math.PI : u.yaw; it.pitch = u.turn ? 0 : u.pitch; }
   function abort(ai, now) {
     const u = ai.util, a = ai.actor; u.state = 'idle'; u.busy = false; u.hold = false; u.fire = u.aimBtn = false; u.cur = null; u.cooldown = now + 1.5;
     if (a.inventory.current === 4) { ctx.combat.switchTo(a, a.inventory.slots?.[1] ? 1 : 2); ai.slotCool = now + 0.5; }
