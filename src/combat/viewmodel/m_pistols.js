@@ -55,7 +55,7 @@ export function pip(b) {
   trig.box('trim', [0, 2.6, -3.0], [0.9, 2.4, 0.8], { bevel: 0.2, rot: [-12, 0, 0] });
   pistolDetail(m, sl);
   return {
-    name: 'Pip', cls: 'pistol', skin: { pattern: 'solid', primary: 0x4d5a70, accent: 0x9aa9c2, glow: 0x39f0ff, wear: 0 },
+    name: 'Pip', cls: 'pistol', skin: { pattern: 'solid', primary: 0x6f7f9c, accent: 0xc2cde0, glow: 0x39f0ff, wear: 0 },
     muzzle: [0, 8.0, -13.6], eject: { p: [1.8, 10, 3], v: [1.6, 1.9, 0.4] }, len: 20,
     hands: { r: { p: [3.5, -2, 1.6], r: [-8, 0, -90], curl: [0.66, 0.7, 0.72, 0.74, 0.45], pose: 'grip' }, l: { p: [-3.5, -3.8, 0.6], r: [-8, 0, 90], curl: [0.62, 0.66, 0.68, 0.7, 0.4], pose: 'support' } },
   };
@@ -89,7 +89,7 @@ export function twin(b) {
   trig.box('trim', [0, 2.6, -3.4], [0.9, 2.4, 0.8], { bevel: 0.2, rot: [-12, 0, 0] });
   pistolDetail(m, sl);
   return {
-    name: 'Twin', cls: 'pistol', skin: { pattern: 'stripes', primary: 0xdfe3ec, accent: 0x8892a8, glow: 0xff4fd8, wear: 0 },
+    name: 'Twin', cls: 'pistol', skin: { pattern: 'stripes', primary: 0x2a2e38, accent: 0xff4fd8, glow: 0xff4fd8, wear: 0 },
     muzzle: [0, 8.3, -14.2], eject: { p: [2.4, 10, 3], v: [1.6, 1.8, 0.4] }, len: 21, gaugePairs: true,
     hands: { r: { p: [3.8, -2, 1.6], r: [-8, 0, -90], curl: [0.66, 0.7, 0.72, 0.74, 0.45], pose: 'grip' }, l: { p: [-3.8, -3.8, 0.6], r: [-8, 0, 90], curl: [0.62, 0.66, 0.68, 0.7, 0.4], pose: 'support' } },
   };

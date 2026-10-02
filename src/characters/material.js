@@ -91,15 +91,15 @@ const SRGB = THREE.SRGBColorSpace;
 const wrapH = (d) => d - Math.round(d);
 // Per-team palette clamps. EVERY colour slot is forced into the team's hue band or a neutral; the opposite team's hue can never appear.
 const TEAM_RULES = {
-  ember: { suit: { s: [0.45, 0.7], l: [0.12, 0.19] }, accent: { l: [0.78, 0.92] }, helmet: { l: [0.78, 0.92] }, back: { l: [0.1, 0.2] }, hAccent: { l: [0.1, 0.5] } },
-  tide:  { suit: { s: [0.62, 0.95], l: [0.36, 0.5] }, accent: { l: [0.74, 0.92] }, helmet: { l: [0.58, 0.9] }, back: { l: [0.28, 0.5] }, hAccent: { l: [0.1, 0.55] } },
+  ember: { suit: { s: [0.45, 0.7], l: [0.12, 0.19] }, accent: { l: [0.74, 0.86], tint: 0.55 }, helmet: { l: [0.7, 0.84], tint: 0.6 }, back: { l: [0.1, 0.2] }, hAccent: { l: [0.1, 0.5] } },
+  tide:  { suit: { s: [0.62, 0.95], l: [0.36, 0.5] }, accent: { l: [0.74, 0.9], tint: 0.4 }, helmet: { l: [0.62, 0.88], tint: 0.4 }, back: { l: [0.28, 0.5] }, hAccent: { l: [0.1, 0.55] } },
 };
 function clampSlot(out, hex, th, rule, teamHueOk = true) {
-  _c.set(hex).getHSL(_h, SRGB);
+  _c.set(hex).getHSL(_h, SRGB); const tint = rule.tint ?? 0.08;
   const dh = wrapH(_h.h - th), inBand = teamHueOk && Math.abs(dh) < 0.07 && _h.s > 0.2;
   const l = Math.min(rule.l[1], Math.max(rule.l[0], _h.l));
   if (inBand) out.setHSL(th + Math.max(-0.03, Math.min(0.03, dh)), Math.min(_h.s, 0.7), l, SRGB);
-  else out.setHSL(th, Math.min(_h.s, 0.08), l, SRGB);       // neutral grey (tiny team tint)
+  else out.setHSL(th, tint, l, SRGB);       // neutral grey (tiny team tint)
   return out;
 }
 /** Lock every cosmetic colour slot to the team (hue band or neutral). Cosmetics keep shape, pattern type and finish only. */
@@ -119,4 +119,5 @@ export function applySpecToMaterial(mat, spec, teamColor, team = 'ember') {
   clampSlot(u.uBack.value, b.color ?? 0x3a3f4b, th, R.back);
   const f = FINISH[s.material] || FINISH.satin;
   u.uFinishR.value = f[0]; u.uFinishM.value = f[1]; u.uHolo.value = f[2] * 0.45;
+  u.uTeamGlow.value = team === 'ember' ? 1.9 : 1.2; u.uRim.value = team === 'ember' ? 1.1 : 0.75;
 }

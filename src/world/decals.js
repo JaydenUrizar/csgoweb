@@ -5,13 +5,13 @@ import { rngf } from './textures.js';
 
 const FLOOR_TEXT = [
   // text, x, z, rot(deg: 0 reads towards -Z), width m, colour, sub
-  ['EMBER SPAWN', 0, 42.2, 0, 9.5, 0xffa05a], ['TIDE SPAWN', 0, -42.2, 180, 9.0, 0x7fe3ff],
-  ['LONG', 38, 17, 0, 5.2, 0xfff0c8], ['LONG DOORS', 38, 23.5, 0, 6.4, 0xfff0c8], ['PIT', 45.5, 14, 0, 2.6, 0xfff0c8], ['A RAMP', 38, -7.5, 0, 4.6, 0xfff0c8], ['OUTER LONG', 26, 43, 90, 5.4, 0xfff0c8],
-  ['MID', 0, 28, 0, 4.2, 0xfff0c8], ['MID DOORS', 0, 19, 0, 4.6, 0xfff0c8], ['HUB', 0, 4, 0, 3.4, 0xfff0c8], ['SHORT', 14.5, 6, 0, 3.4, 0xfff0c8], ['CATWALK', 14.5, -21, 0, 3.8, 0x3a444c],
-  ['PALACE', -8, -21, 0, 4.6, 0xfff0c8], ['TIDE MID', 0, -33, 180, 4.4, 0xfff0c8], ['WINDOW ROOM', -14.5, -32, 180, 5.4, 0xfff0c8],
+  ['EMBER SPAWN', 0, 42.2, 0, 9.5, 0xffa05a], ['TIDE SPAWN', 0, -42.2, 180, 9.0, 0x0f5f78],
+  ['LONG', 38, 17, 0, 5.2, 0x26313a], ['LONG DOORS', 38, 23.5, 0, 6.4, 0x26313a], ['PIT', 45.5, 14, 0, 2.6, 0x26313a], ['A RAMP', 38, -7.5, 0, 4.6, 0x26313a], ['OUTER LONG', 26, 43, 90, 5.4, 0xfff0c8],
+  ['MID', 0, 28, 0, 4.2, 0x26313a], ['MID DOORS', 0, 19, 0, 4.6, 0x26313a], ['HUB', 0, 4, 0, 3.4, 0x26313a], ['SHORT', 14.5, 6, 0, 3.4, 0x26313a], ['CATWALK', 14.5, -21, 0, 3.8, 0x3a444c],
+  ['PALACE', -8, -21, 0, 4.6, 0x26313a], ['TIDE MID', 0, -33, 180, 4.4, 0x26313a], ['WINDOW ROOM', -14.5, -32, 180, 5.4, 0x26313a],
   ['B TUNNELS', -33, 34, 0, 4.2, 0xfff0c8], ['TUNNELS', -23, 43, 270, 4.6, 0xfff0c8], ['UPPER TUNNEL', -33, 1, 0, 4.4, 0xfff0c8], ['TUNNEL MOUTH', -33, -10, 0, 4.4, 0xfff0c8],
-  ['A DOOR', 19, -43, 90, 4.0, 0xfff0c8], ['B DOOR', -19, -43, 270, 4.0, 0xfff0c8], ['B CONNECTOR', -19, -23, 270, 5.0, 0xfff0c8],
-  ['LEDGE', 44.5, -40, 0, 3.2, 0x3a444c], ['BALCONY', -42, -41, 0, 3.8, 0x3a444c], ['TERRACE', 17, -29, 90, 4.0, 0x3a444c], ['EAST ROOM', 9, -32, 180, 3.6, 0xfff0c8],
+  ['A DOOR', 19, -43, 90, 4.0, 0x26313a], ['B DOOR', -19, -43, 270, 4.0, 0x26313a], ['B CONNECTOR', -19, -23, 270, 5.0, 0x26313a],
+  ['LEDGE', 44.5, -40, 0, 3.2, 0x3a444c], ['BALCONY', -42, -41, 0, 3.8, 0x3a444c], ['TERRACE', 17, -29, 90, 4.0, 0x3a444c], ['EAST ROOM', 9, -32, 180, 3.6, 0x26313a],
 ];
 const WALL_TEXT = [
   // text, x, y, z, nx, nz, w
@@ -25,16 +25,17 @@ function drawFloorText(c, w, h, spec) {
   c.clearRect(0, 0, w, h);
   const fs = h * 0.62; c.font = `900 ${fs}px "Arial Narrow","Barlow Condensed","Helvetica Neue",Arial,sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
   let size = fs; while (c.measureText(spec.text).width > w * 0.9 && size > 8) { size -= 2; c.font = `900 ${size}px "Arial Narrow","Barlow Condensed","Helvetica Neue",Arial,sans-serif`; }
+  const lum = ((spec.color >> 16) & 255) * 0.3 + ((spec.color >> 8) & 255) * 0.59 + (spec.color & 255) * 0.11, lightTxt = lum > 140;
   const col = '#' + spec.color.toString(16).padStart(6, '0');
-  c.lineJoin = 'round'; c.lineWidth = Math.max(3, h * 0.07); c.strokeStyle = 'rgba(40,28,16,0.55)'; c.strokeText(spec.text, w / 2, h / 2 + h * 0.02);
-  c.fillStyle = col; c.globalAlpha = 0.93; c.fillText(spec.text, w / 2, h / 2 + h * 0.02); c.globalAlpha = 1;
+  c.lineJoin = 'round'; c.lineWidth = Math.max(4, h * 0.11); c.strokeStyle = lightTxt ? 'rgba(30,20,12,0.8)' : 'rgba(255,246,222,0.85)'; c.strokeText(spec.text, w / 2, h / 2 + h * 0.02);
+  c.fillStyle = col; c.globalAlpha = 1; c.fillText(spec.text, w / 2, h / 2 + h * 0.02); c.globalAlpha = 1;
   // chevron underline
-  const tw = c.measureText(spec.text).width; c.fillStyle = col; c.globalAlpha = 0.75; c.fillRect(w / 2 - tw / 2, h * 0.88, tw, Math.max(2, h * 0.04)); c.globalAlpha = 1;
+  const tw = c.measureText(spec.text).width; c.fillStyle = col; c.globalAlpha = 0.75; c.fillRect(w / 2 - tw / 2, h * 0.9, tw, Math.max(3, h * 0.05)); c.globalAlpha = 1;
   // erode
   const r = rngf(spec.text.length * 13 + 7); c.globalCompositeOperation = 'destination-out'; for (let i = 0; i < w * h / 260; i++) { c.fillStyle = `rgba(0,0,0,${0.15 + r() * 0.5})`; c.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2); } c.globalCompositeOperation = 'source-over';
 }
 function drawLetter(c, w, h, spec) {
-  c.clearRect(0, 0, w, h); const col = '#' + spec.color.toString(16).padStart(6, '0');
+  c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(20,24,28,0.55)'; c.beginPath(); c.arc(w / 2, h / 2, w * 0.45, 0, 7); c.fill(); const col = '#' + spec.color.toString(16).padStart(6, '0');
   c.lineWidth = w * 0.045; c.strokeStyle = col; c.globalAlpha = 0.9; c.beginPath(); c.arc(w / 2, h / 2, w * 0.43, 0, 7); c.stroke();
   c.lineWidth = w * 0.012; c.beginPath(); c.arc(w / 2, h / 2, w * 0.36, 0, 7); c.stroke(); c.globalAlpha = 1;
   c.font = `900 ${w * 0.5}px "Arial Black","Arial Narrow",Arial,sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';

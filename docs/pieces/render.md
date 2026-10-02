@@ -91,3 +91,9 @@ Inspect: `?test=1&seed=1&scene=render-gallery`, `?scene=render-fx` (`__game.ctx.
 * Warm ground bounce gradient low on walls (hook); micro-contrast up; shadow radius 1.1 (sharper).
 * Grade: sat 0.80, slight cool gain, less warm highlight tint, sun 0xffecd4/5.0, bloom 0.08 thr 2.4, shafts 0.08, contrast 1.12, toe lift. Viewmodel lights softened (key 1.5).
 * Stats (11 real-match frames): median 0.38 (CS2 0.42), p5 0.13 (0.18), p95 0.79 (0.75), sat 0.27 (0.28), warm 0.10 (0.07), clipped 0.3% (1.2%).
+
+## Round 5 changes
+* `src/render/lamps.js`: nearest 6 `ctx.map.lamps` become real shader lights (wrapped quadratic falloff, 4.5-7 m, lights floors, walls, ceilings, pillars); up to 64 additive billboard halos (1 InstancedMesh, bloom core + halo). Indoor factor from the baked sky-occ grid: lamps in open air get ~20% glow/light, roofed lamps full.
+* Min occluded ambient 0.22 (cap 0.52x), env 0.66, contrast 1.06, gamma lift 0.95 + toe: midtones 43% (CS2 47%), p5 0.17, near-black ~0%.
+* Post sharpen (0.45 CAS-like unsharp) folded into the FXAA pass for detail.
+* Stats (11 frames): median 0.44, p5 0.17, p95 0.77, sat 0.28, warm 0.10, clip 0.1% (CS2: 0.42 / 0.18 / 0.75 / 0.28 / 0.07 / 1.2%).

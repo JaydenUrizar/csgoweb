@@ -7,7 +7,7 @@ import * as THREE from 'three';
 
 const CELL = 0.75;
 const HOOK_FS = `
-uniform sampler2D tSkyOcc; uniform vec4 uSkyRect; uniform vec2 uSkyDim; uniform vec3 uSkyWarm; uniform vec3 uLampCol; uniform float uSkyOccOn, uSkyOccMin, uLampK;
+uniform sampler2D tSkyOcc; uniform vec4 uSkyRect; uniform vec2 uSkyDim; uniform vec3 uSkyWarm; uniform vec3 uLampCol; uniform float uSkyOccOn, uSkyOccMin, uLampK, uLampGain; uniform vec4 uLampP[6]; uniform vec3 uLampC[6];
 `;
 // macro/micro value variation on every lit surface (breaks up flat floors); also drives a roughness variation
 const VAR_FN = `
@@ -33,14 +33,15 @@ const HOOK_CODE = `
 if (uSkyOccOn > 0.5) {
   vec3 wp_ = transpose(mat3(viewMatrix)) * (-vViewPosition) + cameraPosition;
   vec2 suv = (wp_.xz - uSkyRect.xy) * uSkyRect.zw;
+  float covG_ = 0.0;
   if (suv.x > 0.0 && suv.y > 0.0 && suv.x < 1.0 && suv.y < 1.0) {
     vec4 so = texture2D(tSkyOcc, suv);
     vec4 sc = texelFetch(tSkyOcc, ivec2(suv * uSkyDim), 0);
-    float cov = step(wp_.y, sc.g * 64.0 + 0.08);
+    float cov = step(wp_.y, sc.g * 64.0 + 0.08); covG_ = cov;
     float occ = mix(1.0, uSkyOccMin + (1.0 - uSkyOccMin) * so.r, cov);
     // everywhere: partial occlusion by nearby walls, stronger when roofed
     vec3 tintc = mix(vec3(1.0), uSkyWarm, cov * (1.0 - so.r));
-    reflectedLight.indirectDiffuse *= min(occ, mix(1.0, 0.40, cov)) * tintc;
+    reflectedLight.indirectDiffuse *= min(occ, mix(1.0, 0.52, cov)) * tintc;
     reflectedLight.indirectSpecular *= occ;
     reflectedLight.indirectDiffuse += diffuseColor.rgb * uLampCol * (so.a * uLampK);
   }
@@ -48,6 +49,14 @@ if (uSkyOccOn > 0.5) {
     vec3 fnb_ = normalize(cross(dFdx(wp_), dFdy(wp_)));
     float wall_ = 1.0 - smoothstep(0.35, 0.8, abs(fnb_.y));
     reflectedLight.indirectDiffuse *= 1.0 + wall_ * 0.55 * exp(-max(wp_.y, 0.0) * 0.45) * vec3(1.0, 0.86, 0.66);   // warm ground bounce low on walls
+    float lg_ = mix(0.45, 1.0, covG_);
+    for (int i = 0; i < 6; i++) {
+      float R_ = uLampP[i].w; if (R_ <= 0.0) continue;
+      vec3 d_ = uLampP[i].xyz - wp_; float dist_ = length(d_) + 1e-3;
+      float att_ = clamp(1.0 - dist_ / R_, 0.0, 1.0); att_ *= att_;
+      float ndl_ = dot(fnb_, d_ / dist_) * 0.5 + 0.5;
+      reflectedLight.indirectDiffuse += diffuseColor.rgb * uLampC[i] * (att_ * ndl_ * uLampGain * lg_);
+    }
   }
 }
 `;
@@ -56,7 +65,7 @@ export function createSkyOcc() {
   const U = {
     tSkyOcc: { value: null }, uSkyRect: { value: new THREE.Vector4(0, 0, 1, 1) }, uSkyDim: { value: new THREE.Vector2(1, 1) },
     uSkyWarm: { value: new THREE.Color(1.0, 0.86, 0.70) }, uLampCol: { value: new THREE.Color(1.0, 0.72, 0.42) },
-    uSkyOccOn: { value: 0 }, uSkyOccMin: { value: 0.12 }, uLampK: { value: 1.0 },
+    uSkyOccOn: { value: 0 }, uSkyOccMin: { value: 0.22 }, uLampK: { value: 0.35 }, uLampGain: { value: 3.2 }, uLampP: { value: Array.from({ length: 6 }, () => new THREE.Vector4(0, 0, 0, 0)) }, uLampC: { value: Array.from({ length: 6 }, () => new THREE.Color()) },
   };
   const hook = (sh) => {
     if (!sh.fragmentShader || !sh.fragmentShader.includes('#include <lights_fragment_end>')) return;
@@ -119,6 +128,10 @@ export function createSkyOcc() {
           for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const kk = ((j + dj) * nx + i + di) * 4; if (Math.abs(src[kk + 1] - src[k + 1]) < 6) { s += src[kk]; c++; } }
           data[k] = s / c;
         }
+        st.sampleIndoor = (x, y, z) => {   // 0 = open air, 1 = fully roofed (uses the baked grid)
+          const i = Math.floor((x - x0) / CELL), j = Math.floor((z - z0) / CELL); if (i < 0 || j < 0 || i >= nx || j >= nz) return 0;
+          const k = (j * nx + i) * 4; return y <= data[k + 1] / 255 * 64 + 0.3 ? 1 - data[k] / 255 : 0;
+        };
         tex.needsUpdate = true; U.tSkyOcc.value = tex; U.uSkyRect.value.set(x0, z0, 1 / (nx * CELL), 1 / (nz * CELL)); U.uSkyDim.value.set(nx, nz); U.uSkyOccOn.value = 1; st.done = true; st.job = null;
         return true;
       },

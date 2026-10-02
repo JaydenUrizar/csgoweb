@@ -31,6 +31,11 @@ export const HOLD = {
   none:    { pos: [0.2, -0.5, -0.05], rot: [0, 0, 0], L: null, lroll: 0, rroll: 0, kick: [0, 0], len: 0 },
 };
 
+// low-ready (running, not shooting): [x, y, z, rx] in the aim frame; arms stay tucked, barrel dips
+const LOWS = { rifle: [0.13, -0.3, -0.18, -0.5], smg: [0.12, -0.3, -0.18, -0.5], shotgun: [0.13, -0.3, -0.18, -0.5], sniper: [0.13, -0.3, -0.18, -0.5], lmg: [0.12, -0.32, -0.2, -0.45], pistol: [0.07, -0.36, -0.24, -0.75] };
+for (const k of Object.keys(LOWS)) HOLD[k].low = LOWS[k];
+for (const k of ['rifle', 'smg', 'shotgun', 'sniper', 'lmg']) { HOLD[k].pos[0] = 0.13; HOLD[k].rot[1] = -0.05; }
+
 // Left-hand reload waypoints in pivot space: [t, x, y, z]
 export const RELOAD = {
   rifle: [[0, 0, -0.055, -0.31], [0.14, 0, -0.14, -0.06], [0.3, 0, -0.2, -0.04], [0.52, 0, -0.2, -0.04], [0.66, 0, -0.14, -0.06], [0.76, 0, -0.14, -0.05], [0.92, 0, -0.06, -0.22], [1, 0, -0.055, -0.31]],

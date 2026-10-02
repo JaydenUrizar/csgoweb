@@ -9,12 +9,13 @@ export const CAPS = [
   C('crown', B.head, [0, 0.02, 0.0], B.head, [0, 0.05, 0], 0.15),
   C('chest', B.chest, [0, 0.0, 0], B.chest, [0, 0.05, 0], 0.25),
   C('chest', B.neck, [0, -0.04, 0], B.neck, [0, 0.03, 0], 0.07),
+  C('chest', B.chest, [0, -0.02, 0.24], B.chest, [0, 0.22, 0.24], 0.13),   // backpack
   C('stomach', B.pelvis, [0, -0.01, 0], B.spine, [0, 0.16, 0], 0.22),
   C('stomach', B.uLegL, [0, 0.02, 0], B.uLegR, [0, 0.02, 0], 0.125),
   C('arm', B.uArmL, [0, 0, 0], B.fArmL, [0, 0, 0], 0.095), C('arm', B.fArmL, [0, 0, 0], B.handL, [0, 0, 0], 0.085), C('arm', B.handL, [0, -0.03, 0], B.handL, [0, -0.09, 0], 0.075),
   C('arm', B.uArmR, [0, 0, 0], B.fArmR, [0, 0, 0], 0.095), C('arm', B.fArmR, [0, 0, 0], B.handR, [0, 0, 0], 0.085), C('arm', B.handR, [0, -0.03, 0], B.handR, [0, -0.09, 0], 0.075),
-  C('leg', B.uLegL, [0, 0, 0], B.lLegL, [0, 0, 0], 0.125), C('leg', B.lLegL, [0, 0, 0], B.footL, [0, 0, 0], 0.092), C('leg', B.footL, [0, -0.03, 0.03], B.footL, [0, -0.03, -0.2], 0.07),
-  C('leg', B.uLegR, [0, 0, 0], B.lLegR, [0, 0, 0], 0.125), C('leg', B.lLegR, [0, 0, 0], B.footR, [0, 0, 0], 0.092), C('leg', B.footR, [0, -0.03, 0.03], B.footR, [0, -0.03, -0.2], 0.07),
+  C('leg', B.uLegL, [0, 0, 0], B.lLegL, [0, 0, 0], 0.112), C('leg', B.lLegL, [0, 0, 0], B.footL, [0, 0, 0], 0.085), C('leg', B.footL, [0, -0.03, 0.03], B.footL, [0, -0.03, -0.2], 0.07),
+  C('leg', B.uLegR, [0, 0, 0], B.lLegR, [0, 0, 0], 0.112), C('leg', B.lLegR, [0, 0, 0], B.footR, [0, 0, 0], 0.085), C('leg', B.footR, [0, -0.03, 0.03], B.footR, [0, -0.03, -0.2], 0.07),
 ];
 export const NC = CAPS.length;
 export const GROUP_COLORS = { crown: 0xff3060, chest: 0xffb000, stomach: 0xffe040, arm: 0x40d0ff, leg: 0x60ff90 };

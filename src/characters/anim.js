@@ -21,7 +21,7 @@ const _pPos = new THREE.Vector3(), _cPos = new THREE.Vector3(), _pQ = new THREE.
 const _qU = new THREE.Quaternion(), _qL = new THREE.Quaternion(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _qc = new THREE.Quaternion(), _qAim = new THREE.Quaternion(), _qHold = new THREE.Quaternion(), _qPL = new THREE.Quaternion();
 const _e = new THREE.Euler(), _pv = new THREE.Vector3(), _pl = new THREE.Vector3(), _lv = new THREE.Vector3();
 const RX90 = new THREE.Quaternion().setFromAxisAngle(X, PI / 2);
-const HAND_LEN = 0.045, _pouch = new THREE.Vector3();
+const _actW = new THREE.Vector3(), HAND_LEN = 0.045, _pouch = new THREE.Vector3();
 
 /** Two-bone IK in parent space. J joint, T target, returns local quats for upper (qU) and lower (qL, relative to upper). */
 function ik2(J, T, l1, l2, pole, qU, qL) {
@@ -32,7 +32,7 @@ function ik2(J, T, l1, l2, pole, qU, qL) {
   const a = (l1 * l1 - l2 * l2 + dist * dist) / (2 * dist), h = Math.sqrt(Math.max(l1 * l1 - a * a, 0));
   _pp.copy(pole).addScaledVector(_dn, -pole.dot(_dn));
   if (_pp.lengthSq() < 1e-6) _pp.set(0, 0, -1).addScaledVector(_dn, _dn.z);
-  _pp.normalize();
+  _pp.normalize(); _actW.copy(J).addScaledVector(_dn, dist);
   _K.copy(J).addScaledVector(_dn, a).addScaledVector(_pp, h);
   _u.subVectors(_K, J).multiplyScalar(1 / l1);
   _l.copy(J).addScaledVector(_dn, dist).sub(_K).multiplyScalar(1 / l2);
@@ -50,7 +50,7 @@ function keys(arr, s) {               // arr = [[t, ...values]] smooth interpola
 }
 const _kv = [0, 0, 0, 0, 0, 0, 0, 0];
 const MELEE_K = [[0, 0, 0, 0, 0, 0, 0], [0.3, 0.06, 0.4, 0.18, -1.35, 0.3, 0.55], [0.52, -0.16, 0.0, -0.32, -0.15, 0.1, -0.7], [0.66, -0.1, -0.02, -0.28, -0.05, 0.05, -0.4], [1, 0, 0, 0, 0, 0, 0]];
-const THROW_K = [[0, 0.12, 0.58, 0.38, 1.25, 0, 0], [0.2, 0.0, 0.3, 0.1, 0.6, 0, 0], [0.34, -0.08, 0.1, -0.45, -0.6, 0, 0], [0.62, -0.14, -0.25, -0.2, -1.0, 0, 0], [1, 0, 0, 0, 0, 0, 0]];
+const THROW_K = [[0, 0, 0, 0, 0, 0, 0], [0.22, 0.12, 0.58, 0.38, 1.25, 0, 0], [0.4, -0.08, 0.1, -0.45, -0.6, 0, 0], [0.65, -0.14, -0.25, -0.2, -1.0, 0, 0], [1, 0, 0, 0, 0, 0, 0]];
 
 export function plantModeOf(ctx, a, m) {
   if (m.dbg && m.dbg.plant != null) return m.dbg.plant;
@@ -150,8 +150,8 @@ export function animate(ctx, m, dt, alpha) {
   const gaitW = gaitOn ? 1 : 0; m.gaitW = (m.gaitW || 0) + (gaitW - (m.gaitW || 0)) * (1 - Math.exp(-dt * 10));
 
   // ---------------------------------------------------------------- gait parameters + phase
-  let C = clamp(0.8 + 0.28 * sN, 1.2, 2.6) * (1 - 0.28 * cr);
-  const hmax = 0.44 - 0.16 * cr;
+  let C = clamp(0.8 + 0.28 * sN, 1.2, 2.6) * (1 - 0.18 * cr);
+  const hmax = 0.44 - 0.1 * cr;
   let duty = lerp(0.62, 0.36, sstep((sN - 2.0) / 3.2)) + 0.05 * cr; duty = Math.min(duty, 2 * hmax / C);
   const h = duty * C * 0.5, liftAmp = lerp(0.1, 0.22, run) * (1 - 0.12 * cr) + 0.025 * cr;
   if (gaitOn) { m.phase += sN * dt / C; if (m.phase > 1e3) m.phase -= 1e3; }
@@ -283,7 +283,8 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
   const low = 1 - m.aimW;
   let px = H.pos[0], py = H.pos[1], pz = H.pos[2], rx = H.rot[0], ry = H.rot[1], rz = H.rot[2];
   const heavy = cls === 'melee' || cls === 'grenade' || cls === 'none' ? 0.3 : 1;
-  py -= 0.05 * low * heavy; pz += 0.03 * low * heavy; rx -= 0.3 * low * heavy;
+  if (H.low && low > 0.001) { px = lerp(px, H.low[0], low); py = lerp(py, H.low[1], low); pz = lerp(pz, H.low[2], low); rx = lerp(rx, H.low[3], low); }
+  else { py -= 0.05 * low * heavy; pz += 0.03 * low * heavy; rx -= 0.3 * low * heavy; }
   // gait sway
   px += 0.022 * sPh * gw * (0.4 + run); py += 0.016 * Math.sin(2 * TAU * ph) * gw * (0.4 + run); pz += 0.02 * Math.cos(TAU * ph) * gw * run;
   const br = Math.sin(m.time * 1.7 + m.id) * 0.5 + 0.5; py += 0.003 * br * (1 - gw);
@@ -309,7 +310,7 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
     }
     const bump = sstep(s / 0.12) * (1 - sstep((s - 0.84) / 0.14));
     const big = cls === 'pistol' ? 0.7 : 1;
-    rx += 0.42 * bump * big; rz -= 0.5 * bump * big; py += 0.07 * bump; px -= 0.06 * bump; pz += 0.05 * bump;
+    rx += 0.3 * bump * big; rz -= 0.4 * bump * big; py += 0.03 * bump; px -= 0.04 * bump; pz += 0.02 * bump;
     if (s > 0.64 && s < 0.8) { const k = Math.sin((s - 0.64) / 0.16 * PI); py -= 0.045 * k; rx -= 0.18 * k; }   // slam the mag home
     if (s > 0.32 && s < 0.5) { px += 0.03 * Math.sin((s - 0.32) / 0.18 * PI); }
     m.reloadW = bump; m.mag.visible = s > 0.3 && s < 0.7 && (cls !== 'shotgun');
@@ -323,11 +324,11 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
   }
   m.hideHeld = false;
   if (m.throwT >= 0) {
-    m.throwT += dt; const s = m.throwT / 0.62;
+    m.throwT += dt; const s = m.throwT / 0.72;
     if (s >= 1) { m.throwT = -1; m.ball.visible = false; }
     else {
       const k = keys(THROW_K, s); px += k[0]; py += k[1]; pz += k[2]; rx += k[3];
-      if (s < 0.34) { m.ball.visible = true; if (cls === 'grenade') m.hideHeld = true; sp.fy[0] = 0.3 * (1 - s / 0.34); }
+      if (s < 0.4) { m.ball.visible = true; if (cls === 'grenade') m.hideHeld = true; sp.fy[0] = 0.35 * Math.min(1, s / 0.22) * (1 - Math.max(0, (s - 0.22) / 0.18)); }
       else { m.ball.visible = false; if (!m.throwRel) { m.throwRel = true; sp.recoilChest[1] -= 1.8; sp.fy[1] -= 5; } }
     }
   } else m.throwRel = false;
@@ -356,6 +357,8 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
     _qb.copy(_qPL).multiply(RX90); _qc.setFromAxisAngle(Y, H.rroll || 0); _qb.multiply(_qc);   // hand world (chest space)
     _wr.set(0, HAND_LEN, 0).applyQuaternion(_qb).add(_pl);
     solveArm(m, 1, _wr, _qb, run, cr);
+    // pin the weapon to the (reach-clamped) right hand: the gun can never float away from it
+    _p2.subVectors(_actW, _wr); if (_p2.lengthSq() > 1e-8) { _pl.add(_p2); m.pivot.position.copy(_pl); }
   } else relaxedArm(m, 1, armPh, run, gw, cr);
   // left hand
   if (hasL || plantW > 0.01) {
@@ -384,11 +387,13 @@ function solveArm(m, sg, wrist, handQ, run, cr) {
   _hq.copy(_qU).multiply(_qL).invert().multiply(handQ); hA.quaternion.copy(_hq);
 }
 function relaxedArm(m, sg, s, run, gw, cr) {
+  const tw = m.throwT >= 0 && sg < 0 ? sstep((m.throwT / 0.72 - 0.05) / 0.2) * (1 - sstep((m.throwT / 0.72 - 0.6) / 0.3)) : 0;
   // hanging / swinging arm (FK-ish through IK targets)
   const B_ = m.bones, uA = B_[sg < 0 ? B.uArmL : B.uArmR], fA = B_[sg < 0 ? B.fArmL : B.fArmR], hA = B_[sg < 0 ? B.handL : B.handR];
   const amp = (0.12 + 0.2 * run) * gw, sw = s * amp * -sg;
   _J.set(sg * SEG.shoulderX, 0.22, 0);
   _wr.set(sg * (0.3 + 0.03 * cr), -0.42 + 0.07 * Math.abs(sw) / 0.3 + 0.06 * cr + 0.04 * run * gw, -0.03 + sw - 0.08 * cr - 0.08 * run * gw);
+  if (tw > 0) _wr.lerp(_p2.set(-0.2, 0.12, -0.36), tw);
   _pole.set(sg * 0.5, -0.5, 0.9);
   ik2(_J, _wr, SEG.arm1, SEG.arm2, _pole, _qU, _qL);
   uA.quaternion.copy(_qU); fA.quaternion.copy(_qL);

@@ -44,7 +44,9 @@ export function createViewmodel(ctx) {
     }
   } catch (e) { /* environment is optional */ }
   const muzzleFxLight = null; void muzzleFxLight;
-  const fx = createFx({ muzzle: muzzleObj, castRoot, root });
+  const flashAnchor = new THREE.Object3D(); flashAnchor.name = 'viewmodel-flash'; root.add(flashAnchor);   // flash spawns at the REST muzzle (not the kicked one) so it never leaps onto the crosshair
+  const fx = createFx({ muzzle: flashAnchor, castRoot, root });
+  const flashRest = new THREE.Vector3(), flashRestQ = new THREE.Quaternion();
   const hmats = createHandMats();
   const handR = new Hand('r', hmats), handL = new Hand('l', hmats);
   rig.add(handR.root, handL.root);
@@ -108,21 +110,23 @@ export function createViewmodel(ctx) {
   }
 
   // ---------------------------------------------------------------- framing: put the muzzle where CS2 puts it (lower-right third, clear of the crosshair)
-  const FIT = { rifle: [0.25, -0.12], smg: [0.25, -0.12], shotgun: [0.25, -0.12], heavy: [0.23, -0.12], sniper: [0.21, -0.1], pistol: [0.31, -0.27], melee: [0.36, -0.08], grenade: [0.40, -0.1], gear: [0.28, -0.12] };
+  const FIT = { rifle: [0.25, -0.12], smg: [0.25, -0.12], shotgun: [0.25, -0.12], heavy: [0.23, -0.12], sniper: [0.21, -0.1], pistol: [0.31, -0.27], melee: { a: 'grip', t: [0.46, -0.36] }, grenade: [0.40, -0.1], gear: [0.28, -0.12] };
   const _fl = new THREE.Vector3(), _ft = new THREE.Vector3();
   function fitRest() {
     S.fit[0] = S.fit[1] = 0; S.fitAspect = viewCamera.aspect;
-    const T = FIT[S.meta?.cls]; if (!T || !S.model) return;
+    const F0 = FIT[S.meta?.cls]; if (!F0 || !S.model) { if (S.model) { const r0 = S.prof.rest; flashRest.set(r0.p[0] * 0.01, r0.p[1] * 0.01, r0.p[2] * 0.01).add(_p.copy(muzzleObj.position)); flashRestQ.identity(); } return; } const T = Array.isArray(F0) ? F0 : F0.t, anchor = Array.isArray(F0) ? muzzleObj : rig;
     const vf = vFovOf(settings.fov || 68); if (Math.abs(viewCamera.fov - vf) > 0.01) { viewCamera.fov = vf; viewCamera.updateProjectionMatrix(); }
     const rest = S.prof.rest;
     _e.set(rest.r[0] * DEG, rest.r[1] * DEG, rest.r[2] * DEG, 'YXZ'); _q.setFromEuler(_e); _p.copy(_piv).sub(_p2.copy(_piv).applyQuaternion(_q));
     const sv = [rig.position.x, rig.position.y, rig.position.z], sq = rig.quaternion.clone(), svis = rig.visible;
     rig.quaternion.copy(_q); rig.position.set(rest.p[0] * 0.01 + _p.x, rest.p[1] * 0.01 + _p.y, rest.p[2] * 0.01 + _p.z);
     viewCamera.updateMatrixWorld(true); root.updateMatrixWorld(true); muzzleObj.updateWorldMatrix(true, false);
-    muzzleObj.getWorldPosition(_fl); viewCamera.worldToLocal(_fl);
+    anchor.getWorldPosition(_fl); viewCamera.worldToLocal(_fl);
     const ndc = _ft.copy(_fl).applyMatrix4(viewCamera.projectionMatrix);
     _ft.set(T[0], T[1], ndc.z).applyMatrix4(viewCamera.projectionMatrixInverse);
     S.fit[0] = (_ft.x - _fl.x) * 100; S.fit[1] = (_ft.y - _fl.y) * 100;
+    rig.position.x += S.fit[0] * 0.01; rig.position.y += S.fit[1] * 0.01; root.updateMatrixWorld(true);
+    flashRest.copy(muzzleObj.position).applyQuaternion(rig.quaternion).add(rig.position); flashRestQ.copy(rig.quaternion);
     rig.position.set(sv[0], sv[1], sv[2]); rig.quaternion.copy(sq); rig.visible = svis;
   }
   const skinOf = (s) => (s && s.taggerSkin ? s.taggerSkin : s || null);
@@ -199,11 +203,12 @@ export function createViewmodel(ctx) {
     if (act.on && (act.name === 'inspect' || act.name === 'pump' || act.name === 'bolt' || act.name === 'empty' || act.name.startsWith('reloadShell'))) { const nm = act.name; endClip(); onClipEnd(nm); }
     const amp = (i, v, mx) => { kick.x[i] += Math.abs(kick.x[i] + v) < Math.abs(mx) || Math.sign(kick.x[i]) !== Math.sign(v) ? v : 0; };
     const r1 = frand() - 0.5, r2 = frand() - 0.5, sgn = ((n * 2654435761) >>> 3) & 1 ? 1 : -1;
-    amp(2, k.z * 0.01 * (0.85 + frand() * 0.3), k.z * 0.01 * k.max);
-    amp(3, k.pitch * DEG * (0.85 + frand() * 0.3), k.pitch * DEG * k.max);
-    amp(4, (k.yaw * DEG) * (r1 * 2 + 0.3 * sgn), k.yaw * DEG * k.max * 1.5);
-    amp(5, (k.roll * DEG) * (r2 * 2 - 0.2 * sgn), k.roll * DEG * k.max * 1.5);
-    kick.v[3] += k.pitch * DEG * 3.2; kick.v[2] += k.z * 0.01 * 2.2;
+    // kick is mostly an impulse on the spring (eases in over 2-3 frames) + a small immediate step
+    amp(2, k.z * 0.01 * 0.3 * (0.85 + frand() * 0.3), k.z * 0.01 * k.max);
+    amp(3, k.pitch * DEG * 0.3 * (0.85 + frand() * 0.3), k.pitch * DEG * k.max);
+    amp(4, (k.yaw * DEG) * 0.4 * (r1 * 2 + 0.3 * sgn), k.yaw * DEG * k.max * 1.5);
+    amp(5, (k.roll * DEG) * 0.4 * (r2 * 2 - 0.2 * sgn), k.roll * DEG * k.max * 1.5);
+    kick.v[3] += k.pitch * DEG * 4.6; kick.v[2] += k.z * 0.01 * 3.6;
     climb.kick(3, k.pitch * 0.33 * DEG); climb.kick(1, 0.0006);
     // per-part mechanics
     const f = S.meta.fire || {};
@@ -362,6 +367,7 @@ export function createViewmodel(ctx) {
     _piv.copy(pr.pivot ? _p3.set(pr.pivot[0], pr.pivot[1], pr.pivot[2]) : _piv0);
     _e.set(rx, ry, rz, 'YXZ'); _q.setFromEuler(_e); _p.copy(_piv).sub(_p2.copy(_piv).applyQuaternion(_q));
     rig.quaternion.copy(_q); rig.position.set(x + _p.x, y + _p.y, z + _p.z);
+    _p3.copy(muzzleObj.position).applyQuaternion(rig.quaternion).add(rig.position); flashAnchor.position.lerpVectors(flashRest, _p3, 0.3); flashAnchor.quaternion.slerpQuaternions(flashRestQ, rig.quaternion, 0.35);
     // parts
     for (const n of partNames) { const g = model.parts[n], pv = model.pivots[n], o = chA[n], sp = partSp[n];
       g.position.set(pv[0] * 0.01 + o[0] + sp.x[0], pv[1] * 0.01 + o[1] + sp.x[1], pv[2] * 0.01 + o[2] + sp.x[2]);

@@ -60,6 +60,7 @@ export class MatSet {
     const d = this.defaults, s = { ...d, ...(skin || {}) };
     for (const k of ['pattern', 'primary', 'accent', 'glow', 'wear']) if (s[k] == null) s[k] = d[k];
     // keep each tagger's identity: skins only lightly re-tint furniture/trim and glow
+    if (skin && d.pattern && d.pattern !== 'solid') s.pattern = d.pattern;   // models with their own finish (hex, stripes, chevron, gradient) keep it
     if (skin) { s.accent = new THREE.Color(d.accent).lerp(new THREE.Color(s.accent), 0.3).getHex(); s.glow = new THREE.Color(d.glow).lerp(new THREE.Color(s.glow), 0.3).getHex(); }
     this.skin = s;
     const u = this.u;

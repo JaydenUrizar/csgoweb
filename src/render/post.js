@@ -161,7 +161,7 @@ void main(){
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
   col = mix(vec3(l), col, uSat) * vec3(0.965, 1.0, 1.045);
   col = (col - 0.46) * uContrast + 0.46;
-  col = col * 0.93 + 0.065;
+  col = pow(max(col, 0.0), vec3(0.95)) * 0.93 + 0.06;
   col = mix(col, vec3(l), (1.0 - smoothstep(0.0, 0.55, l)) * 0.4);
   col += mix(uShadowTint, uHighTint, smoothstep(0.1, 0.9, l)) * 0.04;
   // vignette
@@ -204,7 +204,11 @@ export function createPost(renderer) {
     uShadowTint: T(new THREE.Color(0.55, 0.75, 1.0)), uHighTint: T(new THREE.Color(1.0, 0.82, 0.55)), uBloomTint: T(new THREE.Color(1, 0.96, 0.9)),
     uFlash: T(new THREE.Vector4()), uTint: T(new THREE.Vector4()), uDamage: T(new THREE.Vector4()),
   });
-  const fxaaMat = mk(FXAAShader.fragmentShader, { tDiffuse: T(), resolution: V2() });
+  const fxaaFS = FXAAShader.fragmentShader.replace('gl_FragColor = ApplyFXAA( tDiffuse, resolution.xy, vUv );',
+    `vec4 fx_ = ApplyFXAA( tDiffuse, resolution.xy, vUv );
+    vec3 nb_ = (texture2D(tDiffuse, vUv + vec2(resolution.x, 0.0)).rgb + texture2D(tDiffuse, vUv - vec2(resolution.x, 0.0)).rgb + texture2D(tDiffuse, vUv + vec2(0.0, resolution.y)).rgb + texture2D(tDiffuse, vUv - vec2(0.0, resolution.y)).rgb) * 0.25;
+    gl_FragColor = vec4(clamp(fx_.rgb + (fx_.rgb - nb_) * 0.45, 0.0, 1.0), 1.0);`);
+  const fxaaMat = mk(fxaaFS, { tDiffuse: T(), resolution: V2() });
 
   const HALF = THREE.HalfFloatType;
   const S = { w: 0, h: 0, scale: 1, msaa: 0, ao: false, bloomLevels: 4, shafts: false, fxaa: true, ready: false };

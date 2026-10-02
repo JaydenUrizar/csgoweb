@@ -44,15 +44,15 @@ void main() {
   // foreshortened (near-axial) tracers: widen into a hot blob so they still read
   float axial = length(ax.xy) / max(length(ax), 1e-4);
   float blob = 1.0 + (1.0 - smoothstep(0.1, 0.5, axial)) * 1.8;
-  float hw = min(max(w * 0.5, minW * mix(0.5, 0.3, other)) * mix(blob, 1.0, other), uPx * max(-pv.z, 0.1) * 45.0);   // cap ~90px wide
+  float hw = min(max(w * 0.5, minW * mix(0.5, 0.42, other)) * mix(blob, 1.0, other), uPx * max(-pv.z, 0.1) * 45.0);   // cap ~90px wide
   float thin = clamp(w / max(minW, 1e-5), 0.8, 1.0);
   pv += side * corner.x * hw;
   float nearFade = smoothstep(uNear * 0.3, uNear, -pv.z);
   float remain = smoothstep(0.0, 1.0, seg / max(min(len, dist), 0.05));
   float toEnd = dist - mix(tailD, headD, s);
-  remain *= mix(1.0, mix(0.0, 1.0, smoothstep(0.3, 2.2, toEnd)) * 0.9 + 0.1, other);   // others' tracers dissolve ~2 m before whatever they hit
+  remain *= mix(1.0, mix(0.15, 1.0, smoothstep(0.0, 0.5, toEnd)), other);   // others' tracers dissolve ~2 m before whatever they hit
   vUv = vec2(s, corner.x);
-  vCol = vec4(aCol.rgb * aCol.a * mix(1.0, 0.55, other), thin * nearFade * remain);
+  vCol = vec4(aCol.rgb * aCol.a * mix(1.0, 0.85, other), thin * nearFade * remain);
   vParm = vec4(aParm.z, aParm.w, seg, age);
   vLen = seg;
   gl_Position = projectionMatrix * vec4(pv, 1.0);

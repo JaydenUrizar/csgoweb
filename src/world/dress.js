@@ -35,7 +35,7 @@ export function dressWorld(D) {
       if (alongX) D.arch({ axis: 'x', cx: x0 + t, cz: (z0 + z1) / 2, w: Wd - 0.9, depth: 0.5, floorY: 0, spring: 3.0, rise: 1.2, topY: 4.45, margin: 0.7, color: ribc, roof: false, dark: 0.8 });
       else D.arch({ axis: 'z', cx: (x0 + x1) / 2, cz: z0 + t, w: Wd - 0.9, depth: 0.5, floorY: 0, spring: 3.0, rise: 1.2, topY: 4.45, margin: 0.7, color: ribc, roof: false, dark: 0.8 });
       // hanging lantern between ribs
-      const lt = t + 2.5; if (lt < L - 1) { const lx = alongX ? x0 + lt : (x0 + x1) / 2, lz = alongX ? (z0 + z1) / 2 : z0 + lt; D.VB.box('plain', lx - 0.02, 3.35, lz - 0.02, lx + 0.02, 4.4, lz + 0.02, rgb(0x30343a), { ao: 1 }); D.VB.box('emissive', lx - 0.17, 2.95, lz - 0.17, lx + 0.17, 3.4, lz + 0.17, mulc(rgb(zn === 'btun1' ? 0x9ae8ff : zn === 'btun3' ? 0xbfe0ff : 0xffb070), 2.8), { ao: 1 }); D.lamps.push({ pos: [lx, 3.2, lz], color: 0xffc080, intensity: 1.2, radius: 5.5, kind: 'lantern' }); D.pool(lx, lz, 2.8, zn === 'btun1' ? 0x9ae8ff : zn === 'btun3' ? 0xbfe0ff : 0xffb070, 0.34, 0); }
+      const lt = t + 2.5; if (lt < L - 1) { const lx = alongX ? x0 + lt : (x0 + x1) / 2, lz = alongX ? (z0 + z1) / 2 : z0 + lt; D.lantern(lx, 3.0, lz, zn === 'btun1' ? 0x9ae8ff : zn === 'btun3' ? 0xbfe0ff : 0xffb070, { hang: 4.4, intensity: 1.3, radius: 5.5 }); D.pool(lx, lz, 2.8, zn === 'btun1' ? 0x9ae8ff : zn === 'btun3' ? 0xbfe0ff : 0xffb070, 0.34, 0); }
     }
     void acc;
   }
@@ -81,7 +81,7 @@ export function dressWorld(D) {
   for (const sx of [-1, 1]) D.VB.box('wood', sx * 2 - (sx > 0 ? 0.12 : 0), 0, 10.1, sx * 2 + (sx > 0 ? 0 : 0.12), 3.1, 14.9, rgb(0xb07848), { ao: 0.8 });
   for (const z of [11, 17.5, 25, 34]) D.wallLamp(-5, 3.2, z, 1, 0, 0xffc880);
 
-  for (const [x, z] of [[0, 11.5], [0, 13.5], [38, 28.5]]) { D.VB.box('plain', x - 0.02, 3.2, z - 0.02, x + 0.02, 4.0, z + 0.02, rgb(0x30343a), { ao: 1 }); D.VB.box('emissive', x - 0.15, 2.9, z - 0.15, x + 0.15, 3.3, z + 0.15, mulc(rgb(0xffc880), 3.0), { ao: 1 }); D.lamps.push({ pos: [x, 3.1, z], color: 0xffc880, intensity: 1 }); }
+  for (const [x, z] of [[0, 11.5], [0, 13.5], [38, 28.5]]) D.lantern(x, 3.0, z, 0xffc880, { hang: 4.1, intensity: 1.3, radius: 5.5 });
   // ============================================================ HUB
   D.container(1.5, -5, 4.5, -2.5, 1.2, 0xc4673d, { name: 'xbox' }); D.crateBox(4.5, -4.2, 5.9, -2.6, 0.6, { variant: 'dark', name: 'xbox-step' });
   D.pillar(-5.5, 5, 1.0, 5.2); D.pillar(5.5, 5, 1.0, 5.2);

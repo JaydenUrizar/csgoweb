@@ -7,6 +7,7 @@ import { makeMaterials } from './materials.js';
 import { buildDecals } from './decals.js';
 import { buildSkyline } from './skyline.js';
 import { buildRadar } from './radar.js';
+import { bakeLamps } from './lightbake.js';
 import { VisBuilder, rgb } from './builder.js';
 import { heightAt, X0, Z0, NX, NZ, idx, SURF } from './grid.js';
 import { H } from './layout.js';
@@ -58,8 +59,7 @@ export function create(ctx) {
       group.add(m); into.push(m);
     }
   };
-  addMeshes(W.VB, meshes); addMeshes(W.VBroof, roofs); const sky = []; addMeshes(VBsky, sky, false);
-  const roofGroup = roofs; // toggled in overview
+  const sky = []; const roofGroup = roofs; // toggled in overview
 
   // ---- collision ----
   const surfaceFromGrid = (x, y, z) => {
@@ -69,6 +69,10 @@ export function create(ctx) {
     return 'stone';
   };
   const col = makeCollider(W.CB, surfaceFromGrid);
+  const _t0 = performance.now();
+  const bake = ctx.params.get('nobake') ? null : bakeLamps([W.VB, W.VBroof], D.lamps, col.visible);
+  addMeshes(W.VB, meshes); addMeshes(W.VBroof, roofs); addMeshes(VBsky, sky, false);
+  const bakeInfo = { ms: Math.round(performance.now() - _t0), ...(bake || {}) };
 
   // ---- sites / callouts / radar ----
   const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -88,7 +92,7 @@ export function create(ctx) {
   const nodeY = (n) => { const o = v3(n.x, (n.elevated ? 5 : n.site === 'A' && n.x > 20 && n.z < -12 ? 4 : 3.0), n.z); const lim = n.elevated ? 3.6 : 3.0; o.y = Math.min(o.y, heightAt(grid, n.x, n.z) + 1.5 + (n.elevated ? 0.4 : 0)); const h = col.raycast(o, v3(0, -1, 0), 8); return h ? h.point.y : heightAt(grid, n.x, n.z); };
   const nodes = NODES.map((n) => ({ ...n, pos: v3(n.x, nodeY(n), n.z) }));
   const nodeById = Object.fromEntries(nodes.map((n) => [n.id, n]));
-  const paths = PATHS.map((p) => ({ ...p, pts: p.pts.map(([x, z]) => v3(x, heightAt(grid, x, z), z)) }));
+  const paths = PATHS.map((p) => ({ ...p, pts: p.pts.map(([x, z, y]) => v3(x, y ?? heightAt(grid, x, z), z)) }));
 
   // ---- misc contract bits ----
   const thinWalls = D.thinWalls;
@@ -137,7 +141,7 @@ export function create(ctx) {
       const o = _p.set(p.x, p.y + 0.35, p.z); const h = col.raycast(o, v3(0, -1, 0), 1.2);
       if (h) return h.surface; return surfaceFromGrid(p.x, p.y, p.z);
     },
-    stats: { visTris: W.VB.tris + W.VBroof.tris, colTris: col.geometry.index.count / 3, meshes: meshes.length + roofs.length, atlas: { requests: atlas.count, cells: atlas.cells, scale: atlas.scale } },
+    stats: { bake: bakeInfo, lampsBaked: true, visTris: W.VB.tris + W.VBroof.tris, colTris: col.geometry.index.count / 3, meshes: meshes.length + roofs.length, atlas: { requests: atlas.count, cells: atlas.cells, scale: atlas.scale } },
     materials: M, textures: T,
     setRoofsVisible(v) { for (const m of roofGroup) m.visible = v; },
     setSkylineVisible(v) { for (const m of sky) m.visible = v; },

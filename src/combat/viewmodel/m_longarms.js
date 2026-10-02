@@ -2,7 +2,7 @@
 import { pgrip, tguard, teeth, vents, strips, emitter, curvedCell, straightCell, panels } from './kit.js';
 
 const RH = (x = 3.4, y = -1, z = 2.4, rake = 14) => ({ p: [x, y, z], r: [-rake * 0.6, 0, -90], curl: [0.66, 0.7, 0.72, 0.74, 0.45], pose: 'grip' });
-const LH_UNDER = (z, y = 1, x = -0.6, curl = [0.6, 0.62, 0.64, 0.66, 0.4]) => ({ p: [x, y, z], r: [0, 0, 180], curl, pose: 'under' });
+const LH_UNDER = (z, y = 1, x = -0.6, curl = [0.74, 0.78, 0.8, 0.82, 0.5]) => ({ p: [x, y, z], r: [0, 0, 180], curl, pose: 'under' });
 
 export function zip(b) {
   const m = b.main, cell = b.part('cell', [0, 4.5, -8]), hnd = b.part('handle', [0, 12, 5]);

@@ -80,7 +80,7 @@ export function createFx({ muzzle, castRoot, root }) {
   const dropped = { m: new THREE.Mesh(bigGeo, bigMat), vy: 0, vx: 0, vz: 0, life: 0, sx: 0, sz: 0 }; dropped.m.visible = false; dropped.m.frustumCulled = false; castRoot.add(dropped.m);
 
   // ---- swing trail ribbon ----
-  const TN = 14, tpos = new Float32Array(TN * 2 * 3), tcol = new Float32Array(TN * 2 * 3), idx = [];
+  const TN = 8, tpos = new Float32Array(TN * 2 * 3), tcol = new Float32Array(TN * 2 * 3), idx = [];
   for (let i = 0; i < TN - 1; i++) idx.push(i * 2, i * 2 + 1, i * 2 + 3, i * 2, i * 2 + 3, i * 2 + 2);
   const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.BufferAttribute(tpos, 3)); tg.setAttribute('color', new THREE.BufferAttribute(tcol, 3)); tg.setIndex(idx);
   const trailMat = add(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
@@ -132,9 +132,9 @@ export function createFx({ muzzle, castRoot, root }) {
         if (F.t <= 0) { flash.visible = false; light.intensity = 0; }
         else {
           const e = u * u, s = F.size;
-          star.scale.setScalar(0.125 * s * (0.65 + 0.7 * u)); star2.scale.setScalar(0.088 * s * (0.55 + 0.6 * u)); glow.scale.setScalar(0.32 * s * (0.6 + 0.5 * u)); glow.material.opacity = 1;
-          cone.scale.z = (F.style === 'bolt' ? 0.5 : 0.24) * s * (1 + (1 - u) * 0.7); cone2.scale.z = cone.scale.z; cone.scale.x = cone.scale.y = cone2.scale.x = cone2.scale.y = 0.042 * s * (0.5 + u);
-          if (F.style === 'wide') { cone.scale.x = cone.scale.y = cone2.scale.x = cone2.scale.y = 0.06 * s * (0.5 + u); }
+          star.scale.setScalar(0.07 * s * (0.65 + 0.7 * u)); star2.scale.setScalar(0.05 * s * (0.55 + 0.6 * u)); glow.scale.setScalar(0.17 * s * (0.6 + 0.5 * u)); glow.material.opacity = 1;
+          cone.scale.z = (F.style === 'bolt' ? 0.6 : 0.34) * s * (1 + (1 - u) * 0.7); cone2.scale.z = cone.scale.z; cone.scale.x = cone.scale.y = cone2.scale.x = cone2.scale.y = 0.03 * s * (0.5 + u);
+          if (F.style === 'wide') { cone.scale.x = cone.scale.y = cone2.scale.x = cone2.scale.y = 0.04 * s * (0.5 + u); }
           if (ringM.visible) { ringM.scale.setScalar(0.035 * s + (1 - u) * 0.12 * s); }
           light.intensity = F.lightPeak * e;
           starMat.opacity = coneMat.opacity = glowMat.opacity = 0.25 + 0.75 * u;
@@ -165,7 +165,7 @@ export function createFx({ muzzle, castRoot, root }) {
             const s = Math.min(i, n - 1), a = (1 - i / (TN - 1)) * T.fade * (T.n > 1 ? 1 : 0);
             tpos[i * 6] = r[s * 6]; tpos[i * 6 + 1] = r[s * 6 + 1]; tpos[i * 6 + 2] = r[s * 6 + 2];
             tpos[i * 6 + 3] = r[s * 6 + 3]; tpos[i * 6 + 4] = r[s * 6 + 4]; tpos[i * 6 + 5] = r[s * 6 + 5];
-            tcol[i * 6] = T.color.r * 1.5 * a; tcol[i * 6 + 1] = T.color.g * 1.5 * a; tcol[i * 6 + 2] = T.color.b * 1.5 * a; tcol[i * 6 + 3] = 0.25 * a; tcol[i * 6 + 4] = 0.18 * a; tcol[i * 6 + 5] = 0.1 * a;
+            tcol[i * 6] = T.color.r * 0.7 * a * a; tcol[i * 6 + 1] = T.color.g * 0.7 * a * a; tcol[i * 6 + 2] = T.color.b * 0.7 * a * a; tcol[i * 6 + 3] = 0.04 * a; tcol[i * 6 + 4] = 0.03 * a; tcol[i * 6 + 5] = 0.02 * a;
           }
           tg.attributes.position.needsUpdate = true; tg.attributes.color.needsUpdate = true;
         }

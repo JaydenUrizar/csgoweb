@@ -19,7 +19,7 @@ export function createHandMats() {
     const tc = team === 'tide' ? 0x2fd0ff : 0xff7a2f; setGlow(u, HID.team, tc, 2.2);
     const base = suit?.base ?? (team === 'tide' ? 0x1f4a58 : 0x5a2d1c), acc = suit?.accent ?? tc;
     // sleeve: suit colour pulled hard toward a dark tactical fabric so the arm reads as sleeve, not a flat team wedge
-    c.set(base).multiplyScalar(0.5).lerp(new THREE.Color(0x1f242c), 0.9);
+    c.set(base).multiplyScalar(0.6).lerp(new THREE.Color(0x3a4452), 0.7);
     const mat = suit?.material || 'matte';
     setSub(u, HID.sleeve, c, mat === 'metallic' ? 0.32 : mat === 'satin' ? 0.5 : mat === 'holo' ? 0.25 : 0.72, mat === 'metallic' ? 0.7 : mat === 'holo' ? 0.5 : 0.06);
     setSub(u, HID.sleeveDark, c.clone().multiplyScalar(0.55), 0.8, 0.05);
@@ -64,7 +64,7 @@ const palm = (p) => {
   p.cyl('team', [0, 0, 8.35], 4.15, 4.15, 0.4, 8);
 };
 const tube = (p) => {   // sleeve tube along +Z, length 100 (scaled to the shoulder); 12 facets, accent panel on top, shaded underside
-  const sides = 12, r0 = 2.9, r1 = 4.0, verts = [], faces = [], mats = [], shades = [];
+  const sides = 12, r0 = 2.15, r1 = 3.5, verts = [], faces = [], mats = [], shades = [];
   for (let i = 0; i < sides; i++) { const a = (i / sides) * Math.PI * 2 + Math.PI / sides; verts.push([Math.cos(a) * r0, Math.sin(a) * r0, 0]); }
   for (let i = 0; i < sides; i++) { const a = (i / sides) * Math.PI * 2 + Math.PI / sides; verts.push([Math.cos(a) * r1, Math.sin(a) * r1, 100]); }
   for (let i = 0; i < sides; i++) {
@@ -75,27 +75,27 @@ const tube = (p) => {   // sleeve tube along +Z, length 100 (scaled to the shoul
   faces.forEach((f, i) => p._build(mats[i], verts, [f], [0, 0, 0], { shade: shades[i] }));
 };
 const ring = (p) => {
-  p.cyl('sleeveDark', [0, 0, 1.0], 3.8, 4.1, 2.0, 12);                               // flared gauntlet cuff over the glove
-  p.cyl('cuff', [0, 0, 2.6], 3.7, 3.7, 1.2, 12);
-  p.cyl('team', [0, 0, 3.4], 3.75, 3.75, 0.35, 12);
-  p.cyl('sleeveTrim', [0, 0, 4.1], 3.7, 3.7, 0.8, 12);
-  p.box('pad', [0, 3.5, 9], [3.8, 0.9, 11], { bevel: 0.45, tz: [0.8, 1, 1, 1] });  // forearm armour plate
-  p.box('team', [0, 3.98, 9], [0.4, 0.16, 10]);
-  for (const sx of [-1, 1]) { p.box('pad', [sx * 3.0, 2.0, 8.5], [0.8, 2.4, 7], { bevel: 0.3 }); p.box('gloveLight', [sx * 3.1, 2.0, 13.5], [0.5, 1.0, 1.4], { bevel: 0.15 }); }
-  p.cyl('sleeveDark', [0, 0, 15.5], 3.6, 3.7, 1.6, 12);                            // strap
-  p.box('cuff', [0, 3.6, 15.5], [1.4, 0.5, 1.8], { bevel: 0.15 });                    // buckle
-  p.cyl('sleeveDark', [0, 0, 23], 3.8, 3.9, 1.4, 12);
-  p.cyl('sleeveTrim', [0, 0, 24.2], 3.85, 3.85, 0.5, 12);
+  p.cyl('sleeveDark', [0, 0, 1.0], 3.0, 3.35, 2.0, 12);                               // flared gauntlet cuff over the glove
+  p.cyl('cuff', [0, 0, 2.6], 2.9, 2.9, 1.2, 12);
+  p.cyl('team', [0, 0, 3.4], 2.95, 2.95, 0.35, 12);
+  p.cyl('sleeveTrim', [0, 0, 4.1], 2.9, 2.9, 0.6, 12);
+  p.box('pad', [0, 2.7, 9], [3.0, 0.8, 11], { bevel: 0.45, tz: [0.8, 1, 1, 1] });  // forearm armour plate
+  p.box('team', [0, 3.12, 9], [0.35, 0.14, 10]);
+  for (const sx of [-1, 1]) { p.box('pad', [sx * 2.4, 1.5, 8.5], [0.7, 2.0, 7], { bevel: 0.3 }); p.box('gloveLight', [sx * 2.5, 1.5, 13.5], [0.5, 1.0, 1.4], { bevel: 0.15 }); }
+  p.cyl('sleeveDark', [0, 0, 15.5], 2.75, 2.85, 1.4, 12);                            // strap
+  p.box('cuff', [0, 2.85, 15.5], [1.4, 0.5, 1.8], { bevel: 0.15 });                    // buckle
+  p.cyl('sleeveDark', [0, 0, 23], 3.0, 3.1, 1.2, 12);
+  p.cyl('sleeveTrim', [0, 0, 24.2], 3.05, 3.05, 0.4, 12);
 };
 
 const FINGER_X = [-3.05, -1.02, 1.02, 3.05], FINGER_Z = [-4.3, -4.5, -4.3, -3.9], PROX = [3.9, 4.3, 3.9, 3.3];
-const DIST = [[3.3, 1.85, 1.75], [3.6, 1.9, 1.8], [3.3, 1.85, 1.75], [2.8, 1.7, 1.65]];
-const PROXW = [[1.95, 1.9], [2.0, 1.95], [1.95, 1.9], [1.8, 1.75]];
+const DIST = [[3.3, 2.1, 2.0], [3.6, 2.15, 2.05], [3.3, 2.1, 2.0], [2.8, 1.95, 1.9]];
+const PROXW = [[2.25, 2.15], [2.3, 2.2], [2.25, 2.15], [2.05, 2.0]];
 
 export class Hand {
   constructor(side, mats) {
     this.side = side; this.mats = mats; const L = side === 'l', mx = L ? -1 : 1;
-    this.root = new THREE.Group(); this.root.name = 'hand-' + side;
+    this.root = new THREE.Group(); this.root.name = 'hand-' + side; this.root.scale.setScalar(0.86);
     const bones = [], mk = (name, parent, x, y, z) => { const b = new THREE.Bone(); b.name = name; b.position.set(x * S, y * S, z * S); parent.add(b); bones.push(b); return b; };
     this.body = new THREE.Bone(); this.body.name = 'palm'; bones.push(this.body); this.root.add(this.body);
     this.fingers = [];

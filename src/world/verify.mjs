@@ -99,10 +99,10 @@ if (process.argv[2] === 'genpaths') {
       const seg = []; let c = tgt; if (!dist.has(tgt)) { console.error('NO PATH', p.id, i); continue; } while (c !== prev) { seg.push(c); c = pv.get(c); } seg.reverse(); chain = chain.concat(seg); prev = tgt;
     }
     // simplify
-    const walk = (a, b) => { const L = Math.hypot(b.x - a.x, b.z - a.z); const steps = Math.ceil(L / 0.25); let last = a; for (let k = 1; k <= steps; k++) { const x = a.x + (b.x - a.x) * k / steps, z = a.z + (b.z - a.z) * k / steps; const m = nearest(x, z, last.y + 0.0, true); if (!m || Math.hypot(m.x - x, m.z - z) > 0.4 || Math.abs(m.y - last.y) > 0.8 || !clearR(x, m.y, z)) return false; if (hit(x, m.y + 0.6, z, 0, 0, 1, 0.001) >= 0) return false; last = m; } return true; };
+    const walk = (a, b) => { const L = Math.hypot(b.x - a.x, b.z - a.z); const steps = Math.ceil(L / 0.25); let last = a; for (let k = 1; k <= steps; k++) { const x = a.x + (b.x - a.x) * k / steps, z = a.z + (b.z - a.z) * k / steps; const m = nearest(x, z, last.y + 0.0, true); if (!m || Math.hypot(m.x - x, m.z - z) > 0.4 || Math.abs(m.y - last.y) > 0.8 || !clearR(x, m.y, z)) return false; if (hit(x, m.y + 0.6, z, 0, 0, 1, 0.001) >= 0) return false; last = m; } return Math.abs(last.y - b.y) <= 0.8; };
     const pts = [chain[0]]; let i0 = 0;
     while (i0 < chain.length - 1) { let j = chain.length - 1; while (j > i0 + 1 && !walk(chain[i0], chain[j])) j--; pts.push(chain[j]); i0 = j; }
-    out.push({ id: p.id, team: p.team, site: p.site, pts: pts.map((n) => [Math.round(n.x * 2) / 2, Math.round(n.z * 2) / 2]) });
+    out.push({ id: p.id, team: p.team, site: p.site, pts: pts.map((n) => [Math.round(n.x * 2) / 2, Math.round(n.z * 2) / 2, Math.round(n.y * 20) / 20]) });
   }
   console.log('PATHS_JSON' + JSON.stringify(out));
 }

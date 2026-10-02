@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 /** metres per texture repeat; local:true => UVs start at the box origin instead of world zero */
 export const MAT = {
-  wall: { tile: 3 }, plaster: { tile: 4 }, floor: { tile: 4 }, brick: { tile: 2 }, sand: { tile: 8 }, tile: { tile: 2 },
+  wall: { tile: 3 }, plaster: { tile: 8 }, floor: { tile: 4 }, brick: { tile: 2 }, sand: { tile: 8 }, tile: { tile: 2 },
   roof: { tile: 4 }, wood: { tile: 2 }, crate: { tile: 1.4, local: true }, metal: { tile: 2 }, ribbed: { tile: 2 }, deck: { tile: 2 },
   cloth: { tile: 2 }, plain: { tile: 1 }, emissive: { tile: 1 }, glass: { tile: 1 }, water: { tile: 4 }, foliage: { tile: 1 }, signs: { tile: 1, rgba: true }, contact: { tile: 1, rgba: true },
 };

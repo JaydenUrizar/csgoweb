@@ -127,7 +127,9 @@ export function create(ctx) {
       if (!m.visible) { continue; }
       syncHeld(m);
       animate(ctx, m, dt, alpha);
-      if (m.held.obj) m.held.obj.visible = !fp && !m.hideHeld;
+      const solid = m.u.uMat.value > 0.92;
+      if (m.held.obj) m.held.obj.visible = !fp && !m.hideHeld && solid;
+      m.attach.hip.visible = solid; m.attach.back.visible = solid; m.attach.trailEmitter.visible = solid;
       if (showHb && !m.firstPerson) { if (!m.hbDbg) { m.hbDbg = createDebugMesh(m); scene.add(m.hbDbg); } m.hbDbg.visible = true; updateDebugMesh(m, m.hbDbg, tick); } else if (m.hbDbg) m.hbDbg.visible = false;
       if (showNames) updatePlate(m);
     }

@@ -22,3 +22,6 @@ Every colour slot is clamped per team (material.js TEAM_RULES): Ember = dark umb
 
 ## Round 4 changes
 Ember = near-black umber suit (#3a2418 family), cream helmet/pauldrons/accents, orange emissive bands (survives sand/terracotta at range); slimmer hips/thighs/waist taper, smaller gloves, guns +15% length; rifle/smg/shotgun/sniper holds moved central & lower so elbows tuck; render pose interpolates prev->actor.pos (zero lag, hitboxes evaluated at the true actor.pos); airborne also detected from vertical speed (crate hops); stronger run lean/counter-twist/sway; plant = kneel + press device on ground; body 1.5k tris (4.4k incl. shadow pass). Charm quad at hip belongs to cosmetics (docs/requests/cosmetics-from-avatars-1.md).
+
+## Round 5 changes
+Weapon is pinned to the reach-clamped right hand every frame (arm IK result moves the pivot), left hand follows pivot-space waypoints / vest pouch; per-class low-ready pose while running (tucked elbows); throw has wind-up -> release -> follow-through with counter-balance arm and ball in hand; held gun/charm hidden until materialise completes; team-coloured helmet ridge + tinted helmet/pauldrons; thicker emissive bands, stronger Ember glow/rim; backpack capsule; slimmer leg capsules; longer crouch stride. Cosmetics trail sparkles obscuring the torso: owner is cosmetics/vfx.

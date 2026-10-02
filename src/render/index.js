@@ -5,6 +5,7 @@ import { createPost } from './post.js';
 import { bakeVertexAO, bakeVertexAOAsync } from './ao.js';
 import { registerScenes } from './scenes.js';
 import { createSkyOcc } from './skyocc.js';
+import { createLamps } from './lamps.js';
 import { LAYER } from '../core/config.js';
 
 // Rendering, lighting & post-FX. Owner: render piece. Contract: docs/ARCHITECTURE.md + docs/pieces/render.md.
@@ -47,6 +48,7 @@ export function create(ctx) {
   const vKey = new THREE.DirectionalLight(0xfff0d6, 1.5), vRim = new THREE.DirectionalLight(0x9cc8ff, 0.9), vHemi = new THREE.HemisphereLight(0xdfeaff, 0x8a7358, 0.38);
   viewScene.add(vKey, vKey.target, vRim, vRim.target, vHemi);
 
+  const lampFx = createLamps(scene, skyOcc.U);
   const materials = createMaterials(renderer, skyOcc.hook);
   const post = createPost(renderer);
 
@@ -59,7 +61,7 @@ export function create(ctx) {
     blur: { value: 0, hold: 0 }, tint: { color: new THREE.Color(1, 0, 0), amount: 0, hold: 0 },
     damage: { dir: 0, amount: 0 }, white: { hold: 0, level: 0 },
     shake: { trauma: 0, decay: 6, t: 0 },
-    exposure: 0.97, bloom: 0.08, ao: 1.0, vignette: 0.10, grain: 1, ca: 1, contrast: 1.12, saturation: 0.80,
+    exposure: 0.93, bloom: 0.08, ao: 1.0, vignette: 0.10, grain: 1, ca: 1, contrast: 1.06, saturation: 0.80,
     toggles: { skyocc: true, bloom: true, ssao: true, grain: true, vignette: true, shadows: true, fxaa: true, shafts: true },
   };
   const stats = { beforeVM: () => { skyOcc.U.uSkyOccOn.value = 0; }, afterVM: () => { skyOcc.U.uSkyOccOn.value = skyOcc.state.done && fx.toggles.skyocc ? 1 : 0; }, sceneCalls: 0, sceneTris: 0, calls: 0, tris: 0, sunVis: 0, sunUV: new THREE.Vector2(0.5, 0.5), shaftI: 0.08 };
@@ -76,7 +78,7 @@ export function create(ctx) {
     scene.fog.color.copy(sky.fogColor); scene.fog.density = p.fogDensity;
     vKey.color.copy(sky.sunColor).lerp(_c.set(0xffffff), 0.3);
     const env = sky.buildEnvironment(); scene.environment = env; viewScene.environment = env;
-    scene.environmentIntensity = 0.6; viewScene.environmentIntensity = 0.5;
+    scene.environmentIntensity = 0.66; viewScene.environmentIntensity = 0.5;
   }
   function setSky(o = {}) { Object.assign(sky.params, o); applySky(); }
 
@@ -158,6 +160,8 @@ export function create(ctx) {
     if (f.white.hold > 0) f.white.hold -= dt; else f.white.level = Math.max(0, f.white.level - dt / 2.4);
     f.shake.trauma = Math.max(0, f.shake.trauma - f.shake.decay * dt * 0.25 - dt * 0.05); f.shake.t += dt;
     sky.update(camera, dt);
+    if (!lampFx.bound && ctx.map?.lamps?.length) { lampFx.setLamps(ctx.map.lamps); lampFx.bound = true; }
+    if (lampFx.bound && !lampFx.prepped && skyOcc.state.done) { lampFx.prep(skyOcc.state.sampleIndoor); lampFx.prepped = true; }
     if (!skyOcc.state.done) {
       if (!skyOcc.state.job && ctx.map?.raycast && ctx.map.bounds && ctx.map.heightAt) skyOcc.begin(ctx.map);
       skyOcc.state.job?.run(ctx.manualStepping ? 1e9 : 5);
@@ -204,7 +208,7 @@ export function create(ctx) {
       u.uTint.value.set(Math.pow(fx.tint.color.r, 1 / 2.2), Math.pow(fx.tint.color.g, 1 / 2.2), Math.pow(fx.tint.color.b, 1 / 2.2), fx.tint.amount);
       u.uDamage.value.set(fx.damage.dir, dm, 0, 0);
       // sun shadow frustum & camera-space viewmodel lighting
-      sun.castShadow = t.shadows; updateSun();
+      sun.castShadow = t.shadows; updateSun(); lampFx.update(camera);
       camera.updateMatrixWorld();
       _f.set(0, 0, -1).applyQuaternion(camera.quaternion); const sd = _f.dot(sunDir);
       stats.sunVis = t.shafts && preset.shafts ? THREE.MathUtils.clamp((sd - 0.12) / 0.5, 0, 1) : 0;
@@ -226,7 +230,7 @@ export function create(ctx) {
       setExposure(x) { fx.exposure = x; },
       setSunAngle(el, az) { setSky({ sunElevation: el, sunAzimuth: az }); },
       toggle(name, on) { if (name in fx.toggles) fx.toggles[name] = !!on; if (name === 'skyocc') skyOcc.U.uSkyOccOn.value = on && skyOcc.state.done ? 1 : 0; },
-      skyOcc,
+      skyOcc, lampFx,
       stats() { return { ...stats, ...api.info(), dynScale: dyn.scale }; },
       setDynamic(on) { dyn.enabled = !!on; },
     },

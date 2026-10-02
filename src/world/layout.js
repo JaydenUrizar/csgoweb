@@ -88,14 +88,14 @@ export function buildLayout() {
   paint(-37, -35, -29, -27, { surf: 'tile', tint: 0x9fc9c0 }); paint(-36, -34, -30, -28, { surf: 'stone', tint: 0 });
   paint(-34, -33, -32, -29, { surf: 'tile', tint: 0x2a9d9f });
   // Long lane bright sand with a darker walking line
-  paint(36, -4, 40, 27, { tint: 0xf1d9a4 });
+
 
   // tunnel floors: each bend its own paving (darkened in terrain.js)
   paint(-36, 24, -30, 46, { surf: 'tile', tint: 0x8fb5b0 }); paint(-42, 24, -36, 30, { surf: 'tile', tint: 0x8fb5b0 });
   paint(-42, 6, -36, 24, { surf: 'brick', tint: 0xa05a44 }); paint(-42, 6, -30, 12, { surf: 'brick', tint: 0xa05a44 });
   paint(-36, -12, -30, 6, { surf: 'stone', tint: 0xd9d4c4 }); paint(-36, -6, -35, 6, { surf: 'stone', tint: 0xb0aa98 });
   // 2 m checker paving in the big open courts (breaks up the empty floor), skipped where inlays follow
-  const CHK = { a: [0xf2e0b2, 0xe3cd9a], aplat: [0xf4e4b8, 0xe6d3a2], palace: [0xe0cba4, 0xd1bc92], hub: [0xe2ccA6, 0xd3be96], ts: [0xdddcd0, 0xcdcbbd], longramp: [0xeed9a8, 0xdfc994], midapp: [0xdcc7a1, 0xd0bb92], terrace: [0xd2c9bb, 0xc4bbac] };
+  const CHK = { a: [0xefdcae, 0xe5d1a2], aplat: [0xf4e4b8, 0xe6d3a2], palace: [0xe0cba4, 0xd1bc92], hub: [0xe2ccA6, 0xd3be96], ts: [0xdddcd0, 0xcdcbbd], longramp: [0xe9d5a6, 0xe3cf9f], midapp: [0xdcc7a1, 0xd0bb92], terrace: [0xd2c9bb, 0xc4bbac] };
   for (let j = 0; j < g.NZ; j++) for (let i = 0; i < g.NX; i++) { const k = j * g.NX + i; if (!g.open[k] || g.tint[k] || g.surf[k] !== 0) continue; const c = CHK[g.zoneNames[g.zone[k]]]; if (!c) continue; const x = i + g.X0, z = j + g.Z0; g.tint[k] = c[(((x >> 1) + (z >> 1)) & 1)] | 0x1000000; }
   // floor inlays: runners, borders, medallions (cell-level tints crisp against the paving)
   paint(-1, 15, 1, 38, { tint: 0xc9a77a });                                  // mid lane runner

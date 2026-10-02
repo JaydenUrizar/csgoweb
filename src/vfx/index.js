@@ -132,7 +132,7 @@ export function create(ctx) {
   function bodySpark(x, y, z, normal, o) {
     const L = lod(x, y, z); if (L <= 0.2) return;
     basis(normal?.x ?? 0, normal?.y ?? 1, normal?.z ?? 0);
-    const c = lin(o.color ?? 0xbfefff), n = P.n(9 * L), k = Math.min(2.6, 1.2 + distToCam(x, y, z) / 22);
+    const c = lin(o.color ?? 0xbfefff), n = P.n(9 * L), k = Math.min(4, 1 + distToCam(x, y, z) / 10);
     E.reset(); E.pos(x, y, z); E.life = 0.12; E.s0 = 0.22 * k; E.s1 = 0.5 * k; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd() * 3; E.col(1.8 + c[0] * 2.4, 1.8 + c[1] * 2.4, 1.8 + c[2] * 2.4, 1, c[0] * 1.5, c[1] * 1.5, c[2] * 1.5, 0); P.emit(now, E);
     for (let i = 0; i < P.n(4 * L); i++) {                               // soft coloured light-mist (the stylised 'I hit' cue)
       cone(1.0); const sp = 0.6 + rnd() * 1.4;
@@ -153,7 +153,7 @@ export function create(ctx) {
     if (!o.force && dupImpact(x, y, z)) return;
     const L = lod(x, y, z); if (L <= 0) return;
     if (surface === 'body' || surface === 'actor') { if (o.color != null) bodySpark(x, y, z, normal, o); return; }       // tag:hit draws the coloured burst
-    const key = SURFACE_ALIAS[surface] || 'stone', S0 = SURFACES[key], sc = (o.scale ?? 1), t = now;
+    const key = SURFACE_ALIAS[surface] || 'stone', S0 = SURFACES[key], sc = (o.scale ?? 1) * Math.min(2.2, Math.max(1, 1 + (distToCam(x, y, z) - 8) / 14)), t = now;
     basis(normal?.x ?? 0, normal?.y ?? 1, normal?.z ?? 0);
     const nx = _n.x, ny = _n.y, nz = _n.z;
     const tint = lin(o.color ?? 0xffffff), dust = surfCol[key].dust, chip = surfCol[key].chip;
@@ -255,11 +255,11 @@ export function create(ctx) {
     const look = o.look || TAGGER_TRACER.default;
     const sid = typeof style === 'number' ? style : (STYLE_ID[style] ?? 0);
     const c = lin(color), w = o.white ?? look.white ?? 0.35, cm = mixLin(c, [1, 1, 1], w);
-    const la = ctx.localActor, cp = la ? la.eyePos(_v3) : cam.position, dFrom = Math.hypot(from.x - cp.x, from.y - cp.y, from.z - cp.z);
-    const other = o.other ?? !(dFrom < 1.15 && o.local !== false);          // not the viewer's own shot: draw a short, thin, dimmer segment
-    const inten = Math.max(1.2, (o.intensity ?? look.intensity ?? 1.6)), len = Math.min(other ? 2.6 : (o.len ?? look.len ?? 3), dist + 0.5), width = (o.width ?? look.width ?? 0.02) * (other ? 0.5 : 1);
+    const cp = cam.position, dFrom = Math.hypot(from.x - cp.x, from.y - cp.y, from.z - cp.z);
+    const other = o.other ?? !(dFrom < 1.3 && o.local !== false);          // 'own' = fired from the active camera (local player or the spectated shooter)          // not the viewer's own shot: draw a short, thin, dimmer segment
+    const inten = Math.max(1.2, (o.intensity ?? look.intensity ?? 1.6)), len = Math.min(other ? 3.6 : (o.len ?? look.len ?? 3), dist + 0.5), width = (o.width ?? look.width ?? 0.02) * (other ? 0.75 : 1);
     const spd0 = o.speed ?? look.speed ?? 480, spd = Math.min(spd0, (dist + len) / 0.11);   // always visible for >= ~6 frames
-    tracers.add(now, from.x, from.y, from.z, to.x, to.y, to.z, spd, cm[0], cm[1], cm[2], inten * (other ? 0.75 : 1), other ? -width : width, len, sid, rnd());
+    tracers.add(now, from.x, from.y, from.z, to.x, to.y, to.z, spd, cm[0], cm[1], cm[2], inten * (other ? 0.95 : 1), other ? -width : width, len, sid, rnd());
     if ((sid === 2 || sid === 3 || o.sparkle) && dist > 1) {          // glitter trail left behind by fancy styles
       const n = Math.min(P.n(dist * 0.45), 28), sp = (o.speed ?? look.speed ?? 480);
       for (let i = 0; i < n; i++) {
@@ -305,7 +305,7 @@ export function create(ctx) {
       const d = distToCam(actor.pos.x, actor.pos.y, actor.pos.z); if (d > 90) return;
       muzzleWorld(actor, _mp); if (o.dir) _md.copy(o.dir); else actor.forward(_md);
       flashAt(P, _mp, _md, pw * (d > 40 ? 0.8 : 1), warm, false);
-      lightPulse(_mp.x + _md.x * 0.3, _mp.y + _md.y * 0.3, _mp.z + _md.z * 0.3, warm[0] * 1.4 + 0.3, warm[1] * 1.0 + 0.15, warm[2] * 0.5, 16 * pw, 8, 0.08);
+      { const dm = distToCam(_mp.x, _mp.y, _mp.z), fk = Math.min(1, Math.max(0.08, (dm - 1.0) / 4)); lightPulse(_mp.x + _md.x * 0.3, _mp.y + _md.y * 0.3, _mp.z + _md.z * 0.3, warm[0] * 1.2 + 0.2, warm[1] * 0.9 + 0.12, warm[2] * 0.5, 12 * pw * fk, 6, 0.06); }
     }
   }
   const _nd = new THREE.Vector3();
@@ -540,7 +540,7 @@ export function create(ctx) {
 
   // ---- hit feedback -----------------------------------------------------------------------------------------------
   function hitPing(point, o = {}) {
-    if (!point) return; const crown = !!o.crown, c = lin(o.color ?? (crown ? 0xffe066 : 0xffffff)), k = crown ? 1.5 : 1;
+    if (!point) return; const crown = !!o.crown, c = lin(o.color ?? (crown ? 0xffe066 : 0xffffff)), k = (crown ? 1.5 : 1) * Math.min(3, 1 + distToCam(point.x, point.y, point.z) / 14);
     E.reset(); E.pos(point.x, point.y, point.z); E.life = crown ? 0.2 : 0.09; E.s0 = 0.1 * k; E.s1 = 0.5 * k; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.spin = 0.8; E.col(2.6 + c[0], 2.6 + c[1], 2.6 + c[2], 1, c[0], c[1], c[2], 0); P.emit(now, E);
     E.reset(); E.pos(point.x, point.y, point.z); E.life = crown ? 0.2 : 0.06; E.s0 = 0.1; E.s1 = 0.6 * k; E.shape = S.RING; E.add = 1; E.fadeIn = 0; E.col(1.2 * c[0], 1.2 * c[1], 1.2 * c[2], 0.6, c[0], c[1], c[2], 0); P.emit(now, E);
     const n = P.n(crown ? 12 : 7);
@@ -599,19 +599,19 @@ export function create(ctx) {
   });
   const onShatter = (e) => {                                                // avatars owns shards; we add range-readable flash, ring, glitter (all capped, no HDR blowout)
     const p = e?.point; if (!p) return; const c = lin(e.color ?? 0xffffff);
-    const dist = distToCam(p.x, p.y, p.z), k = Math.min(3, Math.max(1, dist / 9));
+    const dist = distToCam(p.x, p.y, p.z), k = Math.min(5, Math.max(1, dist / 8));
     const gy = shards.groundAt ? shards.groundAt(p.x, p.y, p.z, p.y - 1) : p.y - 1;
     E.reset(); E.pos(p.x, p.y, p.z); E.life = 0.14; E.s0 = 0.4 * k; E.s1 = 1.0 * k; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.col(1.8 + c[0], 1.8 + c[1], 1.8 + c[2], 0.95, c[0], c[1], c[2], 0); P.emit(now, E);
     E.reset(); E.pos(p.x, p.y, p.z); E.life = 0.3; E.s0 = 0.5 * k; E.s1 = 1.6 * k; E.shape = S.RING; E.add = 1; E.fadeIn = 0; E.col(1.1 * c[0] + 0.3, 1.1 * c[1] + 0.3, 1.1 * c[2] + 0.3, 0.8, c[0], c[1], c[2], 0); P.emit(now, E);
-    rings.add(now, p.x, gy + 0.03, p.z, 0, 1, 0, 0.7, 0.3, Math.min(2.0, 1.0 + k * 0.35), DECAL.PULSE, rnd(), c[0] * 0.9 + 0.2, c[1] * 0.9 + 0.2, c[2] * 0.9 + 0.2, 0.55);
+    rings.add(now, p.x, gy + 0.03, p.z, 0, 1, 0, 0.7, 0.3, Math.min(2.6, 1.0 + k * 0.4), DECAL.PULSE, rnd(), c[0] * 0.9 + 0.2, c[1] * 0.9 + 0.2, c[2] * 0.9 + 0.2, 0.55);
     lightPulse(p.x, p.y + 0.3, p.z, c[0] + 0.2, c[1] + 0.2, c[2] + 0.2, 12, 8, 0.28);
     sparkleBurst(p.x, p.y, p.z, c[0], c[1], c[2], 14, 0.8);
     // lingering glitter + faint glow where the player went down (6-9 s, long-lived pool)
-    decals.add(now, p.x, gy + 0.02, p.z, 0, 1, 0, 8, 1.1, 1.1, DECAL.GLOW, rnd(), c[0] * 0.8, c[1] * 0.8, c[2] * 0.8, 0.45);
+    decals.add(now, p.x, gy + 0.02, p.z, 0, 1, 0, 11, 1.1 * Math.min(k, 3), 1.1 * Math.min(k, 3), DECAL.GLOW, rnd(), c[0] * 0.9, c[1] * 0.9, c[2] * 0.9, 0.6);
     const n = PL.n(10);
     for (let i = 0; i < n; i++) {
       const a = rnd() * 6.283, r = Math.sqrt(rnd()) * 0.9;
-      E.reset(); E.pos(p.x + Math.cos(a) * r, gy + 0.04 + rnd() * 0.12, p.z + Math.sin(a) * r); E.life = 5 + rnd() * 4; E.s0 = E.s1 = (0.05 + rnd() * 0.04) * Math.min(2, k); E.shape = i & 1 ? S.STAR : S.DOT; E.add = 1; E.fadeIn = 0.04 + rnd() * 0.2; E.fadeOut = 0.55; E.rot = rnd() * 3; E.seed = rnd();
+      E.reset(); E.pos(p.x + Math.cos(a) * r, gy + 0.04 + rnd() * 0.12, p.z + Math.sin(a) * r); E.life = 5 + rnd() * 4; E.s0 = E.s1 = (0.05 + rnd() * 0.04) * Math.min(4, k); E.shape = i & 1 ? S.STAR : S.DOT; E.add = 1; E.fadeIn = 0.04 + rnd() * 0.2; E.fadeOut = 0.55; E.rot = rnd() * 3; E.seed = rnd();
       E.col(1.2 + c[0] * 1.8, 1.2 + c[1] * 1.8, 1.2 + c[2] * 1.8, 0.85, c[0] * 1.2, c[1] * 1.2, c[2] * 1.2, 0.85); PL.emit(now + rnd() * 0.6, E);
     }
   };

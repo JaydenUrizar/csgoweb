@@ -45,11 +45,11 @@ function blocks(w, h, rows, wMin, wMax, seed, base = 224, joint = 0.6) {
 }
 
 function plaster(seed) {
-  const w = 512, [c, ctx] = mk(w); const r = rngf(seed);
+  const w = 1024, [c, ctx] = mk(w); const r = rngf(seed);
   ctx.fillStyle = grey(238); ctx.fillRect(0, 0, w, w);
-  for (let i = 0; i < 46; i++) { const x = r() * w, y = r() * w, rad = 30 + r() * 110; const dark = r() < 0.55; wrapDraw(w, w, (dx, dy) => { const g = ctx.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, rad); g.addColorStop(0, dark ? `rgba(120,95,70,${0.05 + r() * 0.06})` : 'rgba(255,255,255,0.09)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x + dx - rad, y + dy - rad, rad * 2, rad * 2); }); }
+  for (let i = 0; i < 130; i++) { const x = r() * w, y = r() * w, rad = 30 + r() * 110; const dark = r() < 0.55; wrapDraw(w, w, (dx, dy) => { const g = ctx.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, rad); g.addColorStop(0, dark ? `rgba(120,95,70,${0.05 + r() * 0.06})` : 'rgba(255,255,255,0.09)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x + dx - rad, y + dy - rad, rad * 2, rad * 2); }); }
   // peeled patches showing the block work beneath
-  for (let n = 0; n < 5; n++) {
+  for (let n = 0; n < 4; n++) {
     const px = r() * (w - 150), py = r() * (w - 150), pw = 60 + r() * 110, ph = 50 + r() * 100;
     ctx.save(); ctx.beginPath(); ctx.moveTo(px, py); for (let a = 0; a <= 12; a++) { const t = a / 12; ctx.lineTo(px + pw * t, py + (r() - 0.5) * 12); } for (let a = 0; a <= 10; a++) { const t = a / 10; ctx.lineTo(px + pw + (r() - 0.5) * 14, py + ph * t); } for (let a = 12; a >= 0; a--) { const t = a / 12; ctx.lineTo(px + pw * t, py + ph + (r() - 0.5) * 12); } for (let a = 10; a >= 0; a--) { const t = a / 10; ctx.lineTo(px + (r() - 0.5) * 14, py + ph * t); } ctx.closePath(); ctx.clip();
     ctx.fillStyle = grey(196); ctx.fillRect(px - 10, py - 10, pw + 20, ph + 20);
@@ -57,8 +57,8 @@ function plaster(seed) {
     ctx.restore();
     ctx.strokeStyle = 'rgba(80,60,40,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
   }
-  speckle(ctx, w, w, r, 5000, 0.1); speckle(ctx, w, w, r, 1500, 0.12, false);
-  for (let i = 0; i < 6; i++) { let x = r() * w, y = r() * w; ctx.strokeStyle = 'rgba(70,50,30,0.22)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y); for (let k = 0; k < 9; k++) { x += (r() - 0.5) * 22; y += 8 + r() * 12; ctx.lineTo(x, y); } ctx.stroke(); }
+  speckle(ctx, w, w, r, 20000, 0.1); speckle(ctx, w, w, r, 6000, 0.12, false);
+  for (let i = 0; i < 3; i++) { let x = r() * w, y = r() * w; ctx.strokeStyle = 'rgba(70,50,30,0.22)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y); for (let k = 0; k < 9; k++) { x += (r() - 0.5) * 22; y += 8 + r() * 12; ctx.lineTo(x, y); } ctx.stroke(); }
   return c;
 }
 

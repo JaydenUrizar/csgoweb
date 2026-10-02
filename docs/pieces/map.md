@@ -45,3 +45,10 @@ Rooftops are plain; facades repeat windows; no instanced foliage variety; murals
 - Signature pieces: A lantern gazebo over the default + ziggurat; B lantern-market pergola with stalls; Mid market stall (breaks the straight spawn peek, spawn<->spawn LOS 0/9216).
 - Mid rotation: new A Connector (Palace east end -> A, ramp x17..22). A<->B via Palace 63 m (~9.7 s at 6.5 m/s), via Tide Spawn 72 m. Paths `rotate-a-to-b-palace` / `rotate-b-to-a-palace`.
 - `heightAt(x,z,y)` with `y` returns the floor under that height (null inside solid); `floorAt(x,z,y)`; `heightAt(x,z)` still terrain/rooftop for solid cells. `calloutAt` prefers the floor-zone callout (Tide Mid vs Tide Spawn fixed).
+
+## Round 5 changes
+- Baked lamp light (`lightbake.js`): lamps tessellate nearby surfaces (<=1.5-2.1 m) and modulate vertex colours by visibility-tested warm pools on floors, walls, ceilings, arch undersides (`?nobake=1` to disable; `ctx.map.stats.bake`, `stats.lampsBaked`). See `docs/requests/render-from-map-1.md` (render should reduce its own lamp diffuse). Boot cost ~1-2 s, ~150k map tris total.
+- Real fixtures: lantern cages with chains/caps/frames and warm cores, bracketed wall lanterns, lamp-post lanterns.
+- Hero pieces: dense B market pergola (posts on stone bases, double beams, slats, cloth, vines, string lights, lanterns, produce stalls) and A lantern gazebo (lattice, hip tile roof, benches).
+- Tide Mid is now a teal-tile wall-fountain monument + obelisk (Ember Mid keeps the market stall); floor callouts are dark text with light outline on light paving; A/B letters have a dark backing disc; plaster texture tile 8 m (no repeated crack stamps); Long Ramp seam removed; skyline reduced to 2 rings, fewer towers.
+- Paths are now 3D triples `[x,z,y]`; generator rejects segments whose end isn't on the same level (fixes the 3 m rise at (16.5,-26)->(18.5,-27)).

@@ -37,17 +37,17 @@ function baseParts() {
   add(place(boxP(0.034, 0.055, 0.014, 0.004), { y: 1.365, z: -0.216 }), B.chest, 'team');
   add(place(boxP(0.64, 0.075, 0.30, 0.03, 0.56, 0.28), { y: 1.5 }), B.chest, 'suit');
   add(place(boxP(0.34, 0.34, 0.14, 0.01), { y: 1.36, z: 0.235 }), B.chest, 'dark', DARK);
-  add(place(boxP(0.37, 0.05, 0.02, 0.005), { y: 1.445, z: 0.312 }), B.chest, 'team');
+  add(place(boxP(0.37, 0.07, 0.02, 0.005), { y: 1.445, z: 0.312 }), B.chest, 'team');
   add(place(boxP(0.04, 0.24, 0.02, 0.005), { y: 1.335, z: 0.312 }), B.chest, 'team');
   for (const s of [-1, 1]) {
-    add(place(sphereP(0.14, 0.095, 0.15, 0), { x: s * 0.335, y: 1.475 }), B.chest, 'accent');
-    add(place(boxP(0.016, 0.06, 0.12, 0.004), { x: s * 0.472, y: 1.465 }), B.chest, 'team');
+    add(place(sphereP(0.125, 0.085, 0.14, 0), { x: s * 0.31, y: 1.47, rz: s * 0.4 }), B.chest, 'accent');
+    add(place(boxP(0.016, 0.07, 0.15, 0.004), { x: s * 0.44, y: 1.43, rz: s * 0.4 }), B.chest, 'team');
   }
   // ---- team identity bands (always on, readable from every angle)
-  add(place(boxP(0.36, 0.05, 0.27, 0.008), { y: 1.085 }), B.spine, 'team');
-  add(place(boxP(0.62, 0.04, 0.32, 0.008, 0.58, 0.31), { y: 1.5 }), B.chest, 'team');
-  add(place(frustumP(0.1, 0.1, 0.03, 8), { y: 1.515 }), B.neck, 'team');
-  add(place(boxP(0.07, 0.13, 0.02, 0.006), { y: 1.69, z: 0.172 }), B.head, 'team');
+  add(place(boxP(0.36, 0.075, 0.27, 0.008), { y: 1.085 }), B.spine, 'team');
+  add(place(boxP(0.62, 0.06, 0.32, 0.008, 0.58, 0.31), { y: 1.495 }), B.chest, 'team');
+  add(place(frustumP(0.1, 0.1, 0.045, 8), { y: 1.515 }), B.neck, 'team');
+  add(place(boxP(0.1, 0.16, 0.02, 0.006), { y: 1.69, z: 0.172 }), B.head, 'team');
   // ---- neck + head base
   add(place(frustumP(0.068, 0.062, 0.09, 6), { y: 1.545 }), B.neck, 'dark', DARK2);
   add(place(boxP(0.22, 0.06, 0.10, 0.01), { y: 1.575, z: 0.075 }), B.head, 'dark', DARK);
@@ -63,7 +63,7 @@ function baseParts() {
     add(place(sphereP(0.085, 0.078, 0.085, 0), { x, y: 1.11 }), fA, 'dark', DARK);
     add(place(frustumP(0.078, 0.068, 0.2, 6), { x, y: 1.0 }), fA, 'suit');
     add(place(frustumP(0.078, 0.072, 0.12, 6), { x, y: 0.835 }), fA, 'dark', DARK);
-    add(place(frustumP(0.084, 0.084, 0.03, 6), { x, y: 0.915 }), fA, 'team');
+    add(place(frustumP(0.084, 0.084, 0.055, 6), { x, y: 0.915 }), fA, 'team');
     add(place(boxP(0.088, 0.09, 0.105, 0.015, 0.095, 0.105), { x, y: 0.73 }), hA, 'dark', DARK2);
     add(place(boxP(0.03, 0.06, 0.05, 0.005), { x: x + s * 0.05, y: 0.755, z: -0.02 }), hA, 'dark', DARK2);
   }
@@ -71,8 +71,8 @@ function baseParts() {
   for (const s of [-1, 1]) {
     const uL = s < 0 ? B.uLegL : B.uLegR, lL = s < 0 ? B.lLegL : B.lLegR, fT = s < 0 ? B.footL : B.footR, x = s * 0.115;
     add(place(frustumP(0.108, 0.088, 0.44, 7), { x, y: 0.69 }), uL, 'suit');
-    add(place(boxP(0.024, 0.3, 0.08, 0.005), { x: x + s * 0.104, y: 0.70 }), uL, 'team');
-    add(place(frustumP(0.095, 0.095, 0.04, 7), { x, y: 0.33 }), lL, 'team');
+    add(place(boxP(0.036, 0.34, 0.09, 0.005), { x: x + s * 0.1, y: 0.70 }), uL, 'team');
+    add(place(frustumP(0.096, 0.096, 0.07, 7), { x, y: 0.33 }), lL, 'team');
     add(place(sphereP(0.095, 0.085, 0.085, 0), { x, y: 0.47, z: -0.05 }), lL, 'dark', DARK);
     add(place(frustumP(0.092, 0.07, 0.36, 7), { x, y: 0.29 }), lL, 'suit');
     add(place(boxP(0.11, 0.22, 0.045, 0.01, 0.1, 0.045), { x, y: 0.31, z: -0.08 }), lL, 'dark', PLATE);
@@ -94,13 +94,13 @@ function shellParts(shape) {
       add(place(sphereP(0.14, 0.125, 0.155, 1), { y: 1.635 }), 'dark', 0x2d3039);
       add(place(sphereP(0.16, 0.085, 0.175, 1), { y: 1.7, z: 0.005 }), 'helmet');
       add(place(boxP(0.24, 0.022, 0.13, 0.008, 0.26, 0.11), { y: 1.685, z: -0.19 }), 'helmet');
-      add(place(boxP(0.028, 0.024, 0.22, 0.008), { y: 1.79, z: 0.0 }), 'hAccent'); break;
+      add(place(boxP(0.05, 0.024, 0.24, 0.008), { y: 1.79, z: 0.0 }), 'team'); break;
     case 'hex':
       add(place(frustumP(0.155, 0.145, 0.29, 6, 1, 1.1, 0), { y: 1.655 }), 'helmet');
-      add(place(frustumP(0.1, 0.07, 0.03, 6, 1, 1.1, 0), { y: 1.815 }), 'hAccent'); break;
+      add(place(frustumP(0.1, 0.07, 0.03, 6, 1, 1.1, 0), { y: 1.815 }), 'team'); break;
     default:  // round, crest, antenna, horns, halo share the rounded shell
       add(place(sphereP(0.16, 0.145, 0.175, 1), { y: 1.65, z: 0.005 }), 'helmet');
-      add(place(boxP(0.03, 0.03, 0.24, 0.008), { y: 1.792 }), 'hAccent');
+      add(place(boxP(0.05, 0.03, 0.26, 0.008), { y: 1.792 }), 'team');
   }
   if (shape === 'crest') add(place(boxP(0.03, 0.08, 0.26, 0.01, 0.02, 0.16), { y: 1.83, z: 0.02 }), 'hAccent');
   if (shape === 'antenna') {

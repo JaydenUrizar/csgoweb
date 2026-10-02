@@ -223,18 +223,41 @@ export class Dress {
     this.solid({ x0: x - 0.07, x1: x + 0.07, z0: z - 0.07, z1: z + 0.07, y0, y1: y0 + h, mat: 'plain', color: 0x3b3f46, surf: 'metal', name: 'lamp-post', ao: 0.9 });
     this.VB.box('plain', x - 0.2, y0, z - 0.2, x + 0.2, y0 + 0.3, z + 0.2, c, { ao: 0.9 });
     this.VB.box('plain', x - 0.2, y0 + h, z - 0.2, x + 0.2, y0 + h + 0.08, z + 0.2, c, { ao: 1 });
-    this.VB.box('emissive', x - 0.16, y0 + h - 0.32, z - 0.16, x + 0.16, y0 + h, z + 0.16, mulc(rgb(color), 2.6), { ao: 1 });
-    this.lamps.push({ pos: [x, y0 + h - 0.15, z], color, intensity: 1.1, radius: 7, kind: 'post' });
-    this.pool(x, z, 3.2, color, 0.22, y0);
+    this.lantern(x, y0 + h - 0.45, z, color, { s: 1.4, glow: 1.6, intensity: 1.1, radius: 7, kind: 'post' });
+    this.pool(x, z, 3.2, color, 0.12, y0);
+  }
+  /** real lantern fixture: chain, cap, cage frame, warm emissive core. hang: chain top y (optional). */
+  lantern(x, y, z, color = 0xffc880, o = {}) {
+    const VB = this.VB, dark = rgb(0x2c2f35), core = mulc(rgb(color), o.glow ?? 1.5), s = o.s ?? 1;
+    const w = 0.17 * s, h = 0.38 * s;
+    if (o.hang) VB.box('plain', x - 0.012, y + h + 0.16, z - 0.012, x + 0.012, o.hang, z + 0.012, dark, { ao: 1, top: false });
+    VB.box('plain', x - w - 0.03, y - 0.04, z - w - 0.03, x + w + 0.03, y, z + w + 0.03, dark, { ao: 1 });                 // base plate
+    VB.box('emissive', x - w + 0.03, y, z - w + 0.03, x + w - 0.03, y + h, z + w - 0.03, core, { ao: 1, top: false, bottom: true });
+    for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) VB.box('plain', x + px * w - 0.016, y, z + pz * w - 0.016, x + px * w + 0.016, y + h, z + pz * w + 0.016, dark, { ao: 1, top: false });
+    VB.box('plain', x - w - 0.03, y + h, z - w - 0.03, x + w + 0.03, y + h + 0.03, z + w + 0.03, dark, { ao: 1 });
+    const ap = [x, y + h + 0.16 * s, z]; const cr = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([px, pz]) => [x + px * (w + 0.05), y + h + 0.03, z + pz * (w + 0.05)]);
+    for (let i = 0; i < 4; i++) { const a0 = cr[i], a1 = cr[(i + 1) % 4]; VB.tri('plain', a0, a1, ap, mulc(dark, 1.4)); }
+    VB.box('plain', x - 0.03, y + h + 0.16 * s, z - 0.03, x + 0.03, y + h + 0.2 * s, z + 0.03, dark, { ao: 1 });
+    this.lamps.push({ pos: [x, y + h * 0.5, z], color, intensity: o.intensity ?? 1.2, radius: o.radius ?? 5.5, kind: o.kind || 'lantern' });
   }
   /** wall lantern on a wall face: n = outward normal [nx,nz] */
   wallLamp(x, y, z, nx, nz, color = 0xffc880) {
-    const t = 0.16, VB = this.VB, c = rgb(0x30343a);
-    const x0 = x + (nx > 0 ? 0 : nx < 0 ? -t : -0.1), x1 = x + (nx > 0 ? t : nx < 0 ? 0 : 0.1), z0 = z + (nz > 0 ? 0 : nz < 0 ? -t : -0.1), z1 = z + (nz > 0 ? t : nz < 0 ? 0 : 0.1);
-    VB.box('plain', x0, y - 0.22, z0, x1, y + 0.22, z1, c, { ao: 1 });
-    const e = 0.025; VB.box('emissive', x0 + (nx ? (nx > 0 ? 0.04 : e) : e), y - 0.17, z0 + (nz ? (nz > 0 ? 0.04 : e) : e), x1 - (nx ? (nx > 0 ? e : 0.04) : e), y + 0.17, z1 - (nz ? (nz > 0 ? e : 0.04) : e), mulc(rgb(color), 2.8), { ao: 1, top: false });
-    this.lamps.push({ pos: [x + nx * 0.3, y, z + nz * 0.3], color, intensity: 1, radius: 4.5, kind: 'wall' });
-    if (y < 4.2) this.pool(x + nx * 1.3, z + nz * 1.3, 2.0, color, 0.2, this.ground(x + nx * 1.3, z + nz * 1.3));
+    const VB = this.VB, dark = rgb(0x2c2f35), core = mulc(rgb(color), 1.5);
+    const ox = nx * 0.42, oz = nz * 0.42;                       // lantern centre 0.42 m out from the wall
+    const box = (cx, cy, cz, hx, hy, hz, m, c, o2) => VB.box(m, cx - hx, cy - hy, cz - hz, cx + hx, cy + hy, cz + hz, c, o2);
+    const px = nx !== 0, ax = Math.abs(nx) > 0 ? 1 : 0;
+    // back plate + bracket arm
+    box(x + nx * 0.03, y, z + nz * 0.03, px ? 0.03 : 0.1, 0.22, px ? 0.1 : 0.03, 'plain', dark, { ao: 1 });
+    box(x + nx * 0.2, y + 0.16, z + nz * 0.2, px ? 0.2 : 0.025, 0.025, px ? 0.025 : 0.2, 'plain', dark, { ao: 1 });
+    // lantern body
+    const cx = x + ox, cz = z + oz;
+    box(cx, y - 0.2, cz, 0.13, 0.03, 0.13, 'plain', dark, { ao: 1 });
+    box(cx, y, cz, 0.09, 0.17, 0.09, 'emissive', core, { ao: 1, top: false, bottom: true });
+    for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(cx + dx * 0.11, y, cz + dz * 0.11, 0.014, 0.18, 0.014, 'plain', dark, { ao: 1, top: false });
+    const ap = [cx, y + 0.33, cz], cr = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([dx, dz]) => [cx + dx * 0.15, y + 0.2, cz + dz * 0.15]);
+    for (let i = 0; i < 4; i++) VB.tri('plain', cr[i], cr[(i + 1) % 4], ap, mulc(dark, 1.5));
+    this.lamps.push({ pos: [cx, y, cz], color, intensity: 1, radius: 4.5, kind: 'wall' });
+    if (y < 4.2) this.pool(x + nx * 1.3, z + nz * 1.3, 2.0, color, 0.12, this.ground(x + nx * 1.3, z + nz * 1.3));
   }
   /** hanging banner. facing normal axis: 'x'|'z' with sign */
   banner(x, y, z, nx, nz, w, h, color, o = {}) {
@@ -266,7 +289,7 @@ export class Dress {
     geo.computeVertexNormals();
     const base = rgb(color);
     const VB = roof ? this.VBroof : this.VB;
-    VB.geometry('wall', geo, (x, y, z, nx, ny, nz) => { const k = 0.72 + 0.28 * Math.min(1, Math.max(0, (y - floorY) / 2.6)); const up = ny < -0.5 ? 0.82 : 1; const front = axis === 'z' ? nz : nx; const inner = Math.abs(front) < 0.5 ? dark : 1; return mulc(base, k * up * inner); });
+    VB.geometry('wall', geo, (x, y, z, nx, ny, nz) => { const k = 0.72 + 0.28 * Math.min(1, Math.max(0, (y - floorY) / 2.6)); const up = ny < -0.5 ? 1.0 : 1; const warm = ny < -0.3 ? 1 : 0; const front = axis === 'z' ? nz : nx; const inner = Math.abs(front) < 0.5 ? dark : 1; const cc = mulc(base, k * up * inner); return warm ? [cc[0] * 1.18, cc[1] * 1.04, cc[2] * 0.8] : cc; });
     this.CB.geometry(geo, 0);
     geo.dispose();
   }

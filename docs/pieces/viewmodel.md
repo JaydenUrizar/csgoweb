@@ -25,6 +25,11 @@ Reload timing is driven by the tagger's `dur` (mag insert lands at u=0.55 = the 
 * `fitRest` now covers every class (pistol muzzle ~(0.65,0.63), melee tip, grenade, gear); Judge/pips pushed back (~30% smaller); flash scale capped by muzzle distance from screen centre (`fcap`) so it never reaches the crosshair.
 * Left shoulder moved out/down (diagonal support arm), thinner sleeve, round fingers; distinct per-tagger base colours (zip teal/lime, hum blue/white, scatter wood, lance black/crimson, rail steel-blue); SMG model shortened; strobe redesigned (graphite flashbang); beacon rest tilted so the keypad faces the camera; bigger walk bob; Lance hides during unscope so the eyepiece never fills the screen.
 
+## Round 5 changes
+* Hands: tapered thin forearm (80% scale, wrist ~2 cm radius), chunkier rounded fingers, snugger left-hand wrap; Tap now fitted by its grip (hand visible bottom-right, bat leaning up-right, clear of crosshair); fitRest supports `{a:'grip', t}` anchors.
+* Flash: spawns from a flash anchor lerped toward the REST muzzle (kick can't throw it onto the crosshair), ~half size, forward cones; kick is now mostly spring impulse (eases over 2-3 frames), lance/scatter/judge kick reduced.
+* Lance bolt keeps the muzzle right of centre; rifle reload hip/mag swap moved to bottom-centre (above the HUD ammo); models with their own finish (hex/stripes/chevron/gradient) keep it in match; Pip steel vs Twin dark/magenta; Judge shows its cylinder; shorter, dimmer melee ribbon.
+
 ## Inspect
 * `http://localhost:5173/?test=1&seed=1&scene=viewmodel-gallery[&tagger=arc][&anim=reload][&bg=mid|sand|light|dark][&skin=0..5][&mode=world][&auto=1][&orbit=yaw,pitch,dist]`. Handle `window.__vmGallery {list, show(id,skin), play(anim), set(state), look(dx,dy), orbit(yaw,pitch,dist), setMode('world')}`. anims: idle draw holster fire burst reload inspect empty melee throw plant scope walk run sprint jump look.
 * Contact sheets: `node tools/viewmodel_sheet.mjs --taggers arc,pip|all --anims reload,fire|all --frames 9 --size 640x360 --full --out shots/viewmodel/sheets` (one PNG per tagger x anim, frames tiled). Default crop = lower-right viewmodel region; `--full` for whole frame. (The shared box can be very loaded: `open()` waits up to 400 s.)
