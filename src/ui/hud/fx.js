@@ -134,24 +134,24 @@ export function create(H) {
 
   // -------------------------------------------------- damage arcs
   function drawDmg(m, age, view) {
-    const life = 2.6; if (age >= life || (m.victim && m.victim !== view)) return false;
-    const a0 = age < 0.08 ? age / 0.08 : 1, fade = age < 0.9 ? 1 : 1 - (age - 0.9) / (life - 0.9);
+    const life = 1.8; if (age >= life || (m.victim && m.victim !== view)) return false;
+    const a0 = age < 0.06 ? age / 0.06 : 1, fade = age < 0.35 ? 1 : Math.pow(1 - (age - 0.35) / (life - 0.35), 1.4);
     let dx = m.dx, dz = m.dz;
     if (m.a?.alive !== false && m.a?.pos && view?.pos) { dx = m.a.pos.x - view.pos.x; dz = m.a.pos.z - view.pos.z; }
     const y = view?.yaw || 0, fx = -Math.sin(y), fz = -Math.cos(y), rx = Math.cos(y), rz = -Math.sin(y);
     const ang = Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz) - Math.PI / 2;
-    const dq = dpr * q, rad = 128 * dq + (1 - a0) * 12 * dq;
-    const half = (0.34 + clamp(m.dmg / 100, 0, 1) * 0.26);
+    const dq = dpr * q, rad = (58 + 14 * (1 - a0)) * dq;
+    const half = (0.42 + clamp(m.dmg / 100, 0, 1) * 0.3);
     const al = a0 * clamp(fade, 0, 1);
     c2.lineCap = 'round';
-    c2.lineWidth = 17 * dq; c2.strokeStyle = `rgba(0,0,0,${0.35 * al})`;
+    c2.lineWidth = 12 * dq; c2.strokeStyle = `rgba(0,0,0,${0.35 * al})`;
     c2.beginPath(); c2.arc(cx, cy, rad, ang - half - 0.02, ang + half + 0.02); c2.stroke();
-    c2.lineWidth = 12 * dq; c2.strokeStyle = `rgba(255,62,48,${0.95 * al})`;
+    c2.lineWidth = 8 * dq; c2.strokeStyle = `rgba(255,62,48,${0.95 * al})`;
     c2.beginPath(); c2.arc(cx, cy, rad, ang - half, ang + half); c2.stroke();
     c2.lineWidth = 3 * dq; c2.strokeStyle = `rgba(255,214,196,${0.9 * al})`;
     c2.beginPath(); c2.arc(cx, cy, rad, ang - half + 0.05, ang + half - 0.05); c2.stroke();
     // arrowhead pointing at the attacker
-    const ax = cx + Math.cos(ang) * (rad + 14 * dq), ay = cy + Math.sin(ang) * (rad + 14 * dq), t1 = ang + Math.PI;
+    const ax = cx + Math.cos(ang) * (rad + 11 * dq), ay = cy + Math.sin(ang) * (rad + 11 * dq), t1 = ang + Math.PI;
     c2.fillStyle = `rgba(255,86,70,${al})`; c2.strokeStyle = `rgba(0,0,0,${0.5 * al})`; c2.lineWidth = 1.5 * dq; c2.beginPath();
     c2.moveTo(ax, ay); c2.lineTo(ax + Math.cos(t1 - 0.6) * 11 * dq, ay + Math.sin(t1 - 0.6) * 11 * dq); c2.lineTo(ax + Math.cos(t1 + 0.6) * 11 * dq, ay + Math.sin(t1 + 0.6) * 11 * dq); c2.closePath(); c2.stroke(); c2.fill();
     return true;
@@ -211,7 +211,7 @@ export function create(H) {
       st.scopeA = damp(st.scopeA, ta, 40, dt); if (Math.abs(st.scopeA - ta) < 0.01) st.scopeA = ta;
       const so = st.scopeA.toFixed(2); if (st.scopeVis !== so) { st.scopeVis = so; scope.style.opacity = so; }
       // ---- crosshair visibility
-      const hide = !v || v.alive === false || H.spec || scoped || H.hidden || H.flags.noCrosshair || (H.menuOpen);
+      const hide = !v || v.alive === false || H.kc || scoped || H.hidden || H.flags.noCrosshair || (H.menuOpen);
       let gap = (cfg.gap ?? 3) * 1.15 + (cfg.dynamic === false ? 0 : 30 * (1 - Math.exp(-st.spread * 8)));
       const g2 = Math.round(gap * 8);
       const col = cfg.color || '#6dff9a';

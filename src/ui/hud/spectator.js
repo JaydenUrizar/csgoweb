@@ -4,8 +4,8 @@ import { icon } from './icons.js';
 import { emblem } from './topbar.js';
 
 export const css = `
-.spec{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:420px;opacity:0;pointer-events:none;will-change:opacity,transform}
-.spec .card{position:relative;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:4px;background:linear-gradient(180deg,rgba(20,25,36,.9),rgba(10,13,21,.9));box-shadow:0 0 0 1px rgba(255,255,255,.1) inset,0 8px 24px rgba(0,0,0,.45);border-bottom:3px solid var(--sc,#fff)}
+.spec{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);width:400px;opacity:0;pointer-events:none;will-change:opacity,transform}
+.spec .card{position:relative;display:flex;align-items:center;gap:12px;padding:20px 14px 9px;border-radius:4px;background:linear-gradient(180deg,rgba(20,25,36,.9),rgba(10,13,21,.9));box-shadow:0 0 0 1px rgba(255,255,255,.1) inset,0 8px 24px rgba(0,0,0,.45);border-bottom:3px solid var(--sc,#fff)}
 .spec .av{width:42px;height:42px;border-radius:3px;overflow:hidden;box-shadow:0 0 0 2px var(--sc,#fff);flex:none}.spec .av svg{width:100%;height:100%;display:block}
 .spec .tx{flex:1;min-width:0}
 .spec .lb{font:600 12px/12px var(--font);letter-spacing:.24em;color:rgba(255,255,255,.55);text-transform:uppercase}
@@ -14,16 +14,17 @@ export const css = `
 .spec .hpn{font:700 30px/30px var(--font);font-variant-numeric:tabular-nums;color:#fff}
 .spec .hpb{margin-top:3px;height:4px;background:rgba(0,0,0,.55);border-radius:1px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.1) inset}
 .spec .hpb b{display:block;height:100%;background:#fff;transform-origin:0 0}
-.spec .hint{margin-top:8px;display:flex;justify-content:center;gap:22px;font:600 14px/16px var(--font);letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.72);text-shadow:0 1px 2px #000}
+.spec .hint{position:absolute;right:12px;top:4px;display:flex;justify-content:flex-end;gap:12px;font:600 14px/16px var(--font);letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.72);text-shadow:0 1px 2px #000}
 .spec .hint span{display:inline-flex;align-items:center;gap:6px}.spec .hint svg{width:13px;height:13px}
 .spec .hint kbd{font:700 12px/16px var(--font);padding:0 6px;border-radius:3px;background:#eef1f6;color:#141a26;box-shadow:0 2px 0 #7b8494}
-.spec .out{position:absolute;left:50%;top:-38px;transform:translateX(-50%);padding:3px 14px;border-radius:3px;text-align:center;font:700 16px/20px var(--font);letter-spacing:.2em;color:#fff;background:rgba(176,24,34,.94);box-shadow:0 0 0 1px rgba(255,170,160,.55) inset,0 3px 10px rgba(0,0,0,.5);text-transform:uppercase;white-space:nowrap}
+.spec .out{position:absolute;left:0;top:0;padding:2px 12px 2px 14px;border-radius:4px 0 4px 0;font:700 12px/16px var(--font);letter-spacing:.2em;color:#fff;background:rgba(176,24,34,.96);text-transform:uppercase;white-space:nowrap;z-index:1}
 .spec .out:empty{display:none}
 `;
 
 export function create(H) {
-  const root = h('div', 'spec', H.root, `<div class="out">Tagged out</div><div class="card"><div class="av"></div><div class="tx"><div class="lb">Spectating</div><div class="nm"></div></div><div class="hpw"><div class="hpn">100</div><div class="hpb"><b></b></div></div></div><div class="hint"><span>${icon('chevL')}<kbd>RMB</kbd> Prev</span><span><kbd>LMB</kbd> Next ${icon('chevR')}</span></div>`);
+  const root = h('div', 'spec', H.root, `<div class="card"><div class="out">Tagged out</div><div class="hint"><span>${icon('chevL')}<kbd>RMB</kbd></span><span><kbd>LMB</kbd>${icon('chevR')}</span></div><div class="av"></div><div class="tx"><div class="lb">Spectating</div><div class="nm"></div></div><div class="hpw"><div class="hpn">100</div><div class="hpb"><b></b></div></div></div>`);
   const av = root.querySelector('.av'), nm = root.querySelector('.nm'), hpn = root.querySelector('.hpn'), hpb = root.querySelector('.hpb b'), out = root.querySelector('.out');
+  const lb = root.querySelector('.lb'); const setLb = txt(lb);
   const setNm = txt(nm), setHp = txt(hpn), tHb = tf(hpb), setOut = txt(out);
   const S = { a: 0, name: '' };
   H.bus.on('reset', () => { S.a = 0; });
@@ -36,7 +37,7 @@ export function create(H) {
       const v = H.view; if (!v) return;
       const col = H.pal[v.team]; root.style.setProperty('--sc', col);
       if (S.name !== v.name + col) { S.name = v.name + col; av.innerHTML = emblem(v.name, col); }
-      setNm(v.name); setHp(String(Math.max(0, Math.round(v.hp ?? 0)))); tHb(`scaleX(${clamp((v.hp ?? 0) / 100, 0, 1).toFixed(3)})`);
+      setLb(H.kc ? 'Tagged you' : 'Spectating'); setNm(v.name); setHp(String(Math.max(0, Math.round(v.hp ?? 0)))); tHb(`scaleX(${clamp((v.hp ?? 0) / 100, 0, 1).toFixed(3)})`);
       const m = H.R.match; const ph = m?.phase;
       setOut(ph === 'roundEnd' ? 'Round over' : H.local?.alive === false ? 'Tagged out · respawn next round' : '');
     },

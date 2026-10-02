@@ -29,6 +29,7 @@ export function createTutorial(ctx, A) {
     off.push(ctx.events.on('beacon:armed', (d) => { if (mine(d)) S.beacon = true; }));
     off.push(ctx.events.on('beacon:disarm', (d) => { if (mine(d)) S.beacon = true; }));
     off.push(ctx.events.on('match:end', () => api.stop()));
+    off.push(ctx.events.on('round:end', () => { if (S.active && S.i < steps.length) { A.setTutorialDone(); api.stop(); } }));
   }
   function render() {
     const s = steps[S.i]; if (!s) return;
@@ -56,13 +57,14 @@ export function createTutorial(ctx, A) {
   const onKey = (e) => { if (!S.active || !A.inGame()) return; if (e.code === 'KeyN' && !e.repeat && S.i < steps.length) advance(); };
   const api = {
     el, get active() { return S.active; },
-    start(from = 0) { if (S.active) return; S.active = true; bind(); addEventListener('keydown', onKey); next.hidden = skip.hidden = false; el.hidden = false; begin(from); },
+    start(from = 0) { if (S.active) return; S.active = true; S.age = 0; bind(); addEventListener('keydown', onKey); next.hidden = skip.hidden = false; el.hidden = false; begin(from); },
     stop() { if (!S.active) return; S.active = false; off.splice(0).forEach((f) => f()); removeEventListener('keydown', onKey); el.hidden = true; },
     show(v) { el.hidden = !v || !S.active; },
     stepTo(i) { if (!S.active) this.start(i); else begin(i); },
     debugFinish() { finish(); },
     update(dt) {
       if (!S.active) return;
+      S.age = (S.age || 0) + dt; if (S.age > 170 && S.i < steps.length) { A.setTutorialDone(); api.stop(); return; }
       const ph = ctx.match?.phase; el.style.visibility = (ph === 'roundEnd' || ph === 'matchEnd' || ph === 'halftime') ? 'hidden' : '';
       if (S.i >= steps.length) { S.finishT -= dt; if (S.finishT <= 0) api.stop(); return; }
       const a = ctx.localActor; const s = steps[S.i]; if (!a) return;

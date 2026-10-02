@@ -16,7 +16,7 @@ export const css = `
 .buy .main{display:flex;gap:10px}
 .buy .cols{flex:1;display:flex;gap:6px;padding:10px;border-radius:5px;background:linear-gradient(180deg,rgba(20,25,36,.985),rgba(12,15,24,.985));box-shadow:0 0 0 1px rgba(255,255,255,.09) inset,0 12px 40px rgba(0,0,0,.5)}
 .buy .col{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;padding-bottom:2px;border-radius:3px;transition:background .12s}
-.buy .col.sel{background:rgba(255,255,255,.055);box-shadow:0 0 0 1px rgba(255,255,255,.22) inset}
+.buy .col.sel{background:rgba(255,255,255,.09);box-shadow:0 0 0 2px var(--ally) inset}
 .buy .ch{display:flex;gap:6px;align-items:baseline;justify-content:center;padding:1px 0 5px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:1px;font:700 17px/20px var(--font);letter-spacing:.06em;color:#f1f5fb;text-transform:uppercase}
 .buy .ch small{font:600 13px/20px var(--font);color:rgba(255,255,255,.5)}
 .it{position:relative;height:66px;border-radius:3px;background:linear-gradient(180deg,rgba(66,78,100,.42),rgba(40,48,64,.42));box-shadow:0 0 0 1px rgba(255,255,255,.12) inset;cursor:pointer;overflow:hidden;color:#dbe6f8;transition:box-shadow .08s,background .08s}
@@ -30,7 +30,7 @@ export const css = `
 .it .st{position:absolute;left:6px;bottom:4px;display:flex;gap:4px;align-items:center}
 .it .st svg{width:13px;height:13px}
 .it.poor{color:rgba(160,170,190,.55);background:linear-gradient(180deg,rgba(30,36,48,.55),rgba(22,26,36,.55))}
-.it.poor .ig{color:rgba(178,190,214,.5)}.it.poor .pr{color:#ff8b7a}.it.poor .nmx{color:rgba(190,198,214,.5)}
+.it.poor .ig{color:rgba(160,172,196,.7);opacity:.3}.it.poor .pr{color:#ff8b7a}.it.poor .nmx{color:rgba(190,198,214,.5)}
 .it.lock{opacity:.5}.it.lock .ig{color:rgba(150,160,180,.3)}.it.lock .pr{color:rgba(255,255,255,.4)}
 .it.owned{box-shadow:0 0 0 1px rgba(143,227,160,.7) inset}
 .it.eq{box-shadow:0 0 0 1.5px #ffd25a inset}

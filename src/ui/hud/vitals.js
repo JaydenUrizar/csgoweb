@@ -3,12 +3,12 @@ import { clamp, damp, easeOut, h, txt, flag, tf, style, fmtMoney, readLoadout, r
 import { icon, NAMES } from './icons.js';
 
 export const css = `
-.vit{position:absolute;left:22px;bottom:16px;display:flex;align-items:flex-end;gap:26px}
-.blk{position:relative;width:118px;height:56px;color:#fff;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))}
-.blk .ico{position:absolute;left:0;top:7px;width:20px;height:20px;color:rgba(255,255,255,.9)}
+.vit{position:absolute;left:22px;bottom:16px;display:flex;align-items:flex-end;gap:22px}
+.blk{position:relative;width:104px;height:52px;color:#fff;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))}
+.blk .ico{position:absolute;left:0;top:10px;width:17px;height:17px;color:rgba(255,255,255,.9)}
 .blk .ico svg{width:100%;height:100%;display:block}
-.blk .num{position:absolute;left:24px;top:-2px;font:700 50px/50px var(--font);letter-spacing:.005em;font-variant-numeric:tabular-nums;text-shadow:0 2px 3px rgba(0,0,0,.65),0 0 10px rgba(0,0,0,.4);transform-origin:0 70%;will-change:transform}
-.blk .bar{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(0,0,0,.5);box-shadow:0 0 0 1px rgba(255,255,255,.1) inset;overflow:hidden;border-radius:1px}
+.blk .num{position:absolute;left:22px;top:2px;font:600 40px/44px var(--font);letter-spacing:.005em;font-variant-numeric:tabular-nums;text-shadow:0 2px 3px rgba(0,0,0,.65),0 0 10px rgba(0,0,0,.4);transform-origin:0 70%;will-change:transform}
+.blk .bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(0,0,0,.5);box-shadow:0 0 0 1px rgba(255,255,255,.1) inset;overflow:hidden;border-radius:1px}
 .blk .bar u{position:absolute;inset:0;transform-origin:0 0;will-change:transform;text-decoration:none}
 .blk .bar .tr{background:#fff;opacity:.85}
 .blk .bar .fl{background:linear-gradient(90deg,#d9f7ff,#fff)}
@@ -16,8 +16,8 @@ export const css = `
 .blk.hp.mid .bar .fl{background:#ffd25a}.blk.hp.low .bar .fl{background:#ff5540}
 .blk.ar.zero{opacity:.55}
 .blk.ar .bar .fl{background:linear-gradient(90deg,#b9d6ff,#e8f2ff)}
-.money{position:absolute;left:22px;bottom:80px;height:34px;display:flex;align-items:center;font:700 32px/32px var(--font);color:#f2f7ff;text-shadow:0 2px 3px rgba(0,0,0,.7),0 0 8px rgba(0,0,0,.4);font-variant-numeric:tabular-nums;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
-.money .cur{color:#8fe3a0;margin-right:2px;font-size:26px}
+.money{position:absolute;left:22px;bottom:72px;height:30px;display:flex;align-items:center;font:600 26px/28px var(--font);color:#f2f7ff;text-shadow:0 2px 3px rgba(0,0,0,.7),0 0 8px rgba(0,0,0,.4);font-variant-numeric:tabular-nums;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.money .cur{color:#8fe3a0;margin-right:2px;font-size:21px}
 .money.low{color:#ffb4a8}
 .money .dl{position:absolute;left:100%;margin-left:10px;top:4px;white-space:nowrap;font:700 22px/24px var(--font);opacity:0;will-change:transform,opacity}
 .money .dl.up{color:#7dff9b}.money .dl.dn{color:#ff7a68}
@@ -25,9 +25,9 @@ export const css = `
 .ammo{position:absolute;right:24px;bottom:16px;width:220px;height:66px;text-align:right;color:#fff;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))}
 .ammo .wn{position:absolute;right:0;top:-18px;font:600 15px/16px var(--font);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.78);text-shadow:0 1px 2px #000}
 .ammo .row{position:absolute;right:0;top:-3px;display:flex;align-items:baseline;justify-content:flex-end;gap:8px;white-space:nowrap}
-.ammo .mag{font:700 54px/54px var(--font);font-variant-numeric:tabular-nums;text-shadow:0 2px 3px rgba(0,0,0,.65),0 0 10px rgba(0,0,0,.4);transform-origin:100% 70%}
+.ammo .mag{font:600 44px/46px var(--font);font-variant-numeric:tabular-nums;text-shadow:0 2px 3px rgba(0,0,0,.65),0 0 10px rgba(0,0,0,.4);transform-origin:100% 70%}
 .ammo .dv{width:2px;height:26px;background:rgba(255,255,255,.45);align-self:center;margin:0 1px;box-shadow:0 1px 2px rgba(0,0,0,.5)}
-.ammo .res{font:600 30px/30px var(--font);font-variant-numeric:tabular-nums;color:rgba(255,255,255,.72);min-width:34px;text-align:left;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+.ammo .res{font:500 24px/26px var(--font);font-variant-numeric:tabular-nums;color:rgba(255,255,255,.72);min-width:34px;text-align:left;text-shadow:0 1px 2px rgba(0,0,0,.7)}
 .ammo.low .mag{color:#ffc93d}.ammo.empty .mag{color:#ff5b4a}
 .ammo .mb{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(0,0,0,.5);box-shadow:0 0 0 1px rgba(255,255,255,.1) inset;border-radius:1px;overflow:hidden}
 .ammo .mb u{position:absolute;inset:0;transform-origin:0 0;background:#fff;text-decoration:none;will-change:transform}

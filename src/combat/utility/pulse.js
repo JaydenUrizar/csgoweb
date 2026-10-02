@@ -9,27 +9,31 @@ const DOME_VERT = /* glsl */`
 varying vec3 vN; varying vec3 vWN; varying vec3 vV;
 void main(){ vN = normalize(position); vec4 w = modelMatrix * vec4(position, 1.0); vWN = normalize(mat3(modelMatrix) * vN); vV = normalize(cameraPosition - w.xyz); gl_Position = projectionMatrix * viewMatrix * w; }`;
 const DOME_FRAG = /* glsl */`
-uniform float uT, uAlpha, uTime; uniform vec3 uColA, uColB;
+uniform float uT, uAlpha, uTime, uRad, uFarR; uniform vec3 uColA, uColB; uniform sampler2D uFree;
 varying vec3 vN; varying vec3 vWN; varying vec3 vV;
 float hexDist(vec2 p){ p = abs(p); float c = dot(p, normalize(vec2(1.0, 1.7320508))); return max(c, p.x); }
 float hexEdge(vec2 uv){ vec2 r = vec2(1.0, 1.7320508), h = r * 0.5; vec2 a = mod(uv, r) - h, b = mod(uv - h, r) - h; vec2 gv = dot(a,a) < dot(b,b) ? a : b; return 0.5 - hexDist(gv); }
 void main(){
+  float fd = texture2D(uFree, vec2(atan(vN.z, vN.x) * 0.15915 + 0.5, asin(clamp(vN.y, -1.0, 1.0)) * 0.3183 + 0.5)).r * uFarR;   // free distance from the blast centre in this direction
+  if (uRad > fd + 0.25) discard;
+  float clipFade = 1.0 - smoothstep(fd - 0.6, fd + 0.25, uRad);
   float fres = pow(1.0 - abs(dot(normalize(vWN), normalize(vV))), 2.0);
   vec2 q = vec2(atan(vN.z, vN.x) * 4.2, vN.y * 6.5 + uTime * 0.4);
   float he = hexEdge(q); float lines = 1.0 - smoothstep(0.015, 0.075, he);
   float ripple = 0.5 + 0.5 * sin(vN.y * 16.0 - uT * 24.0 + sin(atan(vN.z, vN.x) * 5.0) * 1.3);
   float shell = 0.05 + fres * 1.25;
-  float a = (shell + lines * (0.35 + fres) + ripple * 0.08) * uAlpha;
+  float a = (shell + lines * (0.35 + fres) + ripple * 0.08) * uAlpha * clipFade;
   vec3 col = mix(uColA, uColB, clamp(fres * 1.1 + lines * 0.3, 0.0, 1.0));
   gl_FragColor = vec4(col * a, 1.0);
   #include <colorspace_fragment>
 }`;
 const RING_VERT = /* glsl */`varying vec2 vUv; void main(){ vUv = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 const RING_FRAG = /* glsl */`
-uniform float uProg, uAlpha, uT; uniform vec3 uCol; varying vec2 vUv;
+uniform float uProg, uAlpha, uT, uFarR, uRadMax; uniform vec3 uCol; uniform sampler2D uFree; varying vec2 vUv;
 float ring(float r, float c, float w){ float d = (r - c) / w; return exp(-d * d); }
 void main(){
   float r = length(vUv); if (r > 1.0) discard;
+  float fdR = texture2D(uFree, vec2(atan(vUv.y, vUv.x) * 0.15915 + 0.5, 0.56)).r * uFarR; if (r * uRadMax > fdR + 0.25) discard;
   float lead = ring(r, uProg, 0.028 + 0.02 * uT) * 1.7;
   float trail = smoothstep(uProg - 0.42, uProg, r) * step(r, uProg) * 0.42;
   float e2 = ring(r, uProg * 0.72, 0.02) * 0.8, e3 = ring(r, uProg * 0.46, 0.016) * 0.5;
@@ -41,16 +45,19 @@ void main(){
 /** Pulse (frag analogue): expanding shockwave dome + ground ring, partial Charge drain with falloff/armor, soft knock, camera shake. */
 export function createPulse(ctx, W, deps) {
   const { sparks, dust, haze, time, grenades } = deps;
+  const FW = 48, FH = 24, FAR = P.radius * 1.3;
   const domeGeo = new THREE.IcosahedronGeometry(1, 4);
   const ringGeo = new THREE.PlaneGeometry(2, 2); ringGeo.rotateX(-Math.PI / 2);
   const active = [], pool = []; let n = 0;
   const mkDome = (uAlpha) => new THREE.Mesh(domeGeo, new THREE.ShaderMaterial({ vertexShader: DOME_VERT, fragmentShader: DOME_FRAG, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
-    uniforms: { uT: { value: 0 }, uAlpha: { value: uAlpha }, uTime: { value: 0 }, uColA: { value: new THREE.Color(0.18, 0.55, 1.0) }, uColB: { value: new THREE.Color(0.85, 0.25, 1.0) } } }));
+    uniforms: { uT: { value: 0 }, uAlpha: { value: uAlpha }, uTime: { value: 0 }, uRad: { value: 0 }, uFarR: { value: 1 }, uFree: { value: null }, uColA: { value: new THREE.Color(0.18, 0.55, 1.0) }, uColB: { value: new THREE.Color(0.85, 0.25, 1.0) } } }));
   const mk = () => {
     const dome = mkDome(1), dome2 = mkDome(0.6); dome.renderOrder = dome2.renderOrder = 82; dome.frustumCulled = dome2.frustumCulled = false;
     const ring = new THREE.Mesh(ringGeo, new THREE.ShaderMaterial({ vertexShader: RING_VERT, fragmentShader: RING_FRAG, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide,
-      uniforms: { uProg: { value: 0 }, uAlpha: { value: 1 }, uT: { value: 0 }, uCol: { value: new THREE.Color(0.7, 0.95, 1.0) } } })); ring.renderOrder = 82; ring.frustumCulled = false;
-    return { dome, dome2, ring, flare: makeBillboard(FLARE), bill: makeBillboard(RING), t: 0, pos: new THREE.Vector3(), floor: 0, busy: false };
+      uniforms: { uProg: { value: 0 }, uAlpha: { value: 1 }, uT: { value: 0 }, uFarR: { value: 1 }, uRadMax: { value: 1 }, uFree: { value: null }, uCol: { value: new THREE.Color(0.7, 0.95, 1.0) } } })); ring.renderOrder = 82; ring.frustumCulled = false;
+    const freeData = new Uint8Array(FW * FH).fill(255), free = new THREE.DataTexture(freeData, FW, FH, THREE.RedFormat); free.minFilter = free.magFilter = THREE.LinearFilter; free.wrapS = THREE.RepeatWrapping; free.wrapT = THREE.ClampToEdgeWrapping; free.needsUpdate = true;
+    for (const m of [dome, dome2, ring]) m.material.uniforms.uFree.value = free;
+    return { dome, dome2, ring, free, freeData, flare: makeBillboard(FLARE), bill: makeBillboard(RING), t: 0, pos: new THREE.Vector3(), floor: 0, busy: false };
   };
   const all = (b) => [b.dome, b.dome2, b.ring, b.flare, b.bill];
 
@@ -108,11 +115,18 @@ export function createPulse(ctx, W, deps) {
       const b = pool.pop() || mk(); b.busy = true; b.t = 0; b.pos.copy(pos);
       // floor height under the blast for the ground ring
       _t.copy(pos); _d.set(0, -1, 0); const o = { dist: 0, normal: new THREE.Vector3() }; b.floor = W.raycast(_t, _d, 3, o) ? pos.y - o.dist + 0.04 : pos.y - 0.1;
+      { // free-distance map: how far the blast can travel in each direction before hitting the map (clips the dome/ring/dust at walls, like the damage LOS)
+        const o = { dist: 0, normal: new THREE.Vector3() }, org = new THREE.Vector3(pos.x, pos.y + 0.3, pos.z), dir = new THREE.Vector3();
+        for (let y = 0; y < FH; y++) { const el = ((y + 0.5) / FH - 0.5) * Math.PI, ce = Math.cos(el), se = Math.sin(el);
+          for (let x = 0; x < FW; x++) { const az = ((x + 0.5) / FW - 0.5) * Math.PI * 2; dir.set(Math.cos(az) * ce, se, Math.sin(az) * ce); const d = W.raycast(org, dir, FAR, o) ? o.dist : FAR; b.freeData[y * FW + x] = Math.min(255, Math.round(d / FAR * 255)); } }
+        b.free.needsUpdate = true; for (const m of [b.dome, b.dome2]) m.material.uniforms.uFarR.value = FAR; b.ring.material.uniforms.uFarR.value = FAR; b.ring.material.uniforms.uRadMax.value = P.radius;
+        b.freeAt = (az) => { const x = Math.min(FW - 1, Math.max(0, Math.floor((az / (Math.PI * 2) + 0.5) * FW))); return b.freeData[Math.round(0.56 * FH) * FW + x] / 255 * FAR; };
+      }
       const sc = ctx.render?.scene; for (const m of all(b)) { sc?.add(m); m.visible = true; }
       b.flare.material.uniforms.uSeed.value = rnd() * 6; active.push(b);
       for (let i = 0; i < 40; i++) { const az = rnd() * 6.283, sp = 3 + rnd() * 7, up = rnd() * 3 + 0.5; const k = rnd(); const hue = rnd(); const cr = hue < 0.34 ? 0.3 : hue < 0.67 ? 1.0 : 1.0, cg = hue < 0.34 ? 0.8 : hue < 0.67 ? 0.35 : 0.8, cb = hue < 0.34 ? 1.0 : hue < 0.67 ? 1.0 : 0.3;
         sparks.emit(pos.x, b.floor + 0.1, pos.z, Math.cos(az) * sp * 1.3, up * 2.2 + 2, Math.sin(az) * sp * 1.3, 0.7 + rnd() * 0.9, 0.06 + rnd() * 0.05, cr, cg, cb, 15, 0.8); }
-      for (let i = 0; i < 26; i++) { const az = rnd() * 6.283, sp = 3.5 + rnd() * 5.5, rr = 0.3 + rnd() * 1.2; dust?.emit(pos.x + Math.cos(az) * rr, b.floor + 0.15, pos.z + Math.sin(az) * rr, Math.cos(az) * sp, 0.5 + rnd() * 1.1, Math.sin(az) * sp, 0.9 + rnd() * 0.7, 0.5 + rnd() * 0.4, 1.4 + rnd() * 1.2, 0.7 + rnd() * 0.2, rnd()); }
+      for (let i = 0; i < 26; i++) { const az = rnd() * 6.283, rr = 0.3 + rnd() * 1.2; const fdz = b.freeAt(az > Math.PI ? az - Math.PI * 2 : az); const sp = Math.min(3.5 + rnd() * 5.5, 2.6 * Math.max(0, fdz - 0.7)); if (sp < 1.2) continue; dust?.emit(pos.x + Math.cos(az) * rr, b.floor + 0.15, pos.z + Math.sin(az) * rr, Math.cos(az) * sp, 0.5 + rnd() * 1.1, Math.sin(az) * sp, 0.9 + rnd() * 0.7, 0.5 + rnd() * 0.4, 1.4 + rnd() * 1.2, 0.7 + rnd() * 0.2, rnd()); }
       ctx.render?.screen?.flash?.(0x7f8cff, 0.1 + 0.16 * Math.max(0, 1 - ((a0 => a0 ? new THREE.Vector3(a0.pos.x, a0.pos.y + 1, a0.pos.z).distanceTo(pos) : 99)(ctx.localActor)) / P.shakeRadius), 7);
       for (let i = 0; i < 24; i++) { const az = rnd() * 6.283, sp = 0.6 + rnd() * 1.6; sparks.emit(pos.x + Math.cos(az) * 1.5, b.floor, pos.z + Math.sin(az) * 1.5, Math.cos(az) * sp, 1.4 + rnd() * 2.2, Math.sin(az) * sp, 0.8 + rnd() * 0.8, 0.035, 0.85, 0.7, 1.0, -0.5, 0.8); }
       deps.light?.(pos, 0x6f7dff, 22, 16, 0.4);
@@ -123,8 +137,8 @@ export function createPulse(ctx, W, deps) {
         const b = active[i]; b.t += dt; const t = b.t, u = Math.min(1, t / P.expandTime), R = P.radius * (1 - Math.pow(1 - u, 3.2));
         const fade = t < P.expandTime ? 1 : Math.pow(Math.max(0, 1 - (t - P.expandTime) / 0.75), 1.6);
         const d = b.dome, d2 = b.dome2; const cd = deps.camDist?.(b.pos) ?? 99; const inside = cd < R ? 0.3 + 0.7 * Math.min(1, (cd / Math.max(R, 0.1))) ** 2 : 1;
-        d.position.copy(b.pos); d.scale.setScalar(Math.max(0.01, R)); d.material.uniforms.uT.value = u; d.material.uniforms.uAlpha.value = 0.7 * fade * (1 - 0.6 * u) * inside; d.material.uniforms.uTime.value = t;
-        const R2 = P.radius * (1 - Math.pow(1 - Math.max(0, u - 0.1) / 0.9, 3)) * 0.62; d2.position.copy(b.pos); d2.scale.setScalar(Math.max(0.01, R2)); d2.material.uniforms.uT.value = u; d2.material.uniforms.uAlpha.value = 0.35 * fade * (1 - u) * inside; d2.material.uniforms.uTime.value = t + 3;
+        d.position.copy(b.pos); d.scale.setScalar(Math.max(0.01, R)); d.material.uniforms.uRad.value = R; d.material.uniforms.uT.value = u; d.material.uniforms.uAlpha.value = 0.7 * fade * (1 - 0.6 * u) * inside; d.material.uniforms.uTime.value = t;
+        const R2 = P.radius * (1 - Math.pow(1 - Math.max(0, u - 0.1) / 0.9, 3)) * 0.62; d2.position.copy(b.pos); d2.scale.setScalar(Math.max(0.01, R2)); d2.material.uniforms.uRad.value = R2; d2.material.uniforms.uT.value = u; d2.material.uniforms.uAlpha.value = 0.35 * fade * (1 - u) * inside; d2.material.uniforms.uTime.value = t + 3;
         b.ring.position.set(b.pos.x, b.floor, b.pos.z); b.ring.scale.set(P.radius, 1, P.radius); const ru = b.ring.material.uniforms; ru.uProg.value = Math.max(0.001, R / P.radius); ru.uT.value = u; ru.uAlpha.value = 0.55 * fade; ru.uCol.value.setRGB(0.35, 0.7, 1.0);
         const fl = b.flare.material.uniforms; fl.uPosSize.value.set(b.pos.x, b.pos.y + 0.1, b.pos.z, 0.5 + 1.6 * (1 - Math.exp(-t * 20))); fl.uAlpha.value = 1.4 * Math.exp(-t * 14); fl.uColor.value.setRGB(0.45, 0.6, 1);
         const bl = b.bill.material.uniforms; bl.uPosSize.value.set(b.pos.x, b.pos.y + 0.1, b.pos.z, 0.3 + P.radius * 0.9 * (1 - Math.pow(1 - u, 3))); bl.uT.value = u; bl.uAlpha.value = 0.9 * (1 - u) * (u < 1 ? 1 : 0); bl.uColor.value.setRGB(0.5, 0.65, 1);

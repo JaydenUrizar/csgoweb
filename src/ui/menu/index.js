@@ -96,7 +96,7 @@ export function create(ctx) {
   const nav = createNav(ctx, {
     getScope: () => activeScopeEl(),
     isActive: () => !lockerOpen && !settings.capturing && (overlays.length > 0 || base === 'main' || base === 'pause' || base === 'end') && !wipe.classList.contains('on'),
-    onBack: () => { if (overlays.length) back(); else if (base === 'pause') resume(); },
+    onBack: () => { if (confirmEl) closeConfirm(); else if (overlays.length) back(); else if (base === 'pause') resume(); },
     onTab: (d) => { if (overlays[overlays.length - 1] === 'settings') settings.cycle(d); },
   });
 
@@ -110,8 +110,8 @@ export function create(ctx) {
     scrim.style.opacity = v ? 1 : 0;
     if (v) backdrop.enter(); else backdrop.leave();
   }
-  function focusIn(el) { const go = () => { if (!el.contains(document.activeElement) || document.activeElement === el) nav.focusFirst(el); }; requestAnimationFrame(go); setTimeout(go, 140); setTimeout(go, 450); }
-  function activeScopeEl() { const top = overlays[overlays.length - 1]; return top ? screens[top].el : screens[base]?.el; }
+  function focusIn(el, pref) { const go = () => { if (pref && pref.isConnected && !pref.closest('[inert]')) { if (document.activeElement !== pref) pref.focus({ preventScroll: true }); } else if (!el.contains(document.activeElement) || document.activeElement === el) nav.focusFirst(el); }; go(); requestAnimationFrame(go); setTimeout(go, 140); setTimeout(go, 450); }
+  function activeScopeEl() { if (confirmEl) return confirmEl; const top = overlays[overlays.length - 1]; return top ? screens[top].el : screens[base]?.el; }
   function setBase(name) {
     base = name; for (const n of ['main', 'pause', 'end']) { const s = n === 'end' ? end : screens[n]; if (s) setOn(s, n === name); }
     syncHud(); captureKeys(name !== 'game'); ctx.events.emit('menu:state', { state: name });
@@ -122,7 +122,7 @@ export function create(ctx) {
     if (name === 'settings') settings.open(arg || settings.active); if (name === 'help') help.refresh(); if (name === 'cheat') cheat.refresh();
     if (inMenuWorld) backdrop.setMood(name === 'settings' || name === 'help' || name === 'credits' ? 'side' : 'main');
     ctx.events.emit('ui:open', { owner: 'menu', name });
-    if (name === 'settings') requestAnimationFrame(() => screens.settings.el.querySelector('.fx-tab.on')?.focus({ preventScroll: true })); else focusIn(screens[name].el);
+    if (name === 'settings') focusIn(screens.settings.el, screens.settings.el.querySelector('.fx-tab.on')); else focusIn(screens[name].el);
   }
   function openOverlay(name, arg) { if (overlays.includes(name)) return; showOverlay(name, arg); }
   function back() {
@@ -133,7 +133,7 @@ export function create(ctx) {
     if (!overlays.length && inMenuWorld) backdrop.setMood('main');
     const f = focusStack.pop();  if (f && document.contains(f) && f !== document.body) (f.focus({ preventScroll: true }), setTimeout(() => f.focus({ preventScroll: true }), 60)); else focusIn(below);
   }
-  function clearOverlays() { focusStack.length = 0; while (overlays.length) { const n = overlays.pop(); setOn(screens[n], false); screens[n].el.inert = false; } syncHud(); for (const s of [main, pause]) s.el.inert = false; if (end) end.el.inert = false; }
+  function clearOverlays() { focusStack.length = 0; if (confirmEl) { confirmEl.remove(); confirmEl = null; pause.el.querySelector('.fx-pbox').inert = false; } while (overlays.length) { const n = overlays.pop(); setOn(screens[n], false); screens[n].el.inert = false; } syncHud(); for (const s of [main, pause]) s.el.inert = false; if (end) end.el.inert = false; }
 
   // ------------------------------------------------------------------ main menu / boot
   async function showMain({ instant = false } = {}) {
@@ -185,7 +185,7 @@ export function create(ctx) {
   function openPause() {
     if (base !== 'game') return;
     pause.refresh(); pause.hint(false); clearOverlays(); setBase('pause'); try { ctx.input?.unlock?.(); } catch {} ctx.engine && (ctx.engine.paused = true); try { ctx.match?.pause?.(); } catch {} tutorial.show(false);
-    ctx.events.emit('ui:open', { owner: 'menu', name: 'pause' }); ctx.events.emit('game:pause', { paused: true }); focusIn(pause.el);
+    ctx.events.emit('ui:open', { owner: 'menu', name: 'pause' }); ctx.events.emit('game:pause', { paused: true }); focusIn(pause.el, pause.el.querySelector('[data-id=resume]'));
   }
   function finishResume() {
     if (base !== 'pause') return; clearOverlays(); setOn(pause, false);
@@ -199,10 +199,13 @@ export function create(ctx) {
     if (ctx.input?.locked) { finishResume(); return; }
     pause.hint(true); setTimeout(() => { if (base === 'pause' && !ctx.input?.locked) pause.hint(true, true); }, 450);
   }
+  let confirmEl = null;
+  function closeConfirm(focusBack = true) { if (!confirmEl) return; confirmEl.remove(); confirmEl = null; pause.el.querySelector('.fx-pbox').inert = false; if (focusBack) focusIn(pause.el, pause.el.querySelector('[data-id=leave]')); }
   function confirmLeave() {
-    const box = h('div', { class: 'fx-confirm' }, h('div', { class: 'fx-card' }, h('h4', null, 'Leave match?'), h('p', null, 'Your progress in this match will be lost.'),
-      h('div', { class: 'b' }, h('button', { class: 'fx-btn', 'data-autofocus': '', onClick: () => { box.remove(); pause.el.inert = false; focusIn(pause.el); } }, 'Stay'), h('button', { class: 'fx-btn danger', onClick: () => { box.remove(); leaveMatch(); } }, 'Leave'))));
-    pause.el.append(box); pause.el.inert = true; box.inert = false; focusIn(box);
+    if (confirmEl) return;
+    confirmEl = h('div', { class: 'fx-confirm', role: 'alertdialog', 'aria-label': 'Leave match?' }, h('div', { class: 'fx-card' }, h('h4', null, 'Leave match?'), h('p', null, 'Your progress in this match will be lost.'),
+      h('div', { class: 'b' }, h('button', { class: 'fx-btn', 'data-autofocus': '', onClick: () => closeConfirm() }, 'Stay'), h('button', { class: 'fx-btn danger', 'data-id': 'leave-yes', onClick: () => { closeConfirm(false); leaveMatch(); } }, 'Leave'))));
+    root.insertBefore(confirmEl, toastEl); pause.el.querySelector('.fx-pbox').inert = true; focusIn(confirmEl, confirmEl.querySelector('[data-autofocus]'));
   }
   async function leaveMatch() {
     tutorial.stop(); if (ctx.engine) ctx.engine.paused = false; endDelay = -1; try { ctx.match?.resume?.(); } catch {}
@@ -267,7 +270,7 @@ export function create(ctx) {
   ctx.events.on('locker:close', () => { if (lockerOpen) { lockerOpen = false; backdrop.suspend(false); document.documentElement.classList.toggle('fx-menu', inMenuWorld); if (base === 'main') { setOn(main, true); backdrop.setMood('main'); focusIn(main.el); } } });
   ctx.events.on('match:end', (d) => { if (base === 'game') { endDelay = 2.6; ctx._menuEndData = d; } });
   addEventListener('keydown', (e) => {
-    if (e.code === 'F1') { e.preventDefault(); if (base === 'game') { cheatOpen = !cheatOpen; cheat.refresh(); setOn(cheat, cheatOpen); syncHud(); } else if (base === 'main') { overlays.includes('cheat') ? back() : openOverlay('help'); } else if (overlays[overlays.length - 1] === 'cheat') back(); return; }
+    if (e.code === 'F1') { e.preventDefault(); if (confirmEl) return; if (base === 'pause') { overlays.includes('cheat') ? back() : openOverlay('cheat'); } else if (base === 'game') { cheatOpen = !cheatOpen; cheat.refresh(); setOn(cheat, cheatOpen); syncHud(); } else if (base === 'main') { overlays.includes('cheat') ? back() : openOverlay('help'); } else if (overlays[overlays.length - 1] === 'cheat') back(); return; }
     if (e.code === 'Escape' && base === 'game' && !extModal && !lockerOpen && !e.repeat) { if (cheatOpen) { cheatOpen = false; setOn(cheat, false); syncHud(); return; } openPause(); return; }
     if ((e.key === 'Enter') && base === 'main' && !overlays.length && !lockerOpen && (!document.activeElement || document.activeElement === document.body || !root.contains(document.activeElement))) { e.preventDefault(); play(); }
   });

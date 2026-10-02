@@ -20,3 +20,6 @@ Inspect: `node tools/vfx_sheet.mjs tracer-volley impact-tile --times 0.017,0.05,
 
 ## Round 3
 FP muzzle flash: viewmodel piece draws its own (see docs/requests/viewmodel-from-vfx-1.md); vfx skips FP flash when `viewmodel.muzzleWorld` exists (`ctx.vfx.fpFlash='auto'|'on'|'off'`); vfx's own FP flash is 0.03 s, half size for autos, pushed >= 0.26 NDC from centre. Bullet-hole rim now brief neutral heat (0.3 s) then dark hole. Solid flecks (chip/diamond/disc/dot) shrink and fade near the camera. Incoming tracer width capped ~90 px. Confetti palette tightened (team/white). bodySpark scales with distance. Lab: `muzzle-view`, `hitping`, `shards-confetti`.
+
+## Round 4
+Others' tracers (spawn > 1.15 m from the local eye): 2.6 m moving segment, 50% width, 0.75x brightness, dissolve ~2 m before the end point (negative width flag in `tracers.js`). Bullet holes: 1.5-2.4 cm radius, jagged/squashed per seed, thin surface-tinted rim, brief (~50-120 ms) heat flash. Hit rings 60-90 ms. Landing = dust only (no ring); rings only for jump pads. Tag-out (`character:shattered`): range-scaled flash star + team ring (<= 2 m) + floor glow + 5-9 s glitter. Repro scripts: lab `impact-tile`, `shards-confetti`; real map: emit `character:shattered` / call `vfx.tracer` from behind the camera.

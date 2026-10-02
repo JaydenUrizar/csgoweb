@@ -86,7 +86,7 @@ export function createUtility(ctx) {
   }
 
   function spawnGrenade(type, pos, vel, thrower, opts = {}) {
-    const g = makeGrenade(); g.pos.copy(pos); g.prev.copy(pos); g.vel.copy(vel); g.thrower = thrower || null;
+    const g = makeGrenade(); g.ox = pos.x; g.oz = pos.z; g.pos.copy(pos); g.prev.copy(pos); g.vel.copy(vel); g.thrower = thrower || null;
     const r = mulberry32(777 + (serial++) * 31); g.spinAxis.set(r() - 0.5, r() - 0.5, r() - 0.5).normalize(); g.spin = 6 + 5 * r(); g.q.setFromAxisAngle(g.spinAxis, r() * 6);
     const gr = { g, type, def: TYPES[type], model: null, fuse: opts.fuse ?? TYPES[type].fuse, t: 0, dead: false, id: serial };
     gr.model = models.make(type); gr.model.position.copy(pos); ctx.render?.scene?.add(gr.model);
@@ -126,19 +126,28 @@ export function createUtility(ctx) {
   const _sim = makeGrenade(), _p = new THREE.Vector3(), _vv = new THREE.Vector3();
   util.trajectory = function (actor, type = 'haze', power = 'strong', out = []) {
     const s = util.strength(power); launch(actor, s, _p, _vv);
-    const g = _sim; g.pos.copy(_p); g.prev.copy(_p); g.vel.copy(_vv); g.rest = false; g.age = 0; g.restT = 0; g.bounces = 0; g.spin = 0; g.thrower = null; g.lastBounceT = -1;
+    const g = _sim; g.ox = _p.x; g.oz = _p.z; g.pos.copy(_p); g.prev.copy(_p); g.vel.copy(_vv); g.rest = false; g.age = 0; g.restT = 0; g.bounces = 0; g.spin = 0; g.thrower = null; g.lastBounceT = -1;
     let n = 0; const put = (p) => { (out[n] ||= new THREE.Vector3()).copy(p); n++; }; put(g.pos);
-    const maxT = 5; for (let i = 0; i < maxT * 120 && !g.rest; i++) { stepGrenade(g, STEP, W, null); if (i % 3 === 2) put(g.pos); if (g.bounces >= 3 || (type !== 'haze' && g.age > TYPES[type].fuse)) break; }
+    const fuse = TYPES[type].fuse; let lastB = 0; const bn = (util.bounceMarks ||= []); let nb = 0;
+    for (let k = 0; k < 6 * 120 && !g.rest; k++) {          // full flight: until it rests / its fuse expires (what the real grenade will do)
+      stepGrenade(g, STEP, W, ctx.actors); if (k % 2 === 1) put(g.pos);
+      if (g.bounces > lastB) { lastB = g.bounces; (bn[nb] ||= new THREE.Vector3()).copy(g.pos); nb++; }
+      if (g.age >= fuse) break;
+    }
+    bn.length = nb;
     put(g.pos); out.length = n; return out;
   };
 
   // ---------------------------------------------------------------- practice arc preview line
   const previewLine = (() => {
-    const N = 200, cv = document.createElement('canvas'); cv.width = cv.height = 64; const cx = cv.getContext('2d');
+    const N = 420, cv = document.createElement('canvas'); cv.width = cv.height = 64; const cx = cv.getContext('2d');
     const gr = cx.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); cx.fillStyle = gr; cx.fillRect(0, 0, 64, 64);
     const tex = new THREE.CanvasTexture(cv);
     const geo = new THREE.BufferGeometry(); const pos = new Float32Array(N * 3); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setDrawRange(0, 0);
-    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.2, map: tex, sizeAttenuation: true, color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false, alphaTest: 0.02 }));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.34, map: tex, sizeAttenuation: true, color: 0xffffff, transparent: true, opacity: 1, depthWrite: false, toneMapped: false, alphaTest: 0.02 }));
+    const ghost = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.26, map: tex, sizeAttenuation: true, color: 0xffffff, transparent: true, opacity: 0.28, depthWrite: false, depthTest: false, toneMapped: false, alphaTest: 0.02 })); ghost.frustumCulled = false; ghost.renderOrder = 198; ghost.visible = false;
+    const bgeo = new THREE.BufferGeometry(); const bpos = new Float32Array(16 * 3); bgeo.setAttribute('position', new THREE.BufferAttribute(bpos, 3)); bgeo.setDrawRange(0, 0);
+    const bmarks = new THREE.Points(bgeo, new THREE.PointsMaterial({ size: 0.7, map: tex, sizeAttenuation: true, color: 0xffffff, transparent: true, opacity: 1, depthWrite: false, depthTest: false, toneMapped: false, alphaTest: 0.02 })); bmarks.frustumCulled = false; bmarks.renderOrder = 201; bmarks.visible = false;
     pts.frustumCulled = false; pts.renderOrder = 200; pts.visible = false;
     const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
     const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.4, 32), ringMat); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 200; ring.visible = false;
@@ -146,7 +155,7 @@ export function createUtility(ctx) {
     const sgeo = new THREE.BufferGeometry(); const spos = new Float32Array(N * 3); sgeo.setAttribute('position', new THREE.BufferAttribute(spos, 3)); sgeo.setDrawRange(0, 0);
     const shadow = new THREE.Points(sgeo, new THREE.PointsMaterial({ size: 0.16, map: tex, sizeAttenuation: true, color: 0xffffff, transparent: true, opacity: 0.45, depthWrite: false, toneMapped: false, alphaTest: 0.02 })); shadow.frustumCulled = false; shadow.renderOrder = 199; shadow.visible = false;
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 3.2, 6), ringMat); beam.renderOrder = 200; beam.visible = false;
-    return { pts, ring, dot, geo, pos, N, list: [], mat: pts.material, shadow, sgeo, spos, beam };
+    return { pts, ghost, bmarks, bgeo, bpos, ring, dot, geo, pos, N, list: [], mat: pts.material, shadow, sgeo, spos, beam };
   })();
   util.preview = {
     show(actor, type = 'haze', power = 'strong') {
@@ -155,15 +164,16 @@ export function createUtility(ctx) {
       const gy = ptsL[n - 1].y + 0.05;
       for (let i = 0; i < n; i++) { if (eyeP.distanceToSquared(ptsL[i]) < 6.25) continue; const w = Math.pow(Math.max(0, 1 - i / Math.max(1, n * 0.45)), 2) * 0.5, ox = Math.cos(actor.yaw) * w, oz = -Math.sin(actor.yaw) * w; pl.pos[m * 3] = ptsL[i].x + ox; pl.pos[m * 3 + 1] = ptsL[i].y - w * 0.25; pl.pos[m * 3 + 2] = ptsL[i].z + oz; pl.spos[m * 3] = ptsL[i].x + ox; pl.spos[m * 3 + 1] = gy; pl.spos[m * 3 + 2] = ptsL[i].z + oz; m++; }
       pl.sgeo.attributes.position.needsUpdate = true; pl.sgeo.setDrawRange(0, m);
+      { const bm = util.bounceMarks || []; const nbm = Math.min(16, bm.length); for (let q = 0; q < nbm; q++) { pl.bpos[q * 3] = bm[q].x; pl.bpos[q * 3 + 1] = bm[q].y + 0.05; pl.bpos[q * 3 + 2] = bm[q].z; } pl.bgeo.attributes.position.needsUpdate = true; pl.bgeo.setDrawRange(0, nbm); }
       pl.geo.attributes.position.needsUpdate = true; pl.geo.setDrawRange(0, m);
-      const c = TYPES[type].band; pl.mat.color.setHex(c).multiplyScalar(1.6); pl.ring.material.color.setHex(c).multiplyScalar(1.1);
+      const c = TYPES[type].band; pl.mat.color.setHex(c).multiplyScalar(1.8); pl.ghost.material.color.setHex(c); pl.bmarks.material.color.setHex(c).multiplyScalar(1.5); pl.ring.material.color.setHex(c).multiplyScalar(1.1);
       pl.ring.position.copy(ptsL[n - 1]); pl.ring.position.y += 0.04; pl.dot.position.copy(pl.ring.position);
       { const dc = cam ? cam.position.distanceTo(pl.ring.position) : 10; const k = Math.max(1, dc / 9); pl.ring.scale.setScalar(k); pl.dot.scale.setScalar(k); pl.beam.position.copy(pl.ring.position); pl.beam.position.y += 1.6; pl.beam.scale.set(k, 1, k); }
       pl.shadow.material.color.setHex(c).multiplyScalar(1.0);
-      const sc = ctx.render?.scene; if (sc && !pl.pts.parent) { sc.add(pl.pts); sc.add(pl.ring); sc.add(pl.dot); sc.add(pl.shadow); sc.add(pl.beam); }
-      pl.pts.visible = pl.ring.visible = pl.dot.visible = pl.shadow.visible = pl.beam.visible = true; return ptsL;
+      const sc = ctx.render?.scene; if (sc && !pl.pts.parent) { sc.add(pl.pts); sc.add(pl.ring); sc.add(pl.dot); sc.add(pl.shadow); sc.add(pl.beam); sc.add(pl.ghost); sc.add(pl.bmarks); }
+      pl.pts.visible = pl.ring.visible = pl.dot.visible = pl.shadow.visible = pl.beam.visible = pl.ghost.visible = pl.bmarks.visible = true; return ptsL;
     },
-    hide() { previewLine.pts.visible = previewLine.ring.visible = previewLine.dot.visible = previewLine.shadow.visible = previewLine.beam.visible = false; },
+    hide() { const p = previewLine; p.pts.visible = p.ring.visible = p.dot.visible = p.shadow.visible = p.beam.visible = p.ghost.visible = p.bmarks.visible = false; },
   };
 
   // ---------------------------------------------------------------- visibility helpers

@@ -60,7 +60,7 @@ export function wireSfx(root, ctx) {
     const el = e.target.closest?.(SEL); if (!el || el === lastEl || el.disabled) return; lastEl = el;
     const n = performance.now(); if (n - last < 45) return; last = n; emit('ui:hover', { el: el.className });
   });
-  root.addEventListener('pointerout', (e) => { if (!e.relatedTarget || !root.contains(e.relatedTarget)) lastEl = null; else if (e.target.closest?.(SEL) === lastEl && !lastEl.contains(e.relatedTarget)) lastEl = null; });
+  root.addEventListener('pointerout', (e) => { if (!e.relatedTarget || !root.contains(e.relatedTarget)) lastEl = null; else if (lastEl && e.target.closest?.(SEL) === lastEl && !lastEl.contains(e.relatedTarget)) lastEl = null; });
   root.addEventListener('click', (e) => { const el = e.target.closest?.(SEL); if (el && !el.disabled && el.type !== 'range') emit('ui:click', { el: el.className }); });
   root.addEventListener('focusin', (e) => { if (e.target.matches?.(':focus-visible')) { const n = performance.now(); if (n - last > 45) { last = n; emit('ui:hover', { kbd: true }); } } });
   let lastTick = 0;

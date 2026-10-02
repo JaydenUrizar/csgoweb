@@ -7,7 +7,7 @@ const _n = new THREE.Vector3(), _vt = new THREE.Vector3(), _d = new THREE.Vector
 const SURF = { stone: [0.45, 0.80], metal: [0.55, 0.85], wood: [0.40, 0.78], glass: [0.5, 0.85], sand: [0.16, 0.55], rubber: [0.6, 0.7], grass: [0.25, 0.6], tile: [0.5, 0.82] };
 
 export function makeGrenade() {
-  return { pos: new THREE.Vector3(), prev: new THREE.Vector3(), vel: new THREE.Vector3(), spinAxis: new THREE.Vector3(0, 0, 1), spin: 0, q: new THREE.Quaternion(), age: 0, restT: 0, rest: false, contact: false, contactN: new THREE.Vector3(0, 1, 0), bounces: 0, lastBounceT: -1, impact: 0, impactPos: new THREE.Vector3(), thrower: null, ignoreThrower: 0 };
+  return { pos: new THREE.Vector3(), prev: new THREE.Vector3(), vel: new THREE.Vector3(), spinAxis: new THREE.Vector3(0, 0, 1), spin: 0, q: new THREE.Quaternion(), age: 0, restT: 0, rest: false, contact: false, contactN: new THREE.Vector3(0, 1, 0), bounces: 0, lastBounceT: -1, impact: 0, impactPos: new THREE.Vector3(), thrower: null, ignoreThrower: 0, ox: 0, oz: 0 };
 }
 
 /** Advance one fixed tick. Returns impact speed (>0) if a bounce happened this tick. ev(type,g,speed) optional callback. */
@@ -66,6 +66,7 @@ function actorCollide(g, actors) {
   for (let i = 0; i < actors.length; i++) {
     const a = actors[i]; if (!a.alive) continue;
     if (a === g.thrower && g.age < 0.3) continue;
+    if (g.age < 0.35 && Math.hypot(a.pos.x - g.ox, a.pos.z - g.oz) < 0.85) continue;   // the thrower (or whoever stands at the release point)
     const dx = g.pos.x - a.pos.x, dz = g.pos.z - a.pos.z; if (dx * dx + dz * dz > (ar + R) * (ar + R)) continue;
     const top = a.pos.y + (a.crouching ? 1.25 : 1.8); if (g.pos.y < a.pos.y - R || g.pos.y > top + R) continue;
     const d = Math.sqrt(dx * dx + dz * dz) || 1e-4;

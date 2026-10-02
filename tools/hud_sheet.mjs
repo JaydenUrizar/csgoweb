@@ -9,7 +9,7 @@ const all = await g.eval(() => window.__game.ctx.hud.debug.states());
 const states = opt('states') ? opt('states').split(',') : ['live', ...all.filter((s) => s !== 'live')];
 const dir = `shots/hud/sheet/${size}`; fs.mkdirSync(dir, { recursive: true }); const files = [];
 // per-state settle time so transient markers (hit/crown/tagout/dmg/banners) are caught mid-animation
-const settle = { hit: 0.05, crown: 0.07, tagout: 0.1, dmg: 0.3, 'banner-round': 0.8, 'banner-win': 0.8, 'banner-lose': 0.8, 'banner-mp': 0.8, 'banner-half': 0.8, 'banner-end': 0.8, blind: 0.15, buy: 0.4, scoreboard: 0.4, spectator: 0.4, scope: 0.3, halo: 0.3, live: 0.6 };
+const settle = { hit: 0.05, crown: 0.07, tagout: 0.1, dmg: 0.3, 'banner-round': 0.8, 'banner-win': 0.8, 'banner-lose': 0.8, 'banner-mp': 0.8, 'banner-half': 0.8, 'banner-end': 0.8, blind: 0.15, buy: 0.4, scoreboard: 0.4, spectator: 0.4, scope: 0.3, halo: 0.3, live: 0.6, death: 0.5, 'death-late': 2.0 };
 for (const s of states) {
   await g.eval(([s, t]) => { const d = window.__game.ctx.hud.debug; d.state(s); d.step(t); }, [s, settle[s] ?? 0.4]);
   const f = `${dir}/${s}.png`; await g.shot(f); files.push(f);

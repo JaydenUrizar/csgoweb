@@ -136,6 +136,7 @@ export function createMock(H) {
     'buy-poor': () => { st.buy(); you.credits = 900; },
     'buy-tide': () => { st.buy(); you.team = 'tide'; match.playerTeam = 'tide'; you.credits = 5200; },
     scoreboard() { H.flags.forceScore = true; },
+    'death-late'() { st.death(); H.killcam.until = 0; },
     death() { B[2].hp = 62; B[2].pos.x = -4; B[2].pos.z = -20; H.bus.emit('tag:hit', { attacker: you, victim: B[2], damage: 38, hitgroup: 'chest' }); H.bus.emit('tag:hit', { attacker: B[2], victim: you, damage: 100, hitgroup: 'head' }); you.alive = false; you.hp = 0; you.tagged = true; H.specForce = A[2]; H.bus.emit('tag:out', { attacker: B[2], victim: you, tagger: 'rail', hitgroup: 'head', headshot: true }); },
     spectator() { you.alive = false; you.hp = 0; you.tagged = true; H.specForce = A[2]; match.phase = 'live'; },
     scope() { you.inventory.slots.primary = 'lance'; you.inventory.current = 'lance'; Object.assign(eq, { def: DEFS.lance, mag: 5, reserve: 30, scoped: true }); M.spread = 0; },

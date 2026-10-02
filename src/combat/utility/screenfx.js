@@ -43,7 +43,7 @@ export function createScreenFx(ctx) {
       if (t >= st.dur) { st.active = false; st.level = 0; st.afterLevel = 0; apply(); return; }
       st.level = t < st.hold ? 1 : Math.pow(1 - u, 2.2);
       const atk = Math.min(1, t / 0.05);   // instant but not a single-frame pop
-      st.level *= atk * 0.975;
+      st.level *= atk;
       st.afterLevel = t < st.hold * 0.85 ? 0 : Math.min(1, (t - st.hold * 0.85) / 0.15) * Math.pow(1 - u, 1.1) * (0.7 + 0.28 * st.amount);
       apply();
     },

@@ -6,7 +6,7 @@ export const css = `
 .prm{position:absolute;left:50%;top:60%;transform:translate(-50%,0);text-align:center;pointer-events:none;will-change:opacity}
 .prm .row{display:inline-flex;align-items:center;gap:9px;padding:5px 14px 5px 8px;border-radius:3px;background:linear-gradient(180deg,rgba(16,20,30,.78),rgba(8,10,17,.78));box-shadow:0 0 0 1px rgba(255,255,255,.1) inset,0 3px 10px rgba(0,0,0,.35);font:600 20px/24px var(--font);letter-spacing:.06em;color:#fff;text-transform:uppercase;white-space:nowrap}
 .prm .key{min-width:24px;height:24px;padding:0 6px;box-sizing:border-box;border-radius:4px;background:#f2f4f8;color:#111722;font:700 16px/24px var(--font);text-align:center;box-shadow:0 2px 0 #7b8494,0 3px 4px rgba(0,0,0,.5);text-transform:none}
-.prm .hint{margin-top:5px;font:600 13px/14px var(--font);letter-spacing:.14em;color:rgba(255,255,255,.7);text-shadow:0 1px 2px #000;text-transform:uppercase}
+.prm .hint{margin-top:5px;font:600 13px/14px var(--font);letter-spacing:.06em;color:#fff;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.9);text-transform:uppercase}
 .prm.sm .row{font-size:16px;line-height:20px;padding:3px 12px 3px 7px}
 .ring{position:absolute;left:50%;top:50%;width:92px;height:92px;margin:-46px 0 0 -46px;opacity:0;pointer-events:none;will-change:opacity,transform}
 .ring svg{width:100%;height:100%;display:block;transform:rotate(-90deg);filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
@@ -55,7 +55,8 @@ export function create(H) {
 
   // ----------------------------------------------------------- banners
   function banner(o) { S.ban = { ...o, t0: H.T, hold: o.hold ?? 2.6 }; bt.innerHTML = o.title; bs.textContent = o.sub || ''; bm.textContent = o.meta || ''; ban.style.setProperty('--bc', o.color || '#fff'); ban.style.display = ''; }
-  function notice(text, color, ic, dur = 2.6) { S.nt = { t0: H.T, dur }; ntIn.innerHTML = (ic ? icon(ic) : '') + `<span>${text}</span>`; nt.style.setProperty('--nc', color || 'rgba(255,255,255,.4)'); }
+  function notice(text, color, ic, dur = 2.6) {
+    const ph0 = H.R.match?.phase; if ((ph0 === 'buy' || ph0 === 'freeze') && !H.mock) return; S.nt = { t0: H.T, dur }; ntIn.innerHTML = (ic ? icon(ic) : '') + `<span>${text}</span>`; nt.style.setProperty('--nc', color || 'rgba(255,255,255,.4)'); }
   function toast(text, kind = '') {
     const el = h('div', 'ts ' + kind, toasts, text); S.ts.push({ el, t0: H.T, a: -1 });
     while (S.ts.length > 4) S.ts.shift().el.remove();
@@ -137,7 +138,7 @@ export function create(H) {
     }
     const eq = R.combat?.equipped?.(v);
     if (eq && (eq.def || eq.id) && eq.mag === 0 && (eq.reserve ?? 0) > 0 && eq.state !== 'reload' && !NOAM.has(eq.id || eq.def?.id)) return { text: 'Reload', key: 'R', sm: true };
-    if ((ph === 'buy' || ph === 'freeze') && !H.keys.noBuyTip) return { text: 'Buy time', hint: 'Press B to open the buy menu', key: 'B', sm: true, low: true };
+    if ((ph === 'buy' || ph === 'freeze') && !H.keys.noBuyTip && !S.ban) return { text: 'Buy time', hint: 'Press B to open the buy menu', key: 'B', sm: true, low: true };
     return null;
   }
   const NOAM = new Set(['tap', 'haze', 'strobe', 'pulse', 'vest', 'kit', 'beacon']);
@@ -164,7 +165,8 @@ export function create(H) {
 
       // ---------- banner
       const b = S.ban;
-      if (b) {
+      if (b && b.kind === 'round' && (R.match?.phase === 'live' || R.match?.phase === 'armed')) { S.ban = null; ban.style.opacity = 0; ban.style.display = 'none'; }
+      else if (b) {
         const age = T - b.t0, tin = 0.42, tout = 0.5, total = tin + b.hold + tout;
         if (age > total) { S.ban = null; ban.style.opacity = 0; ban.style.display = 'none'; }
         else {

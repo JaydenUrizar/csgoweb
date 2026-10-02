@@ -203,7 +203,7 @@ export function createHaze(ctx, W, shared) {
     iA.setUsage(THREE.DynamicDrawUsage); iB.setUsage(THREE.DynamicDrawUsage);
     geo.setAttribute('iA', iA); geo.setAttribute('iB', iB); geo.instanceCount = 0;
     const u = {
-      uTex: { value: tex }, uTime: { value: 0 }, uOpacity: { value: 0.96 }, uFade: { value: 1 }, uPad: { value: 1.08 },
+      uTex: { value: tex }, uTime: { value: 0 }, uOpacity: { value: 1.0 }, uFade: { value: 1 }, uPad: { value: 1.08 },
       uSunDir: shared.sunDir, uSunCol: shared.sunCol, uSkyCol: shared.skyCol, uGroundCol: shared.groundCol, uAlbedo: { value: new THREE.Color(0.80, 0.81, 0.84) },
       uCenter: { value: new THREE.Vector3() }, uCloudR: { value: 3 }, uCamPos: { value: new THREE.Vector3() }, uGlowPos: { value: new THREE.Vector3() }, uGlow: { value: new THREE.Vector4() },
       uWN: { value: 0 }, uWA: { value: [0, 1, 2, 3, 4, 5, 6, 7].map(() => new THREE.Vector4()) }, uWB: { value: [0, 1, 2, 3, 4, 5, 6, 7].map(() => new THREE.Vector4()) }, uWC: { value: [0, 1, 2, 3, 4, 5, 6, 7].map(() => new THREE.Vector2()) },
@@ -216,20 +216,67 @@ export function createHaze(ctx, W, shared) {
       ox: new Float32Array(CAP), oy: new Float32Array(CAP), oz: new Float32Array(CAP), tox: new Float32Array(CAP), toy: new Float32Array(CAP), toz: new Float32Array(CAP),
       cnt: new Float32Array(CAP), sx: new Float32Array(CAP), sy: new Float32Array(CAP), sz: new Float32Array(CAP), rad: new Float32Array(CAP), t0: new Float32Array(CAP),
       seed: new Float32Array(CAP), core: new Float32Array(CAP), die: new Float32Array(CAP), sat: new Uint8Array(CAP), key: new Float32Array(CAP), sv: new Float32Array(CAP).fill(0.7), svI: 0, vx: new Float32Array(CAP), vz: new Float32Array(CAP), am: new Float32Array(CAP).fill(1) };
+    // 3D density/shadow volume shared by the shader (R = density, G = sun-transmittance x density). Same grid as the LOS query.
+    const volData = new Uint8Array(N3 * 2), dens = new Float32Array(N3), dens2 = new Float32Array(N3), tmpB = new Float32Array(N3), visA = new Uint8Array(N3).fill(1);
+    const vol = new THREE.Data3DTexture(volData, N, N, N); vol.format = THREE.RGFormat; vol.type = THREE.UnsignedByteType; vol.minFilter = vol.magFilter = THREE.LinearFilter; vol.wrapS = vol.wrapT = vol.wrapR = THREE.ClampToEdgeWrapping; vol.unpackAlignment = 1; vol.needsUpdate = true;
+    u.uVol = { value: vol }; u.uVolOrg = { value: new THREE.Vector3() }; u.uVolInv = { value: 1 / (VS * N) };
     const order = new Uint16Array(CAP);
     const cmp = (a, b) => P.key[b] - P.key[a];
-    return { mesh, geo, iA, iB, mat, u, P, order, cmp,
-      reset(cl) { P.n = 0; P.svI = 0; P.sv.fill(0.7); P.vx.fill(0); P.vz.fill(0); P.am.fill(1); P.sat.fill(0); geo.instanceCount = 0; mesh.visible = true; u.uFade.value = 1; u.uGlow.value.w = 0; },
+    const _L = new THREE.Vector3(), _c = new THREE.Vector3(), _d3 = new THREE.Vector3();
+    const volume = {
+      visI: 0, tick: 0,
+      reset() { volData.fill(0); dens.fill(0); visA.fill(1); volume.visI = 0; volume.tick = 0; vol.needsUpdate = true; },
+      /** rebuild R (density) and G (sun transmittance x density) for all filled cells */
+      refresh(cl, shadow) {
+        const A = cl.A; const L = shared.sunDir.value; const sunUp = L.y > 0.04;
+        for (let n = 0; n < cl.count; n++) { const idx = A.filled[n]; const i = idx % N, j = ((idx / N) | 0) % N, k = (idx / NN) | 0; dens[idx] = cl.cellDensity(i, j, k); }
+        // visual-only [1 2 1] blur on the filled bounding region: rounder, softer silhouette than raw 0.5 m voxels
+        { let x0 = N, x1 = 0, y0 = N, y1 = 0, z0 = N, z1 = 0;
+          for (let n = 0; n < cl.count; n++) { const idx = A.filled[n]; const i = idx % N, j = ((idx / N) | 0) % N, k = (idx / NN) | 0; if (i < x0) x0 = i; if (i > x1) x1 = i; if (j < y0) y0 = j; if (j > y1) y1 = j; if (k < z0) z0 = k; if (k > z1) z1 = k; }
+          x0 = Math.max(1, x0 - 2); y0 = Math.max(1, y0 - 2); z0 = Math.max(1, z0 - 2); x1 = Math.min(N - 2, x1 + 2); y1 = Math.min(N - 2, y1 + 2); z1 = Math.min(N - 2, z1 + 2);
+          const pass = (src, dst, st) => { for (let k = z0; k <= z1; k++) for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) { const q = i + N * (j + N * k); dst[q] = 0.25 * src[q - st] + 0.5 * src[q] + 0.25 * src[q + st]; } };
+          pass(dens, tmpB, 1); pass(tmpB, dens2, N); pass(dens2, tmpB, NN);
+          for (let k = z0; k <= z1; k++) for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) { const q = i + N * (j + N * k); const v = Math.min(1, tmpB[q] * 1.35); dens2[q] = v; volData[q * 2] = (v * 255 + 0.5) | 0; if (!shadow) volData[q * 2 + 1] = volData[q * 2 + 1]; }
+          volume.box = [x0, x1, y0, y1, z0, z1];
+        }
+        for (let q0 = 0; q0 < 1; q0++) {
+          const [x0, x1, y0, y1, z0, z1] = volume.box;
+          for (let k = z0; k <= z1; k++) for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) {
+            const idx = i + N * (j + N * k), d = dens2[idx];
+          if (!shadow || d < 0.004) { volData[idx * 2 + 1] = 0; continue; }
+          let T = 0;
+          if (sunUp && visA[idx]) {
+            let x = i + 0.5, y = j + 0.5, z = k + 0.5, sum = 0; const sx = L.x / VS * 0.5, sy = L.y / VS * 0.5, sz = L.z / VS * 0.5;
+            for (let st = 0; st < 14; st++) { x += sx; y += sy; z += sz; const ci = x | 0, cj = y | 0, ck = z | 0; if (ci < 0 || cj < 0 || ck < 0 || ci >= N || cj >= N || ck >= N) break; sum += dens2[ci + N * (cj + N * ck)] * 0.5; }
+            T = Math.exp(-2.1 * sum);
+          }
+          volData[idx * 2 + 1] = (T * d * 255 + 0.5) | 0;
+          }
+        }
+        vol.needsUpdate = true;
+      },
+      /** map-geometry shadow on the volume: a few BVH rays per frame toward the sun */
+      visPass(cl, budget = 160) {
+        const L = shared.sunDir.value; if (L.y <= 0.04) return false; const A = cl.A; let changed = false;
+        while (budget-- > 0 && volume.visI < cl.count) {
+          const idx = A.filled[volume.visI++]; cl.cellPos(idx, _c); _c.y += 0.3;
+          if (W.raycast(_c, L, 45, null)) { if (visA[idx]) { visA[idx] = 0; changed = true; } }
+        }
+        return changed;
+      },
+    };
+    return { mesh, geo, iA, iB, mat, u, P, order, cmp, volume,
+      reset(cl) { volume.reset(); P.n = 0; P.svI = 0; P.sv.fill(0.7); P.vx.fill(0); P.vz.fill(0); P.am.fill(1); P.sat.fill(0); geo.instanceCount = 0; mesh.visible = true; u.uFade.value = 1; u.uGlow.value.w = 0; },
       onCell(cl, i, j, k, p, parentIdx) {
         const b = (i >> 1) + NB * ((j >> 1) + NB * (k >> 1)); let pi = cl.A.blockPuff[b];
         if (pi < 0) {
           if (P.n >= CAP - 64) return; pi = P.n++; cl.A.blockPuff[b] = pi;
           P.cnt[pi] = 0; P.sx[pi] = P.sy[pi] = P.sz[pi] = 0; P.t0[pi] = cl.age; P.seed[pi] = hash1(pi * 3.1 + cl.id * 17.7); P.core[pi] = 0.3; P.die[pi] = 1e9; P.sat[pi] = 0; P.vx[pi] = P.vz[pi] = 0; P.am[pi] = 1;
           if (parentIdx >= 0) cl.cellPos(parentIdx, _v2); else _v2.copy(p);
-          P.px[pi] = _v2.x; P.py[pi] = _v2.y; P.pz[pi] = _v2.z; P.ox[pi] = P.oy[pi] = P.oz[pi] = P.tox[pi] = P.toy[pi] = P.toz[pi] = 0;
+          P.px[pi] = _v2.x; P.py[pi] = _v2.y; P.pz[pi] = _v2.z; P.ox[pi] = P.oy[pi] = P.oz[pi] = 0; P.tox[pi] = (hash1(pi * 3.7 + cl.id) - 0.5) * 0.8; P.toy[pi] = (hash1(pi * 5.1 + cl.id) - 0.5) * 0.5; P.toz[pi] = (hash1(pi * 7.9 + cl.id) - 0.5) * 0.8;
         }
         P.cnt[pi]++; P.sx[pi] += p.x; P.sy[pi] += p.y; P.sz[pi] += p.z;
-        const c = P.cnt[pi]; P.tx[pi] = P.sx[pi] / c; P.ty[pi] = P.sy[pi] / c; P.tz[pi] = P.sz[pi] / c; P.rad[pi] = 0.62 + 0.6 * Math.sqrt(c / 8);
+        const c = P.cnt[pi]; P.tx[pi] = P.sx[pi] / c; P.ty[pi] = P.sy[pi] / c; P.tz[pi] = P.sz[pi] / c; P.rad[pi] = (0.62 + 0.6 * Math.sqrt(c / 8)) * (0.7 + 0.7 * hash1(pi * 9.7 + cl.id));
       },
       finalize(cl) {
         const A = cl.A; const base = P.n;
@@ -246,7 +293,7 @@ export function createHaze(ctx, W, shared) {
           P.die[pi] = H.fadeStart - 0.6 + core * 2.6 + hash1(pi * 7.7 + cl.id) * 1.0;
           // wall avoidance
           _v.set(P.tx[pi], P.ty[pi], P.tz[pi]); const r = P.rad[pi]; const c = W.closest(_v, r * 0.62);
-          if (c) { const d = c.distance; _v2.subVectors(_v, c.point); const l = _v2.length(); if (l > 1e-4) { _v2.multiplyScalar((r * 0.62 - d) / l); P.tox[pi] = _v2.x; P.toy[pi] = _v2.y; P.toz[pi] = _v2.z; } }
+          if (c) { const d = c.distance; _v2.subVectors(_v, c.point); const l = _v2.length(); if (l > 1e-4) { _v2.multiplyScalar((r * 0.62 - d) / l); P.tox[pi] += _v2.x; P.toy[pi] += _v2.y; P.toz[pi] += _v2.z; } }
           // satellite billows on the shell (skip near walls)
           for (let sat = 0; sat < 3; sat++) if (core < 0.85 && P.n < CAP - 2 && !c) {
             const gl = Math.hypot(gx, gy, gz); if (gl < 1e-3) break;
@@ -277,17 +324,10 @@ export function createHaze(ctx, W, shared) {
       },
       update(cl, dt, time, cam) {
         const age = cl.age, n = P.n, k = 1 - Math.exp(-7 * dt), ko = 1 - Math.exp(-3 * dt);
-        if (cl.finalized && P.svI < n) {            // sun visibility from map geometry (soft: 3 jittered rays), spread over frames
-          const L = shared.sunDir.value; let q = 0;
-          while (q++ < 70 && P.svI < n) {
-            const i = P.svI++; let vis = 0;
-            for (let r = 0; r < 3; r++) {
-              const a = P.seed[i] * 40 + r * 2.1; _o.set(P.tx[i] + P.ox[i] + Math.cos(a) * 0.45 * (r > 0), P.ty[i] + P.oy[i] + 0.15 + (r > 0) * 0.3, P.tz[i] + P.oz[i] + Math.sin(a) * 0.45 * (r > 0));
-              if (!W.raycast(_o, L, 60, null)) vis += 1 / 3;
-            }
-            P.sv[i] = vis;
-          }
-        }
+        // volume texture refresh (births, dissolve, map shadow) -- schedule: every frame while growing/dissolving, else only when shadow rays changed it
+        { const V = volume; V.tick++; const act = age < H.expandTime + 0.8 || age > H.fadeStart - 1.2;
+          const ch = cl.finalized ? V.visPass(cl) : false;
+          if (act || ch || V.tick === 1) V.refresh(cl, V.tick % 2 === 0 || ch || cl.finalized); u.uVolOrg.value.set(cl.ox, cl.oy, cl.oz); }
         camDirSet(cam);
         let cnt = 0, gmax = 0;
         for (let i = 0; i < n; i++) {

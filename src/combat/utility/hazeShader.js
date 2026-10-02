@@ -26,10 +26,19 @@ uniform mat4 projectionMatrix;
 uniform sampler2D uTex; uniform float uTime, uOpacity, uFade, uExposure;
 uniform vec3 uSunDir, uSunCol, uSkyCol, uGroundCol, uAlbedo, uCenter, uCamPos, uFogCol;
 uniform float uCloudR, uFloorY;
+uniform highp sampler3D uVol; uniform vec3 uVolOrg; uniform float uVolInv;
 uniform vec3 uGlowPos; uniform vec4 uGlow;
 uniform int uWN; uniform vec4 uWA[8]; uniform vec4 uWB[8]; uniform vec2 uWC[8];
 varying vec2 vP; varying vec4 vC; varying vec4 vB; varying vec3 vCW; varying float vNear;
 mat2 rot(float a) { float s = sin(a), c = cos(a); return mat2(c, -s, s, c); }
+// world-anchored 3D-ish noise (triplanar sampling of the tileable cloud texture): continuous across puffs, so the structure is the cloud's, not the sprite's
+vec4 tri(vec3 p, float s) {
+  vec4 a = texture2D(uTex, p.xy * s), b = texture2D(uTex, p.yz * s + 0.37), c = texture2D(uTex, p.zx * s + 0.71);
+  float n = (a.r + b.r + c.r) * (1.0 / 3.0);
+  vec3 g = vec3(a.g + c.b - 1.0, a.b + b.g - 1.0, b.b + c.g - 1.0);
+  return vec4(g, n);
+}
+vec2 vol(vec3 p) { return texture(uVol, (p - uVolOrg) * uVolInv).rg; }
 float wakeF(vec3 p) {
   float f = 1.0;
   for (int i = 0; i < 8; i++) {
@@ -56,22 +65,32 @@ void main() {
   float h = t1.r, det = t2.a;
   float z0 = sqrt(1.0 - r2);
   // thickness through the sphere, broken up by two noise octaves -> ragged wispy silhouette, not a clean disc
-  float dens = 1.0 - exp(-1.5 * z0 * vC.w);
+  float dens = 1.0 - exp(-2.6 * z0 * vC.w);
   float n = (h - 0.5) * 1.15 + (det - 0.5) * 0.55 + (t2.r - 0.5) * 0.4;
   float a = smoothstep(0.05, 0.8, dens * (0.7 + 0.6 * h) + n * (0.35 + 0.8 * (1.0 - dens)) * 0.9 - 0.1 * r);
   a = min(a, 0.995);
+  vec3 rightW = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
+  vec3 upW = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
+  vec3 wp = vCW + (rightW * vP.x + upW * vP.y) * vC.w;
+  vec3 vd = normalize(wp - uCamPos); float hc = vC.w * z0;
+  // ---- the real volume (same grid as the LOS query) masks and lights the puff: silhouette follows the voxel field, fringes thin out
+  vec2 va = vol(wp - vd * hc * 0.6), vb = vol(wp), vc2 = vol(wp + vd * hc * 0.6);
+  float dm = (va.r + vb.r + vc2.r) * (1.0 / 3.0);
+  vec3 np = wp + vec3(0.04, 0.16, 0.03) * uTime;                                  // slow upward billowing
+  np += (texture2D(uTex, wp.xz * 0.11 + uTime * 0.01).gb - 0.5).xxy * 1.1;      // large-scale warp
+  vec4 n1 = tri(np, 0.42), n2 = tri(np + 3.1, 1.1);
+  float dmN = dm - (0.5 - n1.a) * (0.3 + 0.9 * (1.0 - dm)) - (0.5 - n2.a) * (0.1 + 0.45 * (1.0 - dm));
+  a *= smoothstep(0.05, 0.42, dmN);
+  float sunT = clamp((va.g + vb.g + vc2.g) / max(va.r + vb.r + vc2.r, 0.03), 0.0, 1.0);
   // sphere normal + noise bump (view space) -> world
   vec3 nv = normalize(vec3(vP * 0.9 + (t1.gb - 0.5) * 0.55 + (t2.gb - 0.5) * 0.12, z0));
   vec3 nS = normalize((vec4(nv, 0.0) * viewMatrix).xyz);
+  nS = normalize(nS + (n1.xyz * 1.5 + n2.xyz * 0.6));
   float zf = vC.z + vC.w * z0 * 0.9;
   float ndc = (projectionMatrix[2][2] * zf + projectionMatrix[3][2]) / (-zf);
   gl_FragDepth = clamp(ndc * 0.5 + 0.5, 0.0, 1.0);
   // ---- wakes: same math as the CPU query, averaged along the chord of the view ray through this puff
   if (uWN > 0) {
-    vec3 rightW = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
-    vec3 upW = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
-    vec3 wp = vCW + (rightW * vP.x + upW * vP.y) * vC.w;
-    vec3 vd = normalize(wp - uCamPos); float hc = vC.w * z0;
     float wf = 0.25 * (wakeF(wp - vd * hc * 0.75) + wakeF(wp - vd * hc * 0.25) + wakeF(wp + vd * hc * 0.25) + wakeF(wp + vd * hc * 0.75));
     float tau = -log(max(1.0 - a, 0.004));
     a = 1.0 - exp(-tau * wf);
@@ -81,22 +100,19 @@ void main() {
   if (a < 0.004) discard;
   // ---- lighting: cloud-scale normal (bulge) + a little per-puff structure
   vec3 nC = normalize(vCW - uCenter + vec3(0.0, 0.35 * uCloudR, 0.0));
-  vec3 nW = normalize(mix(nC, nS, 0.38));
+  vec3 nW = normalize(mix(nC, nS, 0.2));
   vec3 L = uSunDir;
   float ndl = dot(nW, L);
-  float sunVis = vB.w;
-  float lit = pow(clamp(ndl * 0.55 + 0.45, 0.0, 1.0), 1.5);
-  float sunSide = dot(normalize(vCW - uCenter + vec3(0.0, 0.001, 0.0)), L);
-  float inner = mix(1.0, 0.55, core * (1.0 - smoothstep(-0.3, 0.8, sunSide)));      // deep interior sits in the cloud's own shadow
-  vec3 sun = uSunCol * 1.35 * lit * inner * sunVis;
-  float hgt = clamp((vCW.y - uCenter.y) / max(uCloudR, 0.5) * 0.5 + 0.5, 0.0, 1.0);
-  vec3 amb = mix(uGroundCol, uSkyCol, clamp(nW.y * 0.5 + 0.5, 0.0, 1.0)) * mix(0.7, 1.0, hgt) * mix(1.0, 0.7, core * 0.6);
-  vec3 col = uAlbedo * (sun + amb);
+  float lit = 0.55 + 0.45 * clamp(ndl * 0.6 + 0.4, 0.0, 1.0);
+  vec3 sun = uSunCol * 1.05 * lit * pow(sunT, 0.8);                                // strong lit side / self-shadowed interior from the volume
+  float hgt = clamp((wp.y - uCenter.y) / max(uCloudR, 0.5) * 0.5 + 0.5, 0.0, 1.0);
+  vec3 amb = mix(uGroundCol, uSkyCol, clamp(nW.y * 0.5 + 0.5, 0.0, 1.0)) * mix(0.75, 1.1, hgt);
+  vec3 col = uAlbedo * (sun + amb * (0.45 + 0.4 * sunT)) * (0.78 + 0.45 * n1.a);
   col *= 0.88 + 0.12 * smoothstep(0.15, 0.85, h);                                   // faint crease variation
   col = mix(col, uFogCol * dot(col, vec3(0.333)), 0.14);                           // environment tint
   vec3 vdir = normalize(vCW - uCamPos);
   float fs = pow(clamp(dot(vdir, L), 0.0, 1.0), 5.0);
-  col += uSunCol * fs * pow(1.0 - z0, 1.6) * 0.5 * (1.0 - core * 0.5) * sunVis;     // silvery rim when the sun is behind
+  col += uSunCol * fs * pow(1.0 - z0, 1.6) * 0.5 * sunT;     // silvery rim when the sun is behind
   if (uGlow.w > 0.0) { float dg = distance(vCW, uGlowPos); col += uGlow.rgb * (1.0 - smoothstep(0.0, uGlow.w, dg)) * 0.7; }
   col *= uExposure;
   gl_FragColor = vec4(col, a);

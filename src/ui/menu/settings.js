@@ -91,7 +91,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
 
   // ---------------- video tab ----------------
   const QUALITY = [['low', 'Low', 'Fast. No shadows, light post.', 1], ['medium', 'Medium', 'Balanced for laptops.', 2], ['high', 'High', 'Soft shadows, bloom, AO.', 3], ['ultra', 'Ultra', 'Everything, at full res.', 4]];
-  const qc = h('div', { class: 'fx-cards' }, QUALITY.map(([id, n, d, b]) => h('button', { class: 'fx-qc', 'data-q': id, onClick: () => { put('quality', id); ctx.render?.setQuality?.(id); paintQ(); } }, h('div', { class: 'bars' }, [1, 2, 3, 4].map((i) => h('i', { class: i <= b ? 'f' : '' }))), h('b', null, n), h('small', null, d))));
+  const qc = h('div', { class: 'fx-cards' }, QUALITY.map(([id, n, d, b]) => h('button', { class: 'fx-qc', 'data-q': id, onClick: () => { put('quality', id); ctx.render?.setQuality?.(id); paintQ(); paintSpec(); } }, h('div', { class: 'bars' }, [1, 2, 3, 4].map((i) => h('i', { class: i <= b ? 'f' : '' }))), h('b', null, n), h('small', null, d))));
   const paintQ = () => [...qc.children].forEach((b) => b.classList.toggle('on', b.dataset.q === get('quality')));
   refreshers.push(paintQ);
   const resVal = h('span');
@@ -100,12 +100,23 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
   const fsBtn = h('button', { class: 'fx-btn sm', onClick: async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch { toast('Fullscreen blocked by browser'); } setTimeout(paintFs, 200); } });
   const paintFs = () => { fsBtn.textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Enter fullscreen'; };
   refreshers.push(paintFs);
+  const QSPEC = { low: [['Render scale', '85%'], ['Shadows', '1K'], ['Anti-alias', 'FXAA'], ['Ambient occlusion', 'Off'], ['Bloom', 'Light'], ['Light shafts', 'Off']], medium: [['Render scale', '100%'], ['Shadows', '2K'], ['Anti-alias', 'FXAA'], ['Ambient occlusion', 'Off'], ['Bloom', 'Standard'], ['Light shafts', 'Off']], high: [['Render scale', '100%'], ['Shadows', '3K soft'], ['Anti-alias', 'MSAA 4× + FXAA'], ['Ambient occlusion', 'On'], ['Bloom', 'Full'], ['Light shafts', 'On']], ultra: [['Render scale', '100% · 2× pixels'], ['Shadows', '4K soft'], ['Anti-alias', 'MSAA 4× + FXAA'], ['Ambient occlusion', 'High'], ['Bloom', 'Full'], ['Light shafts', 'On']] };
+  const specBox = h('div', { class: 'fx-spec' }), liveBox = h('div', { class: 'fx-live' });
+  const paintSpec = () => { const q = get('quality'); specBox.replaceChildren(...(QSPEC[q] || []).map(([k, v]) => h('div', null, h('small', null, k), h('b', null, v)))); };
+  const paintLive = () => { try { const i = ctx.render?.info?.() || {}; const fps = Math.round(1 / (ctx.engine?.dtSmooth || .0167)); liveBox.innerHTML = `<span>Live</span><b>${fps}</b> fps<i></i><b>${i.calls ?? '–'}</b> draw calls<i></i><b>${i.triangles ? Math.round(i.triangles / 1000) + 'k' : '–'}</b> tris`; } catch { /* optional */ } };
+  refreshers.push(paintSpec, paintLive);
+  let liveT = 0; const startLive = () => { stopLive(); paintLive(); liveT = setInterval(paintLive, 500); }; const stopLive = () => { clearInterval(liveT); liveT = 0; };
+  const CB = { deut: [.367322, .860646, -.227968, .280085, .672501, .047413, -.01182, .04294, .968881], prot: [.152286, 1.052583, -.204868, .114503, .786281, .099216, -.003882, -.048116, 1.051998], trit: [1.255528, -.076749, -.178779, -.078411, .930809, .147602, .004733, .691367, .3039] };
+  const cbSvg = h('div', { html: `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${Object.entries(CB).map(([k, m]) => `<filter id="fx-cb-${k}" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${m.slice(0, 3).join(' ')} 0 0 ${m.slice(3, 6).join(' ')} 0 0 ${m.slice(6, 9).join(' ')} 0 0 0 0 0 1 0"/></filter>`).join('')}</defs></svg>` });
+  const cbPrev = h('div', { class: 'fx-cbprev' }, [['Ember', '#ff7a2f'], ['Tide', '#2fd0ff'], ['Ally', '#6dff9a'], ['Enemy', '#ff4d5e'], ['Beacon', '#ffd25a']].map(([n, c]) => h('span', { style: { '--c': c } }, n)));
+  const paintCb = () => { const m = get('colorblind'); cbPrev.style.filter = m && m !== 'off' ? `url(#fx-cb-${m})` : 'none'; };
+  refreshers.push(paintCb);
   const video = () => h('div', null,
-    group('Quality', h('div', { class: 'fx-row', style: { borderBottom: 0, paddingTop: 'calc(.8*var(--u))' } }, qc)),
+    group('Quality', h('div', { class: 'fx-row', style: { borderBottom: 0, paddingTop: 'calc(.8*var(--u))', gridTemplateColumns: '1fr' } }, qc), h('div', { class: 'fx-row wide', style: { borderBottom: 0 } }, h('div', { class: 'lb' }, h('b', null, 'This preset')), h('div', { class: 'ct', style: { display: 'block' } }, specBox, liveBox))),
     group('Display', row('Fullscreen', 'Or press F11', fsBtn), row('Show FPS', 'Small counter, top right', R(kit.toggle({ get: () => get('showFps'), set: (v) => put('showFps', v), label: 'Show FPS' })))),
     group('Effects',
       row('Screen shake', 'Camera shake on impacts and pulses', R(kit.slider({ min: 0, max: 1, step: .05, def: 1, get: () => get('screenShake'), set: (v) => put('screenShake', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'Screen shake' })))),
-    group('Accessibility', row('Colour-blind mode', 'Re-maps team & effect colours', R(kit.pills([['off', 'Off'], ['deut', 'Deuter.'], ['prot', 'Protan.'], ['trit', 'Tritan.']], { get: () => get('colorblind'), set: (v) => { put('colorblind', v); ctx.render?.setColorblind?.(v); } })))));
+    group('Accessibility', row('Colour-blind mode', 'Re-maps team & effect colours', R(kit.pills([['off', 'Off'], ['deut', 'Deuter.'], ['prot', 'Protan.'], ['trit', 'Tritan.']], { get: () => get('colorblind'), set: (v) => { put('colorblind', v); ctx.render?.setColorblind?.(v); paintCb(); } }))), h('div', { class: 'fx-row wide', style: { borderBottom: 0 } }, h('div', { class: 'lb' }, h('b', null, 'Preview'), h('small', null, 'Team and alert colours as you will see them')), h('div', { class: 'ct' }, cbPrev, cbSvg))));
 
   // ---------------- audio tab ----------------
   const busses = [['volume', 'Master volume', 'Everything', 'master'], ['sfxVolume', 'Effects', 'Taggers, footsteps, impacts', 'sfx'], ['musicVolume', 'Music', 'Menu & round themes', 'music'], ['voiceVolume', 'Announcer & callouts', 'Voice lines', 'voice']];
@@ -148,7 +159,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
         row('Bob & sway', 'Weapon motion while moving', vs('bob', { min: 0, max: 1.5, step: .05, def: 1, fmt: (v) => Math.round(v * 100), unit: '%', label: 'Bob' })),
         h('div', { style: { display: 'flex', gap: 'calc(.5*var(--u))', marginTop: 'calc(.8*var(--u))' } }, h('button', { class: 'fx-btn sm ghost', onClick: () => putVm({ ...SD.viewmodel }) }, 'Default'), h('button', { class: 'fx-btn sm ghost', onClick: () => putVm({ fov: 62, offsetX: .35, offsetY: -.1, offsetZ: 0, bob: .5 }) }, 'Low profile'), h('button', { class: 'fx-btn sm ghost', onClick: () => putVm({ fov: 74, offsetX: 0, offsetY: 0, offsetZ: .2, bob: 1 }) }, 'Centred'))),
       group('HUD', row('HUD scale', 'Health, ammo, radar, feed', R(kit.slider({ min: .7, max: 1.3, step: .05, def: 1, ticks: [1], get: () => get('hudScale'), set: (v) => put('hudScale', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'HUD scale' }))))),
-      h('div', { class: 'fx-xh-prev' }, vmSvg, h('div', { class: 'fx-note' }, 'Schematic preview. Exact placement is shown live in game — change these while standing in Practice Range.'))));
+      h('div', { class: 'fx-vmcol' }, vmSvg, h('div', { class: 'fx-note' }, 'Schematic preview. Exact placement is shown live in game — change these while standing in Practice Range.'))));
 
   // ---------------- shell ----------------
   const TABS = [
@@ -175,7 +186,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
   const cache = {};
   function show(id, first) {
     if (capturing) cancelCapture();
-    if (active === 'crosshair' && id !== 'crosshair') xh.stop();
+    if (active === 'crosshair' && id !== 'crosshair') xh.stop(); if (id !== 'video') stopLive(); else setTimeout(startLive, 0);
     active = id; tabBtns.forEach((b, i) => { const on = TABS[i].id === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
     const t = TABS.find((x) => x.id === id);
     pane.classList.remove('swap'); pane.replaceChildren(cache[id] || (cache[id] = t.build())); void pane.offsetWidth; pane.classList.add('swap');
@@ -197,7 +208,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
   return {
     el, show, refresh, tabs: TABS.map((t) => t.id), get active() { return active; },
     cycle(d) { const i = TABS.findIndex((t) => t.id === active); show(TABS[(i + d + TABS.length) % TABS.length].id); ctx.events.emit('ui:click'); },
-    open(id = active) { show(id); }, leave() { xh.stop(); cancelCapture(); },
+    open(id = active) { show(id); }, leave() { xh.stop(); stopLive(); cancelCapture(); },
     get capturing() { return !!capturing; },
     paintKeys,
   };

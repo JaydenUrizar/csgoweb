@@ -161,7 +161,7 @@ export function create(ctx) {
     // light energy ring decal (or ripple)
     if (key === 'glass') decals.add(t, x, y, z, nx, ny, nz, 0.7, 0.1 * sc, 0.65 * sc, DECAL.RIPPLE, rnd(), tint[0] * 1.2 + 0.5, tint[1] * 1.2 + 0.7, tint[2] * 1.2 + 0.8, 1);
     else if (key === 'water') rings.add(t, x, y + 0.01, z, 0, 1, 0, 0.9, 0.08 * sc, 0.75 * sc, DECAL.WATER, rnd(), 0.9, 1, 1, 0.9);
-    else decals.add(t, x, y, z, nx, ny, nz, 24, 0.4 * sc, 0.4 * sc, DECAL.IMPACT, rnd(), 0.5 + tint[0] * 1.4, 0.5 + tint[1] * 1.4, 0.5 + tint[2] * 1.4, 0.9, dust[0] * 0.14, dust[1] * 0.13, dust[2] * 0.12, 0.95);
+    else decals.add(t, x, y, z, nx, ny, nz, 24, 0.3 * sc, 0.3 * sc, DECAL.IMPACT, rnd(), 0.35 + (tint[0] * 0.5 + dust[0] * 0.5) * 1.0, 0.35 + (tint[1] * 0.5 + dust[1] * 0.5) * 1.0, 0.35 + (tint[2] * 0.5 + dust[2] * 0.5) * 1.0, 0.7, dust[0] * 0.9, dust[1] * 0.85, dust[2] * 0.8, 0.95);
     // hot flash
     E.reset(); E.pos(x + nx * 0.03, y + ny * 0.03, z + nz * 0.03); E.life = 0.09; E.s0 = 0.34 * sc; E.s1 = 0.5 * sc; E.shape = S.STAR; E.add = 1; E.fadeIn = 0.0; E.rot = rnd() * 3;
     E.col(2.6 * (0.6 + tint[0] * 0.4), 2.3 * (0.6 + tint[1] * 0.4), 2.1 * (0.6 + tint[2] * 0.4), 0.9, 1, 0.8, 0.6, 0); P.emit(t, E);
@@ -255,9 +255,11 @@ export function create(ctx) {
     const look = o.look || TAGGER_TRACER.default;
     const sid = typeof style === 'number' ? style : (STYLE_ID[style] ?? 0);
     const c = lin(color), w = o.white ?? look.white ?? 0.35, cm = mixLin(c, [1, 1, 1], w);
-    const inten = Math.max(1.2, (o.intensity ?? look.intensity ?? 1.6)), len = Math.min(o.len ?? look.len ?? 3, dist + 0.5), width = o.width ?? look.width ?? 0.02;
+    const la = ctx.localActor, cp = la ? la.eyePos(_v3) : cam.position, dFrom = Math.hypot(from.x - cp.x, from.y - cp.y, from.z - cp.z);
+    const other = o.other ?? !(dFrom < 1.15 && o.local !== false);          // not the viewer's own shot: draw a short, thin, dimmer segment
+    const inten = Math.max(1.2, (o.intensity ?? look.intensity ?? 1.6)), len = Math.min(other ? 2.6 : (o.len ?? look.len ?? 3), dist + 0.5), width = (o.width ?? look.width ?? 0.02) * (other ? 0.5 : 1);
     const spd0 = o.speed ?? look.speed ?? 480, spd = Math.min(spd0, (dist + len) / 0.11);   // always visible for >= ~6 frames
-    tracers.add(now, from.x, from.y, from.z, to.x, to.y, to.z, spd, cm[0], cm[1], cm[2], inten, width, len, sid, rnd());
+    tracers.add(now, from.x, from.y, from.z, to.x, to.y, to.z, spd, cm[0], cm[1], cm[2], inten * (other ? 0.75 : 1), other ? -width : width, len, sid, rnd());
     if ((sid === 2 || sid === 3 || o.sparkle) && dist > 1) {          // glitter trail left behind by fancy styles
       const n = Math.min(P.n(dist * 0.45), 28), sp = (o.speed ?? look.speed ?? 480);
       for (let i = 0; i < n; i++) {
@@ -468,7 +470,6 @@ export function create(ctx) {
       E.life = 0.55 + rnd() * 0.4; E.g = 0.12; E.drag = 3.6; E.s0 = 0.08; E.s1 = (0.3 + S0.puff * 0.3) * (0.7 + k * 0.4); E.shape = S.PUFF; E.fadeIn = 0.12; E.seed = rnd(); E.rot = rnd() * 6; E.spin = (rnd() - 0.5) * 0.7;
       E.col(dust[0], dust[1], dust[2], 0.22 + 0.15 * k, dust[0], dust[1], dust[2], 0); E.floor = pos.y + 0.01; P.emit(now, E);
     }
-    rings.add(now, pos.x, pos.y + 0.02, pos.z, 0, 1, 0, 0.5, 0.15, 0.9 + k * 0.7, DECAL.PULSE, rnd(), 0.5, 0.55, 0.6, 0.32 * k);
     if (k > 0.7) decals.add(now, pos.x, pos.y + 0.01, pos.z, 0, 1, 0, 6, 0.5, 0.5, DECAL.SCORCH, rnd(), 0, 0, 0, 0, dust[0] * 0.25, dust[1] * 0.24, dust[2] * 0.22, 0.22 * k);
   }
   function slideSparks(pos, dir, o = {}) {
@@ -540,8 +541,8 @@ export function create(ctx) {
   // ---- hit feedback -----------------------------------------------------------------------------------------------
   function hitPing(point, o = {}) {
     if (!point) return; const crown = !!o.crown, c = lin(o.color ?? (crown ? 0xffe066 : 0xffffff)), k = crown ? 1.5 : 1;
-    E.reset(); E.pos(point.x, point.y, point.z); E.life = crown ? 0.34 : 0.22; E.s0 = 0.1 * k; E.s1 = 0.5 * k; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.spin = 0.8; E.col(2.6 + c[0], 2.6 + c[1], 2.6 + c[2], 1, c[0], c[1], c[2], 0); P.emit(now, E);
-    E.reset(); E.pos(point.x, point.y, point.z); E.life = crown ? 0.36 : 0.26; E.s0 = 0.1; E.s1 = 0.75 * k; E.shape = S.RING; E.add = 1; E.fadeIn = 0; E.col(2 * c[0], 2 * c[1], 2 * c[2], 0.9, c[0], c[1], c[2], 0); P.emit(now, E);
+    E.reset(); E.pos(point.x, point.y, point.z); E.life = crown ? 0.2 : 0.09; E.s0 = 0.1 * k; E.s1 = 0.5 * k; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.spin = 0.8; E.col(2.6 + c[0], 2.6 + c[1], 2.6 + c[2], 1, c[0], c[1], c[2], 0); P.emit(now, E);
+    E.reset(); E.pos(point.x, point.y, point.z); E.life = crown ? 0.2 : 0.06; E.s0 = 0.1; E.s1 = 0.6 * k; E.shape = S.RING; E.add = 1; E.fadeIn = 0; E.col(1.2 * c[0], 1.2 * c[1], 1.2 * c[2], 0.6, c[0], c[1], c[2], 0); P.emit(now, E);
     const n = P.n(crown ? 12 : 7);
     for (let i = 0; i < n; i++) { const th = rnd() * 6.283, ph = Math.acos(2 * rnd() - 1), sp = (1.5 + rnd() * 3) * k; E.reset(); E.pos(point.x, point.y, point.z); E.vel(Math.sin(ph) * Math.cos(th) * sp, Math.cos(ph) * sp + 0.6, Math.sin(ph) * Math.sin(th) * sp); E.life = 0.3 + rnd() * 0.3; E.g = -4; E.drag = 1.3; E.s0 = 0.04; E.s1 = 0.01; E.stretch = 0.04; E.shape = S.STREAK; E.add = 1; E.fadeIn = 0; E.col(2.2 * (0.5 + c[0]), 2.2 * (0.5 + c[1]), 2.2 * (0.5 + c[2]), 1, c[0], c[1], c[2], 0); P.emit(now, E); }
   }
@@ -596,11 +597,23 @@ export function create(ctx) {
     let dir = e.dir; if (!dir && e.attacker) dir = _hn.set(v.pos.x - e.attacker.pos.x, 0, v.pos.z - e.attacker.pos.z);
     burstShards(_hp, TEAM_COL[v.team] ?? 0xffffff, style || 'shatter', { dir });
   });
-  const onShatter = (e) => {                                                // avatars owns shards; we add a small flash + light + sparkles only (no floor rings)
+  const onShatter = (e) => {                                                // avatars owns shards; we add range-readable flash, ring, glitter (all capped, no HDR blowout)
     const p = e?.point; if (!p) return; const c = lin(e.color ?? 0xffffff);
-    E.reset(); E.pos(p.x, p.y, p.z); E.life = 0.16; E.s0 = 0.4; E.s1 = 1.0; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.col(1.6 + c[0], 1.6 + c[1], 1.6 + c[2], 0.9, c[0], c[1], c[2], 0); P.emit(now, E);
+    const dist = distToCam(p.x, p.y, p.z), k = Math.min(3, Math.max(1, dist / 9));
+    const gy = shards.groundAt ? shards.groundAt(p.x, p.y, p.z, p.y - 1) : p.y - 1;
+    E.reset(); E.pos(p.x, p.y, p.z); E.life = 0.14; E.s0 = 0.4 * k; E.s1 = 1.0 * k; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.col(1.8 + c[0], 1.8 + c[1], 1.8 + c[2], 0.95, c[0], c[1], c[2], 0); P.emit(now, E);
+    E.reset(); E.pos(p.x, p.y, p.z); E.life = 0.3; E.s0 = 0.5 * k; E.s1 = 1.6 * k; E.shape = S.RING; E.add = 1; E.fadeIn = 0; E.col(1.1 * c[0] + 0.3, 1.1 * c[1] + 0.3, 1.1 * c[2] + 0.3, 0.8, c[0], c[1], c[2], 0); P.emit(now, E);
+    rings.add(now, p.x, gy + 0.03, p.z, 0, 1, 0, 0.7, 0.3, Math.min(2.0, 1.0 + k * 0.35), DECAL.PULSE, rnd(), c[0] * 0.9 + 0.2, c[1] * 0.9 + 0.2, c[2] * 0.9 + 0.2, 0.55);
     lightPulse(p.x, p.y + 0.3, p.z, c[0] + 0.2, c[1] + 0.2, c[2] + 0.2, 12, 8, 0.28);
     sparkleBurst(p.x, p.y, p.z, c[0], c[1], c[2], 14, 0.8);
+    // lingering glitter + faint glow where the player went down (6-9 s, long-lived pool)
+    decals.add(now, p.x, gy + 0.02, p.z, 0, 1, 0, 8, 1.1, 1.1, DECAL.GLOW, rnd(), c[0] * 0.8, c[1] * 0.8, c[2] * 0.8, 0.45);
+    const n = PL.n(10);
+    for (let i = 0; i < n; i++) {
+      const a = rnd() * 6.283, r = Math.sqrt(rnd()) * 0.9;
+      E.reset(); E.pos(p.x + Math.cos(a) * r, gy + 0.04 + rnd() * 0.12, p.z + Math.sin(a) * r); E.life = 5 + rnd() * 4; E.s0 = E.s1 = (0.05 + rnd() * 0.04) * Math.min(2, k); E.shape = i & 1 ? S.STAR : S.DOT; E.add = 1; E.fadeIn = 0.04 + rnd() * 0.2; E.fadeOut = 0.55; E.rot = rnd() * 3; E.seed = rnd();
+      E.col(1.2 + c[0] * 1.8, 1.2 + c[1] * 1.8, 1.2 + c[2] * 1.8, 0.85, c[0] * 1.2, c[1] * 1.2, c[2] * 1.2, 0.85); PL.emit(now + rnd() * 0.6, E);
+    }
   };
   on('character:shatter', onShatter); on('character:shattered', onShatter);
   on('footstep', (e) => { if (!e.pos || e.crouch || e.walk) return; if ((e.speed ?? 6) < 3.8) return; footstepDust(e.pos, e.surface, e.speed); });

@@ -63,6 +63,9 @@ export function create(ctx) {
   for (const t of FWD) offs.push(ctx.events.on(t, (d) => { if (H.mock) return; const lt = ctx.localActor?.team; if (lt) H.playerTeam = lt; H.bus.emit(t, d); }));   // integration: events fire inside the sim tick, before refreshActors(); a stale playerTeam showed Attack banners to Tide (round 1 / after halftime)
   offs.push(ctx.events.on('settings:change', (d) => { H._xh = null; H._dirtySettings = true; }));
   H.bus.on('spectate', (d) => { if (d?.actor) H.specTarget = d.actor; });
+  H.bus.on('tag:out', (d) => { if (d?.victim && d.victim === H.local && d.attacker && d.attacker !== d.victim) { H.killcam = { until: H.T + 1.5, killer: d.attacker, started: false, done: false }; } });
+  H.bus.on('reset', () => { H.killcam = null; });
+  H.bus.on('round:start', () => { H.killcam = null; });
 
   // ------------------------------------------------------------------ components (order = update order)
   const fx = createFx(H);
@@ -97,6 +100,7 @@ export function create(ctx) {
     H.playerTeam = local?.team || R.match?.playerTeam || 'ember';
     H.spec = !!local && local.alive === false;
     let view = local;
+    const kcm = H.killcam; H.kc = false;
     if (H.spec) {
       let t = H.specForce || H.specTarget;
       if (!H.mock && R.match?.spectating?.alive) t = R.match.spectating;
@@ -104,6 +108,8 @@ export function create(ctx) {
       view = t || local;
     }
     if (view !== H._lastView) { H._lastView = view; H.view = view; H.bus.emit('viewchange', { view }); }
+    if (H.spec && kcm && H.T < kcm.until && kcm.killer && kcm.killer.alive !== false && kcm.killer !== local) { view = kcm.killer; H.kc = true; }
+    else if (kcm && !kcm.done && H.T >= kcm.until) { kcm.done = true; if (!H.mock) { try { const t = R.match?.spectating; if (t) ctx.player?.spectate?.(t); } catch {} } }
     H.view = view;
     const key = paletteKey(H.cbOverride ?? ctx.settings?.get?.('colorblind'));
     if (key !== lastPal || H.playerTeam !== lastTeam) {
@@ -114,11 +120,12 @@ export function create(ctx) {
   H.refreshActors = refreshActors;
 
   function cycleSpec(dir) {
-    if (!H.mock && ctx.match?.cycleSpectate) { ctx.match.cycleSpectate(dir); return; }
+    if (H.killcam) H.killcam.until = 0;
+    if (!H.mock && ctx.match?.cycleSpectate) { const before = ctx.match.spectating; ctx.match.cycleSpectate(dir); if (ctx.match.spectating !== before) return; }
     const R = H.R; let cand = (R.actors || []).filter((a) => a.alive !== false && a !== H.local); const mates = cand.filter((a) => a.team === H.local.team); if (mates.length) cand = mates;
     if (!cand.length) return; cand.sort((a, b) => (a.team === H.local.team ? 0 : 1) - (b.team === H.local.team ? 0 : 1) || a.id - b.id);
     const i = Math.max(0, cand.indexOf(H.specTarget)); const n = cand[(i + dir + cand.length) % cand.length];
-    H.specTarget = n; H.specForce = null; if (!H.mock) ctx.events.emit('spectate', { actor: n });
+    H.specTarget = n; H.specForce = null; if (!H.mock) { try { ctx.player?.spectate?.(n); } catch {} ctx.events.emit('spectate', { actor: n }); }
   }
 
   // ------------------------------------------------------------------ mock
@@ -138,6 +145,7 @@ export function create(ctx) {
     layout();
     if (H.mock && mock) mock.update(dt);
     refreshActors();
+    if (H.killcam && !H.killcam.started && H.spec && !H.mock) { H.killcam.started = true; try { ctx.player?.spectate?.(H.killcam.killer); } catch {} }
     if (H.spec && !H.mock) { if (ctx.input.pressed('fire')) cycleSpec(1); else if (ctx.input.pressed('aim')) cycleSpec(-1); }
     for (let i = 0; i < comps.length; i++) comps[i].update(dt);
     const el = performance.now() - t0; dbg.perf = el; dbg.perfAvg += (el - dbg.perfAvg) * 0.05; dbg.frames++;

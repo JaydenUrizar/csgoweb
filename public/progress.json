@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-02T15:56:13.754Z",
+ "updated": "2026-10-02T18:34:45.097Z",
  "wave": 3,
  "phase": "Round 2 critics — blind comparison vs CS2 again",
  "pieces": [
@@ -7,10 +7,10 @@
    "id": "render",
    "name": "Rendering, lighting & post-FX",
    "group": "look",
-   "status": "judging",
-   "round": 4,
-   "score": 6.8,
-   "gap": "The interior ambient (skyocc) now floods roofed spaces, so interiors are brighter than sunlit exteriors. To reproduce: ?test=1&seed=7&match=1&phase=live, hide #ui, then ctx.map.debug.setView('b-tunnel'). The median luminance of th",
+   "status": "building",
+   "round": 5,
+   "score": 7,
+   "gap": "Roofed and tunnel lighting is dead: the lamps neither glow nor illuminate. Repro: ?test=1&seed=7&match=1&phase=live, hide #ui, place at Upper Tunnel (-33,h,-1) looking at Tunnel Bend (-37,9), or at Lower Tunnel (-39,18) or Outer T",
    "history": [
     {
      "t": "2026-10-02T01:29:37.047Z",
@@ -32,18 +32,25 @@
      "winner": "ref",
      "score": 6.8,
      "gap": "The interior ambient (skyocc) now floods roofed spaces, so interiors are brighter than sunlit exteriors. To reproduce: ?test=1&seed=7&match=1&phase=live, hide #ui, then ctx.map.debug.setView('b-tunnel'). The median luminance of th"
+    },
+    {
+     "t": "2026-10-02T18:34:44.557Z",
+     "round": 5,
+     "winner": "ref",
+     "score": 7,
+     "gap": "Roofed and tunnel lighting is dead: the lamps neither glow nor illuminate. Repro: ?test=1&seed=7&match=1&phase=live, hide #ui, place at Upper Tunnel (-33,h,-1) looking at Tunnel Bend (-37,9), or at Lower Tunnel (-39,18) or Outer T"
     }
    ],
-   "updated": "2026-10-02T15:56:13.296Z"
+   "updated": "2026-10-02T18:34:44.559Z"
   },
   {
    "id": "map",
    "name": "Map — Crux Station",
    "group": "world",
-   "status": "judging",
-   "round": 4,
-   "score": 6.6,
-   "gap": "Lighting has no value hierarchy, so interiors and exteriors read the same. All tunnels (Tunnel Approach (-26,0,43), Lower (-34,0,0), Upper (-33,0,-6)), the Mid Doors arch and B Connector are lit almost as brightly as the open site",
+   "status": "building",
+   "round": 5,
+   "score": 6.8,
+   "gap": "Local light does not exist. All 125 lamps are unlit emissive white cubes, and the round-4 'floor light pools' cannot be seen at eye height, so covered spaces read as flat dark voids with floating white squares rather than as lit i",
    "history": [
     {
      "t": "2026-10-02T01:29:37.124Z",
@@ -65,9 +72,16 @@
      "winner": "ref",
      "score": 6.6,
      "gap": "Lighting has no value hierarchy, so interiors and exteriors read the same. All tunnels (Tunnel Approach (-26,0,43), Lower (-34,0,0), Upper (-33,0,-6)), the Mid Doors arch and B Connector are lit almost as brightly as the open site"
+    },
+    {
+     "t": "2026-10-02T18:34:44.625Z",
+     "round": 5,
+     "winner": "ref",
+     "score": 6.8,
+     "gap": "Local light does not exist. All 125 lamps are unlit emissive white cubes, and the round-4 'floor light pools' cannot be seen at eye height, so covered spaces read as flat dark voids with floating white squares rather than as lit i"
     }
    ],
-   "updated": "2026-10-02T15:56:13.343Z"
+   "updated": "2026-10-02T18:34:44.626Z"
   },
   {
    "id": "nav",
@@ -151,10 +165,10 @@
    "id": "viewmodel",
    "name": "First-person viewmodels & animation",
    "group": "feel",
-   "status": "judging",
-   "round": 4,
-   "score": 5.9,
-   "gap": "Sidearms were left out of the r3 framing fix: they are oversized and central, so their flash blinds the crosshair on every shot. Repro: ?test=1&seed=3&match=1&phase=live, combat.give(localActor,'judge'), press slot2, fire (shots/c",
+   "status": "building",
+   "round": 5,
+   "score": 6.1,
+   "gap": "Hands and forearms are still the weakest asset, and they appear in almost every frame. Repro: ?test=1&seed=3&match=1&phase=live, then combat.debug.give(localActor,'rail'|'lance'|'zip'|'pip') (shots/critic-viewmodel/r4/sheet_crop1.",
    "history": [
     {
      "t": "2026-10-02T06:28:18.606Z",
@@ -176,9 +190,16 @@
      "winner": "ref",
      "score": 5.9,
      "gap": "Sidearms were left out of the r3 framing fix: they are oversized and central, so their flash blinds the crosshair on every shot. Repro: ?test=1&seed=3&match=1&phase=live, combat.give(localActor,'judge'), press slot2, fire (shots/c"
+    },
+    {
+     "t": "2026-10-02T18:34:44.767Z",
+     "round": 5,
+     "winner": "ref",
+     "score": 6.1,
+     "gap": "Hands and forearms are still the weakest asset, and they appear in almost every frame. Repro: ?test=1&seed=3&match=1&phase=live, then combat.debug.give(localActor,'rail'|'lance'|'zip'|'pip') (shots/critic-viewmodel/r4/sheet_crop1."
     }
    ],
-   "updated": "2026-10-02T15:56:13.440Z",
+   "updated": "2026-10-02T18:34:44.768Z",
    "note": "Builder was stopped mid-work; awaiting go-ahead to relaunch"
   },
   {
@@ -186,9 +207,9 @@
    "name": "Utility (Haze / Strobe / Pulse)",
    "group": "feel",
    "status": "building",
-   "round": 4,
-   "score": 6.5,
-   "gap": "Haze still looks like a cotton-wool impostor, not volumetric smoke. Repro: test=1&seed=1, debug.spawn('haze',{x:38,y:.07,z:6}), wait 6 s. Viewed from (38,1.62,24) (N_far) it is a near-white cumulus of equal round lobes with a cris",
+   "round": 5,
+   "score": 6.6,
+   "gap": "Haze still reads as an overbright white cotton-wool impostor, not smoke lit by the scene. Repro: test=1&seed=1; debug.spawn('haze',{x:38,y:.07,z:14}); place(38,0,30,yaw 0); advance 10 (long_t10.png). Also spawn at B Site (-33,-31)",
    "history": [
     {
      "t": "2026-10-02T06:28:18.405Z",
@@ -210,18 +231,25 @@
      "winner": "ref",
      "score": 6.5,
      "gap": "Haze still looks like a cotton-wool impostor, not volumetric smoke. Repro: test=1&seed=1, debug.spawn('haze',{x:38,y:.07,z:6}), wait 6 s. Viewed from (38,1.62,24) (N_far) it is a near-white cumulus of equal round lobes with a cris"
+    },
+    {
+     "t": "2026-10-02T18:34:44.987Z",
+     "round": 5,
+     "winner": "ref",
+     "score": 6.6,
+     "gap": "Haze still reads as an overbright white cotton-wool impostor, not smoke lit by the scene. Repro: test=1&seed=1; debug.spawn('haze',{x:38,y:.07,z:14}); place(38,0,30,yaw 0); advance 10 (long_t10.png). Also spawn at B Site (-33,-31)"
     }
    ],
-   "updated": "2026-10-02T15:56:13.188Z"
+   "updated": "2026-10-02T18:34:44.987Z"
   },
   {
    "id": "avatars",
    "name": "Characters & animation",
    "group": "look",
-   "status": "judging",
-   "round": 4,
-   "score": 6.6,
-   "gap": "Ember still camouflages at range on this warm map. Repro: ?test=1&seed=3&match=1&phase=live, advance(6), set ctx.ai.enabled=false, put 2 Ember and 2 Tide at (-0.2,0,44.2) facing +z… then place the camera 30 m and 50 m down the lin",
+   "status": "building",
+   "round": 5,
+   "score": 6.7,
+   "gap": "Hands are not attached to the weapon, and the hold poses are unconvincing. (1) Reload bug: from about 0.6 s to 2.0 s into the 2.4 s reload, the rifle floats on its own in front of the visor, tilted 45 degrees up, while both hands ",
    "history": [
     {
      "t": "2026-10-02T01:29:37.379Z",
@@ -243,9 +271,16 @@
      "winner": "ref",
      "score": 6.6,
      "gap": "Ember still camouflages at range on this warm map. Repro: ?test=1&seed=3&match=1&phase=live, advance(6), set ctx.ai.enabled=false, put 2 Ember and 2 Tide at (-0.2,0,44.2) facing +z… then place the camera 30 m and 50 m down the lin"
+    },
+    {
+     "t": "2026-10-02T18:34:44.698Z",
+     "round": 5,
+     "winner": "ref",
+     "score": 6.7,
+     "gap": "Hands are not attached to the weapon, and the hold poses are unconvincing. (1) Reload bug: from about 0.6 s to 2.0 s into the 2.4 s reload, the rifle floats on its own in front of the visor, tilted 45 degrees up, while both hands "
     }
    ],
-   "updated": "2026-10-02T15:56:13.393Z"
+   "updated": "2026-10-02T18:34:44.699Z"
   },
   {
    "id": "cosmetics",
@@ -278,9 +313,9 @@
    "name": "VFX & juice",
    "group": "look",
    "status": "building",
-   "round": 4,
-   "score": 7,
-   "gap": "Other actors' tracers are too loud and clutter the duel. Repro: ?test=1&seed=1&match=1&phase=live. Put the local player at ember spawn 0 facing an enemy 12-15m away; teammates spawn behind you (shots/critic-vfx/b/f06, b/f08, i/fp0",
+   "round": 5,
+   "score": 6.6,
+   "gap": "The line of fire and hit confirmation are unreadable at 8-25 m in real fights whenever the viewer is not the shooter, including when spectating the shooter in first person. Repro: ?test=1&seed=1&match=1&phase=live with a local aut",
    "history": [
     {
      "t": "2026-10-02T01:29:37.614Z",
@@ -302,9 +337,16 @@
      "winner": "ref",
      "score": 7,
      "gap": "Other actors' tracers are too loud and clutter the duel. Repro: ?test=1&seed=1&match=1&phase=live. Put the local player at ember spawn 0 facing an enemy 12-15m away; teammates spawn behind you (shots/critic-vfx/b/f06, b/f08, i/fp0"
+    },
+    {
+     "t": "2026-10-02T18:34:44.845Z",
+     "round": 5,
+     "winner": "ref",
+     "score": 6.6,
+     "gap": "The line of fire and hit confirmation are unreadable at 8-25 m in real fights whenever the viewer is not the shooter, including when spectating the shooter in first person. Repro: ?test=1&seed=1&match=1&phase=live with a local aut"
     }
    ],
-   "updated": "2026-10-02T15:56:13.039Z"
+   "updated": "2026-10-02T18:34:44.845Z"
   },
   {
    "id": "audio",
@@ -382,9 +424,9 @@
    "name": "HUD",
    "group": "ui",
    "status": "building",
-   "round": 4,
-   "score": 7.9,
-   "gap": "Death to spectate still cuts hard and then blocks the screen. Reproduce: ?test=1&seed=2&match=1&phase=live at 1920x1080, then let Tango one-tap you (shots/critic-hud-r3/death_1920_s2/03_death_0.png, 05_death_2.2.png; also fb/07_de",
+   "round": 5,
+   "score": 7.3,
+   "gap": "REGRESSION: the new killcam leaves you spectating the ENEMY who tagged you for the rest of the round, which also leaks enemy positions. Reproduced 3 of 3 times in real bot matches: ?test=1&seed=1&match=1&phase=live at 1280x720 (Or",
    "history": [
     {
      "t": "2026-10-02T01:29:37.459Z",
@@ -406,18 +448,25 @@
      "winner": "ref",
      "score": 7.9,
      "gap": "Death to spectate still cuts hard and then blocks the screen. Reproduce: ?test=1&seed=2&match=1&phase=live at 1920x1080, then let Tango one-tap you (shots/critic-hud-r3/death_1920_s2/03_death_0.png, 05_death_2.2.png; also fb/07_de"
+    },
+    {
+     "t": "2026-10-02T18:34:44.915Z",
+     "round": 5,
+     "winner": "ref",
+     "score": 7.3,
+     "gap": "REGRESSION: the new killcam leaves you spectating the ENEMY who tagged you for the rest of the round, which also leaks enemy positions. Reproduced 3 of 3 times in real bot matches: ?test=1&seed=1&match=1&phase=live at 1280x720 (Or"
     }
    ],
-   "updated": "2026-10-02T15:56:13.121Z"
+   "updated": "2026-10-02T18:34:44.915Z"
   },
   {
    "id": "menu",
    "name": "Menus, settings & onboarding",
    "group": "ui",
    "status": "building",
-   "round": 4,
-   "score": 7,
-   "gap": "LEAVE MATCH IS IMPOSSIBLE. In pause, Leave match opens the 'Leave match?' confirm. confirmLeave() appends the box INSIDE pause.el and then sets pause.el.inert=true, and box.inert=false cannot un-inert a descendant of an inert pare",
+   "round": 5,
+   "score": 7.8,
+   "gap": "The main-menu showcase, which is the first thing a player sees, is the weakest screen and loses to the CS2 lobby. Repro: load http://localhost:5173/ with no ?test and wait for main, or see g_main_1920.png, g_main_3840.png and fr_1",
    "history": [
     {
      "t": "2026-10-02T06:28:18.542Z",
@@ -439,9 +488,16 @@
      "winner": "ref",
      "score": 7,
      "gap": "LEAVE MATCH IS IMPOSSIBLE. In pause, Leave match opens the 'Leave match?' confirm. confirmLeave() appends the box INSIDE pause.el and then sets pause.el.inert=true, and box.inert=false cannot un-inert a descendant of an inert pare"
+    },
+    {
+     "t": "2026-10-02T18:34:45.054Z",
+     "round": 5,
+     "winner": "tie",
+     "score": 7.8,
+     "gap": "The main-menu showcase, which is the first thing a player sees, is the weakest screen and loses to the CS2 lobby. Repro: load http://localhost:5173/ with no ?test and wait for main, or see g_main_1920.png, g_main_3840.png and fr_1"
     }
    ],
-   "updated": "2026-10-02T15:56:13.252Z"
+   "updated": "2026-10-02T18:34:45.054Z"
   },
   {
    "id": "perf",
@@ -455,6 +511,11 @@
   }
  ],
  "log": [
+  {
+   "t": "2026-10-02T18:34:45.096Z",
+   "text": "Round 4 critics: render 7.0, map 6.8, avatars 6.7, viewmodel 6.1, vfx 6.6, HUD 7.3, utility 6.6, menu 7.8 — all fail; builders back in for round 5.",
+   "kind": "critic"
+  },
   {
    "t": "2026-10-02T14:27:21.411Z",
    "text": "Critic round 2/3 verdicts for 11 more pieces (move 5.6, flow 6.0, audio 6.0, bots 5.4 …). Builders sent back in; urgent regressions: walking from rest, match-end crash, audio voice dropping.",

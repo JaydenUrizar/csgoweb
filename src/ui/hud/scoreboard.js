@@ -75,7 +75,7 @@ export function create(H) {
       const cls = 'rw' + (a === H.local ? ' me' : '') + (a.alive === false || a.tagged ? ' dead' : '') + (a.hasBeacon && a.alive !== false ? ' car' : '');
       if (cls !== r.cls) { r.cls = cls; r.el.className = cls; }
       r.cr(isMine ? fmtMoney(a.credits ?? 0) : '');
-      const s = sx; r.t(String(s.tags ?? 0)); r.o(String(s.outs ?? 0)); r.a(String(s.assists ?? 0)); r.sc(String(s.score ?? 0));
+      const s = sx; r.t(String(s.tags ?? 0)); r.o(String(s.outs ?? 0)); r.a(String(s.assists ?? 0)); r.sc(String(Math.max(s.score ?? 0, (s.tags ?? 0) * 2 + (s.assists ?? 0))));
       r.pg(a.isBot ? 'BOT' : String(fakePing(a)));
     });
     for (const [id, r] of team.map) if (!seen.has(id)) { r.el.remove(); team.map.delete(id); }

@@ -10,7 +10,7 @@ export const css = `
 .callout span{position:absolute;left:0;right:0;top:0;white-space:nowrap;will-change:transform,opacity}
 `;
 
-const R_PX = 88, RANGE = 30;           // radar radius in css px (176/2) and metres shown
+const R_PX = 88, RANGE = 42;           // radar radius in css px (176/2) and metres shown
 const CELLS = 160;
 
 export function create(H) {
@@ -340,7 +340,7 @@ export function create(H) {
   // callout crossfade
   const cSet = { a: '', b: '' }; let cT = 9;
   function setCallout(name) {
-    if (name === st.lastCall) return; st.lastCall = name; cB.textContent = cSet.a; cA.textContent = name; cSet.b = cSet.a; cSet.a = name; cT = 0;
+    if (name === st.lastCall) return; st.lastCall = name; cB.textContent = ''; cA.textContent = name; cSet.b = ''; cSet.a = name; cT = 0; lastAlphaA = -1; lastAlphaB = -1;
   }
   let lastAlphaA = -1, lastAlphaB = -1;
   function animCallout(dt) {
