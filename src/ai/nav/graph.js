@@ -98,6 +98,21 @@ export class NavGraph {
   }
 
   nodePos(n, out) { return out.set(this.px[n], this.py[n], this.pz[n]); }
+
+  /** Debug: why does a column have / not have nodes? Lists every surface a downward ray meets and the node tests it passes. */
+  probe(x, z) {
+    const bvh = this.bvh, cfg = this.cfg, ray = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3(0, -1, 0)), res = [], cap = makeCapsule(bvh, { radius: cfg.radius + cfg.margin, stepUp: cfg.stepUp, height: cfg.height });
+    for (const side of [FRONT, DOUBLE]) {
+      let y0 = this.bounds.max.y + 0.5; const list = [];
+      for (let k = 0; k < 96; k++) {
+        ray.origin.set(x, y0, z); const h = bvh.raycastFirst(ray, side, 0, y0 - this.bounds.min.y + 1); if (!h) break; const hy = y0 - h.distance; y0 = hy - 0.02;
+        ray.origin.set(x, hy + 0.05, z); ray.direction.set(0, 1, 0); const up = bvh.raycastFirst(ray, DOUBLE, 0, 6); ray.direction.set(0, -1, 0);
+        list.push({ y: +hy.toFixed(2), ny: +h.face.normal.y.toFixed(2), head: up ? +(up.distance + 0.05).toFixed(2) : 6, capHit: cap(x, hy, z) });
+      }
+      res.push({ side: side === FRONT ? 'front' : 'double', list });
+    }
+    return res;
+  }
 }
 
 /**
@@ -112,7 +127,11 @@ export function makeCapsule(bvh, { radius, stepUp, height }) {
   const cb = {
     intersectsBounds: (box) => (box.intersectsBox(capBox) ? INTERSECTED : NOT_INTERSECTED),
     intersectsTriangle: (tri) => {
-      const lim = feet + stepUp; if (tri.a.y <= lim && tri.b.y <= lim && tri.c.y <= lim) return false;
+      // Low geometry is stepped over (contact <= stepUp above the feet) -- unless it faces DOWN (an overhang / ramp underside),
+      // which can't be stepped onto and only counts when it is clearly above floor level (> 0.15 m).
+      const A = tri.a, B = tri.b, C = tri.c; let lim = feet + stepUp;
+      if (A.y <= lim && B.y <= lim && C.y <= lim) { const ny = (B.z - A.z) * (C.x - A.x) - (B.x - A.x) * (C.z - A.z); if (ny >= 0) return false; lim = feet + 0.15; }
+      else { const ny = (B.z - A.z) * (C.x - A.x) - (B.x - A.x) * (C.z - A.z); if (ny < 0) lim = feet + 0.15; }
       for (let k = 0; k < n; k++) { const c = centres[k]; tri.closestPointToPoint(c, tmp); if (tmp.y > lim && tmp.distanceToSquared(c) < r2) return true; }
       return false;
     },
@@ -120,14 +139,22 @@ export function makeCapsule(bvh, { radius, stepUp, height }) {
   return (x, y, z) => {
     feet = y;
     for (let k = 0; k < n; k++) centres[k].set(x, y + cy0 + k * (cy1 - cy0) / (n - 1), z);
-    capBox.min.set(x - radius, y + stepUp, z - radius); capBox.max.set(x + radius, y + height, z + radius);
+    capBox.min.set(x - radius, y + 0.1, z - radius); capBox.max.set(x + radius, y + height, z + radius);
     return bvh.shapecast(cb);
   };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+/** Synchronous build (runs the generator to completion). */
 export function buildGraph(collider, bounds, options = {}, hints = {}) {
-  const t0 = performance.now();
+  const it = buildGraphGen(collider, bounds, options, hints, Infinity); let r;
+  while (!(r = it.next()).done);
+  return r.value;
+}
+/** Time-sliced build: a generator that yields a 0..1 progress value whenever `budgetMs` of work has elapsed. */
+export function* buildGraphGen(collider, bounds, options = {}, hints = {}, budgetMs = 4) {
+  const t0 = performance.now(); let tSlice = t0, work = 0;
+  const due = () => performance.now() - tSlice >= budgetMs;
   const cfg = { ...NAV_DEFAULTS, ...options };
   const g = new NavGraph(cfg);
 
@@ -171,12 +198,13 @@ export function buildGraph(collider, bounds, options = {}, hints = {}) {
   let rays = 0;
   const colTmp = [];
   for (let cz = 0; cz < H; cz++) {
+    if (due()) { work += performance.now() - tSlice; yield 0.45 * cz / H; tSlice = performance.now(); }
     const z = oz + (cz + 0.5) * cell;
     for (let cx = 0; cx < W; cx++) {
       const x = ox + (cx + 0.5) * cell;
       colTmp.length = 0;
       let y0 = top, lastY = Infinity;
-      for (let guard = 0; guard < 24; guard++) {
+      for (let guard = 0; guard < 96; guard++) {
         const hit = downHit(x, y0, z, y0 - bottom); rays++;
         if (!hit) break;
         const hy = y0 - hit.distance; y0 = hy - 0.02;
@@ -208,6 +236,7 @@ export function buildGraph(collider, bounds, options = {}, hints = {}) {
   };
   for (let pass = 0; pass < 2; pass++) {
     for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
+      if (cx === 0 && due()) { work += performance.now() - tSlice; yield 0.45 + 0.15 * (pass * 0.5 + cz / H / 2); tSlice = performance.now(); }
       const c = cz * W + cx;
       for (let a = colStart[c]; a < colStart[c + 1]; a++) {
         for (let k = 0; k < 8; k++) {
@@ -221,6 +250,10 @@ export function buildGraph(collider, bounds, options = {}, hints = {}) {
             if (dy < bd) { bd = dy; best = b; }
           }
           if (best < 0) continue;
+          if (bd > 0.04) {   // sloped edge: headroom at the midpoint (catches overhangs/seams between node centres; hits <12 cm up are the deck's own edge)
+            const dd = upDist((g.px[a] + g.px[best]) / 2, Math.min(g.py[a], g.py[best]) + 0.05, (g.pz[a] + g.pz[best]) / 2, 3);
+            if (dd > 0.12 && dd + 0.05 < cfg.headroom - 0.1) continue;
+          }
           if (diag) {   // no corner cutting: both orthogonal neighbours must exist and lead to the diagonal
             const o1 = nb[a * 8 + ((k + 7) & 7)], o2 = nb[a * 8 + ((k + 1) & 7)];
             if (o1 < 0 || o2 < 0) continue;
@@ -239,6 +272,7 @@ export function buildGraph(collider, bounds, options = {}, hints = {}) {
   const isWalkNb = (a, b) => { for (let k = 0; k < 8; k++) if (nb[a * 8 + k] === b) return true; return false; };
   const candJ = [], candD = [];
   for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
+    if (cx === 0 && due()) { work += performance.now() - tSlice; yield 0.6 + 0.35 * cz / H; tSlice = performance.now(); }
     const c = cz * W + cx;
     for (let a = colStart[c]; a < colStart[c + 1]; a++) {
       candJ.length = 0; candD.length = 0;
@@ -266,7 +300,7 @@ export function buildGraph(collider, bounds, options = {}, hints = {}) {
           const by = g.py[b];
           if (!hFree(ax, by + 0.3, az, g.px[b], g.pz[b]) || !hFree(ax, by + 1.2, az, g.px[b], g.pz[b])) continue;
           if (!hFree(ax, ay + 0.9, az, ax + (g.px[b] - ax) * 0.25, az + (g.pz[b] - az) * 0.25)) continue;
-          linkA.push(a); linkB.push(b); linkT.push(LINK_JUMP); linkC.push(hd + 0.9 + (by - ay) * 1.6); made++;
+          linkA.push(a); linkB.push(b); linkT.push(LINK_JUMP); linkC.push(hd + 2.5 + (by - ay) * 3.5 + (by - ay > 1.1 ? 6 : 0)); made++;
         }
       }
       if (candD.length) {
@@ -277,7 +311,7 @@ export function buildGraph(collider, bounds, options = {}, hints = {}) {
           const by = g.py[b], bx = g.px[b], bz = g.pz[b], drop = ay - by;
           if (!hFree(ax, ay + 0.35, az, bx, bz) || !hFree(ax, ay + 1.3, az, bx, bz)) continue;
           const h = downHit(bx, ay + 0.3, bz, drop + 0.6); if (!h || Math.abs(ay + 0.3 - h.distance - by) > 0.2) continue;
-          linkA.push(a); linkB.push(b); linkT.push(LINK_DROP); linkC.push(hd + 0.6 + drop * 0.9 + (drop > 3 ? 4 : 0)); made++;
+          linkA.push(a); linkB.push(b); linkT.push(LINK_DROP); linkC.push(hd + 0.6 + drop * 0.9 + (drop > 3 ? 4 : 0) + (drop < 1.3 ? 1.5 : 0)); made++;
         }
       }
     }
@@ -287,9 +321,10 @@ export function buildGraph(collider, bounds, options = {}, hints = {}) {
   const build = { N, linkA, linkB, linkT, linkC };
   csrLinks(g, build);
   g.stats.rawNodes = rawNodes;
-  pruneToMainSCC(g, build, hints);
-  finalize(g, cfg);
-  g.stats.buildMs = performance.now() - t0; g.stats.rays = rays;
+  const S = { due, pause() { work += performance.now() - tSlice; }, resume() { tSlice = performance.now(); } };
+  yield* pruneToMainSCC(g, build, hints, S);
+  yield* finalize(g, cfg, S);
+  g.stats.buildMs = work + (performance.now() - tSlice); g.stats.buildWallMs = performance.now() - t0; g.stats.rays = rays;
   return g;
 }
 
@@ -302,16 +337,18 @@ function csrLinks(g, b) {
   g.lstart = lstart; g.lto = lto; g.ltype = ltype; g.lcost = lcost;
 }
 
-function pruneToMainSCC(g, b, hints) {
+function* pruneToMainSCC(g, b, hints, S) {
   const N = g.N, nb = g.nb, lstart = g.lstart, lto = g.lto;
   if (N === 0) return;
   const idx = new Int32Array(N).fill(-1), low = new Int32Array(N), comp = new Int32Array(N).fill(-1), onst = new Uint8Array(N);
   const stack = new Int32Array(N), call = new Int32Array(N), it = new Int32Array(N); const sizes = [];
-  let sp = 0, counter = 0;
+  let sp = 0, counter = 0, stp = 0;
   for (let s = 0; s < N; s++) {
     if (idx[s] >= 0) continue;
     let csp = 0; call[csp++] = s; idx[s] = low[s] = counter++; stack[sp++] = s; onst[s] = 1; it[s] = 0;
+    if (S.due()) { S.pause(); yield 0.96; S.resume(); }
     while (csp > 0) {
+      if ((++stp & 2047) === 0 && S.due()) { S.pause(); yield 0.96; S.resume(); }
       const u = call[csp - 1]; let adv = false; const deg = 8 + lstart[u + 1] - lstart[u];
       while (it[u] < deg) {
         const k = it[u]++; const v = k < 8 ? nb[u * 8 + k] : lto[lstart[u] + k - 8];
@@ -324,6 +361,7 @@ function pruneToMainSCC(g, b, hints) {
       csp--; if (csp > 0) { const p = call[csp - 1]; if (low[u] < low[p]) low[p] = low[u]; }
     }
   }
+  S.pause(); yield 0.96; S.resume();
   // choose component: most hint (spawn/site) nodes, tie-break size
   const votes = new Int32Array(sizes.length); let hintCount = 0;
   for (const p of (hints.points || [])) { const n = g.nearest(p.x, p.y, p.z, 3); if (n >= 0) { votes[comp[n]]++; hintCount++; } }
@@ -332,8 +370,9 @@ function pruneToMainSCC(g, b, hints) {
   g.stats.components = sizes.length; g.stats.mainComponent = sizes[main];
   g.stats.hintPoints = hintCount; g.stats.hintsInMain = votes[main];
   // compact
+  S.pause(); yield 0.97; S.resume();
   const remap = new Int32Array(N).fill(-1); let M = 0;
-  for (let i = 0; i < N; i++) if (comp[i] === main) remap[i] = M++;
+  const keepAll = !!g.cfg.keepAll; for (let i = 0; i < N; i++) if (keepAll || comp[i] === main) remap[i] = M++;
   const px = new Float32Array(M), py = new Float32Array(M), pz = new Float32Array(M), ce = new Float32Array(M);
   const nb2 = new Int32Array(M * 8).fill(-1);
   const counts = new Int32Array(g.W * g.H);
@@ -350,13 +389,14 @@ function pruneToMainSCC(g, b, hints) {
   csrLinks(g, { N: M, linkA: la, linkB: lb, linkT: lt, linkC: lc });
 }
 
-function finalize(g, cfg) {
+function* finalize(g, cfg, S) {
   const N = g.N, nb = g.nb;
   // wall distance (in cells) across walk edges: 0 = node touches an obstacle / drop-off
   const wall = new Uint8Array(N).fill(255); const q = new Int32Array(N); let qh = 0, qt = 0;
   for (let i = 0; i < N; i++) { let full = true; for (let k = 0; k < 8; k++) if (nb[i * 8 + k] < 0) { full = false; break; } if (!full) { wall[i] = 0; q[qt++] = i; } }
   while (qh < qt) { const u = q[qh++]; const d = wall[u] + 1; if (d > 12) continue; for (let k = 0; k < 8; k += 2) { const v = nb[u * 8 + k]; if (v >= 0 && wall[v] > d) { wall[v] = d; q[qt++] = v; } } }
   g.wall = wall;
+  S.pause(); yield 0.98; S.resume();
   // edge costs (metres, inflated near walls so paths keep off geometry)
   const nbc = new Float32Array(N * 8);
   const mult = (w) => (w === 0 ? 1.35 : w === 1 ? 1.12 : w === 2 ? 1.04 : 1);

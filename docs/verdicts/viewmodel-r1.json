@@ -1,0 +1,22 @@
+{"piece":"viewmodel","round":1,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"Arc idle vs CS2 AK idle (t2_036). CS2 rifle is a slim, readable side profile running diagonally into view with a gloved hand wrapping the grip; ours is seen from rear-top so the receiver reads as a fat rectangular block, the full-contrast hazard stripes wrap every part (receiver, grip, stock) and erase part separation, the off-hand forearm is a flat salmon wedge."},
+ {"pair":2,"picked":"ref","truth":"ref","why":"Arc first shot vs CS2 AK firing (ss_4). CS2 flash is a big hot plume with smoke that sells the shot; ours is a small 1-frame star + tracer, the gun kick is visible but the frame is dominated by the striped slab."},
+ {"pair":3,"picked":"ref","truth":"ref","why":"Lance idle vs CS2 AWP (t4_022). Ours: scope rear lens is a flat opaque cream (in-game) / salmon (gallery) octagon facing the camera, reads like a pipe end cap; no stock/cheek-rest silhouette, gun jammed against right edge. CS2 scope has rings, turrets, glass depth."},
+ {"pair":4,"picked":"ours","truth":"ours","why":"Pip vs CS2 pistol (t1_023): both are small end-on pistols in two hands; near coin-flip, ours reads clearly against the scene."}],
+"winner_overall":"ref","score":4.8,
+"biggest_gap":"Weapon silhouettes/finish read as stacked boxes with a skin that destroys form. Repro: ?test=1&seed=1&match=1&phase=live, give arc/rail/halo/lance/scatter/storm (shots/critic-viewmodel/g_sheet1.png, g_sheet2.png). The default in-match skin (skin-hazard) is mapped as uniform full-contrast diagonal stripes over every part, so receiver/handguard/mag/grip/stock merge into one striped slab; the rest pose shows the rear-top of the receiver so its back face fills the lower-right. CS2 poses the rifle so its side profile (curved mag, handguard, sights, stock) runs diagonally from bottom-right toward centre, and skins respect part boundaries (dark furniture/metal stays readable). Fix: rotate rest pose to show more side profile, slim/chamfer receivers, give mag/grip/stock distinct silhouettes, and apply skin patterns only to body panels at lower contrast/larger scale with trim/dark parts left untouched.",
+"other_gaps":[
+ "Scope-in layering bug: HUD scope overlay appears at ~0.08 s while the Lance is still raising, so the weapon and its glowing lens are rendered inside the reticle for ~0.1-0.2 s (shots/critic-viewmodel/scope_1.png). CS2 hides the viewmodel the instant the overlay shows; gate the overlay on vm.scopeT>=1 or hide the viewmodel when the overlay is up.",
+ "Hands/arms: forearms are flat untextured salmon/orange wedges with no glove/sleeve detail and dominate the bottom of frame (arc, lance, judge reload); left hand barely wraps the handguard. CS2 gloves/sleeves are the most-seen asset and are detailed.",
+ "Grenade/utility: idle grenade sits almost fully below the frame edge (only the top shows); the one-shot throw leaves the screen entirely for ~1 s (sheets/haze_throw.png, pulse_throw.png) with no visible over-arm arc or left hand; CS2 holds the nade prominently and the throw sweeps across view.",
+ "Lance bolt cycle not visible in-game: 1.4 s after a shot the gun only recovers, no hand-on-bolt motion (boltrel_strip.png). The AWP bolt is a signature CS2 beat.",
+ "Muzzle flash too small/brief for rifles vs CS2's plume + smoke; Lance/Judge flash not caught at all in 0.09 s sampling.",
+ "Beacon plant is a near-static tilt loop (no keypad presses/digits); melee swing trail is a long thin line that reads as a stray streak (tap_melee.png frame 2)."],
+"bugs":[
+ "Scope overlay drawn over a still-visible, still-raising viewmodel for ~0.1-0.2 s on scope-in (lance, aim).",
+ "Draw clip frame 0 (gallery ?scene=viewmodel-gallery, arc draw): the rifle passes through the camera, filling the top half of the screen with a dark slab and a salmon block (sheets/arc_draw.png frame 1).",
+ "Judge reload: left forearm/sleeve penetrates the cylinder and frame, covering most of the gun mid-reload (sheets/judge_reload.png frames 3,4,6).",
+ "Viewmodel costs ~92 draw calls for ~5k tris (237 vs 145 with setVisible(false), lance) - static parts are not merged."],
+"strengths":["No console errors across live-game and gallery runs","Full set of 12 taggers + utility + beacon/kit all have models and clip coverage","Fire kick, ejected glowing cells, tracer and ammo-synced fire cadence work (AK ~10/s)","Walk bob and pistol mag-insert reload read well; pistol pose comparable to CS2"],
+"pass":false}

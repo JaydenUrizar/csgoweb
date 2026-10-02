@@ -15,13 +15,13 @@ export function tap(b) {
   m.cyl('trim', [0, 0, -61], 4.9, 4.9, 2.6, 8); m.cyl('glow', [0, 0, -62.5], 3.5, 3.5, 0.3, 8);
   return {
     name: 'Tap', cls: 'melee', skin: { pattern: 'solid', primary: 0x30353f, accent: 0x9aa3b4, glow: 0xffc24a, wear: 0.1 },
-    muzzle: [0, 0, -63], anchors: { tip: [0, 0, -61], tipBase: [0, 0, -51] }, len: 74, trail: true, hold: 'melee',
+    muzzle: [0, 0, -63], anchors: { tip: [0, 0, -61], tipBase: [0, 0, -44] }, len: 74, trail: true, hold: 'melee',
     hands: { r: { p: [2.4, 3.4, 0], r: [0, 90, 0], curl: [0.78, 0.8, 0.82, 0.84, 0.55], pose: 'fist' }, l: null },
   };
 }
 
 function canisterHands(rY = 0) {
-  return { r: { p: [5.0, rY, 0], r: [0, 0, -90], curl: [0.62, 0.66, 0.68, 0.7, 0.4], pose: 'grip' }, l: { p: [-9, -12, 8], r: [-20, 20, 30], curl: [0.3, 0.3, 0.32, 0.34, 0.2], pose: 'idle' } };
+  return { r: { p: [5.0, rY, 0], r: [0, 0, -90], curl: [0.62, 0.66, 0.68, 0.7, 0.4], pose: 'grip' }, l: { p: [-10, -7, 7], r: [-25, 20, 30], curl: [0.3, 0.3, 0.32, 0.34, 0.2], pose: 'idle' } };
 }
 
 export function haze(b) {

@@ -148,7 +148,7 @@ export function createNav(ctx, { getScope, onBack, onTab, isActive }) {
       if (tag === 'SELECT') return;
       e.preventDefault(); if (move(d)) ctx.events.emit('ui:hover', { kbd: true }); return;
     }
-    if (e.key === 'Escape') { if (isText) { t.blur(); e.preventDefault(); return; } e.preventDefault(); onBack?.(); return; }
+    if (e.key === 'Escape') { if (isText) t.blur(); e.preventDefault(); onBack?.(); return; }
     if (e.key === 'Tab' && onTab && e.shiftKey === false && false) onTab(1);
     if ((e.key === '[' || e.key === ']' ) && !isText) { onTab?.(e.key === ']' ? 1 : -1); }
     if (e.key === 'q' || e.key === 'e') { /* reserved */ }

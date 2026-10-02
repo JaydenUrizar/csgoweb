@@ -9,11 +9,12 @@ import { createHaze } from './haze.js';
 import { createStrobe } from './strobe.js';
 import { createPulse } from './pulse.js';
 import { createScreenFx } from './screenfx.js';
-import { createSparks } from './fx.js';
+import { createSparks, createDust } from './fx.js';
 import { registerLab } from './lab.js';
 import { mulberry32 } from '../../core/rng.js';
 
 const STEP = 1 / 120;
+const _cSky = new THREE.Color(0.8, 0.85, 0.95), _cGnd = new THREE.Color(0.5, 0.45, 0.4);
 const _eye = new THREE.Vector3(), _dir = new THREE.Vector3(), _o = new THREE.Vector3(), _v = new THREE.Vector3(), _hit = { dist: 0, normal: new THREE.Vector3() };
 
 export function createUtility(ctx) {
@@ -25,9 +26,10 @@ export function createUtility(ctx) {
   const shared = {
     sunDir: { value: new THREE.Vector3(0.45, 0.78, 0.35).normalize() }, sunCol: { value: new THREE.Color(1.0, 0.93, 0.8) },
     skyCol: { value: new THREE.Color(0.62, 0.69, 0.8) }, groundCol: { value: new THREE.Color(0.5, 0.47, 0.44) },
-    glow: { pos: new THREE.Vector3(), r: 1, g: 1, b: 1, w: 0, decay: 1 }, overlayAmount: 0,
+    glow: { pos: new THREE.Vector3(), r: 1, g: 1, b: 1, w: 0, decay: 1 }, overlayAmount: 0, exposure: { value: 1.05 }, fogCol: { value: new THREE.Color(0.75, 0.8, 0.88) },
   };
   const sparks = createSparks(512);
+  const dust = createDust(96);
   const screen = createScreenFx(ctx);
   const haze = createHaze(ctx, W, shared);
   // flash light (single pooled point light, created once so materials never recompile mid-round)
@@ -35,7 +37,7 @@ export function createUtility(ctx) {
   const lightState = { t: 0, dur: 0.5, peak: 0 };
   let sceneReady = false;
   const now = () => time;
-  const fxDeps = { sparks, screen, haze, time: now, grenades: null,
+  const fxDeps = { sparks, dust, screen, camDist(p) { const c = ctx.render?.camera; return c ? c.position.distanceTo(p) : 99; }, haze, time: now, grenades: null,
     light(pos, color, peak, range, dur) { light.position.copy(pos); light.color.setHex(color); light.distance = range; lightState.peak = peak; lightState.t = 0; lightState.dur = dur; },
     glow(pos, r, g, b, w, dur) { shared.glow.pos.copy(pos); shared.glow.r = r; shared.glow.g = g; shared.glow.b = b; shared.glow.w = w; shared.glow.decay = 1 / dur; } };
   const strobe = createStrobe(ctx, W, fxDeps);
@@ -132,22 +134,29 @@ export function createUtility(ctx) {
 
   // ---------------------------------------------------------------- practice arc preview line
   const previewLine = (() => {
-    const N = 120, geo = new THREE.BufferGeometry(); const pos = new Float32Array(N * 3); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setDrawRange(0, 0);
-    const line = new THREE.Line(geo, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.22, gapSize: 0.14, transparent: true, opacity: 0.9, depthTest: false, toneMapped: false }));
-    line.frustumCulled = false; line.renderOrder = 200; line.visible = false;
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.3, 24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthTest: false, toneMapped: false })); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 200; ring.visible = false;
-    return { line, ring, geo, pos, N, pts: [] };
+    const N = 200, cv = document.createElement('canvas'); cv.width = cv.height = 64; const cx = cv.getContext('2d');
+    const gr = cx.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); cx.fillStyle = gr; cx.fillRect(0, 0, 64, 64);
+    const tex = new THREE.CanvasTexture(cv);
+    const geo = new THREE.BufferGeometry(); const pos = new Float32Array(N * 3); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setDrawRange(0, 0);
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.2, map: tex, sizeAttenuation: true, color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false, alphaTest: 0.02 }));
+    pts.frustumCulled = false; pts.renderOrder = 200; pts.visible = false;
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.4, 32), ringMat); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 200; ring.visible = false;
+    const dot = new THREE.Mesh(new THREE.CircleGeometry(0.09, 16), ringMat); dot.rotation.x = -Math.PI / 2; dot.renderOrder = 200; dot.visible = false;
+    return { pts, ring, dot, geo, pos, N, list: [], mat: pts.material };
   })();
   util.preview = {
     show(actor, type = 'haze', power = 'strong') {
-      const pl = previewLine, pts = util.trajectory(actor, type, power, pl.pts); const n = Math.min(pl.N, pts.length);
-      for (let i = 0; i < n; i++) { pl.pos[i * 3] = pts[i].x; pl.pos[i * 3 + 1] = pts[i].y; pl.pos[i * 3 + 2] = pts[i].z; }
-      pl.geo.attributes.position.needsUpdate = true; pl.geo.setDrawRange(0, n); pl.line.computeLineDistances(); pl.line.material.color.setHex(TYPES[type].band);
-      pl.ring.material.color.setHex(TYPES[type].band); pl.ring.position.copy(pts[n - 1]); pl.ring.position.y += 0.03;
-      const sc = ctx.render?.scene; if (sc && !pl.line.parent) { sc.add(pl.line); sc.add(pl.ring); }
-      pl.line.visible = pl.ring.visible = true; return pts;
+      const pl = previewLine, ptsL = util.trajectory(actor, type, power, pl.list); const n = Math.min(pl.N, ptsL.length);
+      const cam = ctx.render?.camera; let m = 0;
+      for (let i = 0; i < n; i++) { if (cam && cam.position.distanceToSquared(ptsL[i]) < 1.44) continue; pl.pos[m * 3] = ptsL[i].x; pl.pos[m * 3 + 1] = ptsL[i].y; pl.pos[m * 3 + 2] = ptsL[i].z; m++; }
+      pl.geo.attributes.position.needsUpdate = true; pl.geo.setDrawRange(0, m);
+      const c = TYPES[type].band; pl.mat.color.setHex(c).multiplyScalar(1.6); pl.ring.material.color.setHex(c).multiplyScalar(1.1);
+      pl.ring.position.copy(ptsL[n - 1]); pl.ring.position.y += 0.04; pl.dot.position.copy(pl.ring.position);
+      const sc = ctx.render?.scene; if (sc && !pl.pts.parent) { sc.add(pl.pts); sc.add(pl.ring); sc.add(pl.dot); }
+      pl.pts.visible = pl.ring.visible = pl.dot.visible = true; return ptsL;
     },
-    hide() { previewLine.line.visible = previewLine.ring.visible = false; },
+    hide() { previewLine.pts.visible = previewLine.ring.visible = previewLine.dot.visible = false; },
   };
 
   // ---------------------------------------------------------------- visibility helpers
@@ -166,7 +175,7 @@ export function createUtility(ctx) {
   const offFire = ctx.events.on('weapon:fire', (e) => {
     if (!haze.list.length || !e?.origin || !e?.dir) return;
     _o.copy(e.origin); _dir.copy(e.dir).normalize(); let len = 120; if (W.raycast(_o, _dir, len, _hit)) len = _hit.dist;
-    haze.punch(_o.clone(), _dir.clone(), len, 0.27, 0.95, 1.9);
+    haze.punch(_o.clone(), _dir.clone(), len, 0.55, 0.97, 1.9);
   });
   const offRound = ctx.events.on('round:start', () => util.clear());
 
@@ -175,13 +184,13 @@ export function createUtility(ctx) {
   // ---------------------------------------------------------------- update loops
   function ensureScene() {
     if (sceneReady) return; const sc = ctx.render?.scene; if (!sc) return;
-    sc.add(light); sc.add(sparks.mesh); sceneReady = true;
+    sc.add(light); sc.add(sparks.mesh); sc.add(dust.mesh); sceneReady = true;
   }
   function syncLighting() {
     const r = ctx.render; if (!r) return;
     const sd = r.sunDir; if (sd && sd.isVector3) shared.sunDir.value.copy(sd).normalize(); else if (r.sun?.position) shared.sunDir.value.copy(r.sun.position).normalize();
     if (r.sun?.color) { const k = Math.min(1.15, (r.sun.intensity ?? 2.4) / 2.4); shared.sunCol.value.copy(r.sun.color).multiplyScalar(k); }
-    const bg = r.scene?.fog?.color || (r.scene?.background?.isColor ? r.scene.background : null); if (bg) { shared.skyCol.value.copy(bg).lerp(new THREE.Color(0.8, 0.85, 0.95), 0.4); }
+    const bg = r.scene?.fog?.color || (r.scene?.background?.isColor ? r.scene.background : null); if (bg) { shared.skyCol.value.copy(bg).lerp(_cSky, 0.4).multiplyScalar(0.62); shared.groundCol.value.copy(bg).lerp(_cGnd, 0.6).multiplyScalar(0.4); shared.fogCol.value.copy(bg); }
   }
   let lightTick = 0;
   util.fixedUpdate = function (dt) {
@@ -193,6 +202,8 @@ export function createUtility(ctx) {
       const gr = grenades[i]; if (gr.dead) { gr.model.parent?.remove(gr.model); grenades.splice(i, 1); continue; }
       gr.t += dt;
       const impact = stepGrenade(gr.g, dt, W, actors, (g, sp) => { ctx.events.emit('util:bounce', { type: gr.type, pos: g.impactPos.clone(), speed: sp, thrower: g.thrower }); });
+      const kp = (ctx.map?.bounds?.min?.y ?? -10) - 8, p = gr.g.pos;
+      if (p.y < kp || Math.abs(p.x) > 400 || Math.abs(p.z) > 400 || !Number.isFinite(p.y)) { gr.dead = true; ctx.events.emit('util:lost', { type: gr.type, pos: p.clone(), thrower: gr.g.thrower }); continue; }   // left the world: despawn quietly
       if (gr.g.age > C.maxAge || gr.t >= gr.fuse || (gr.def.popOnRest && gr.g.rest)) detonate(gr);
     }
     haze.fixedUpdate(dt);
@@ -208,7 +219,8 @@ export function createUtility(ctx) {
       models.blink(m, gr.t / gr.fuse, time, gr.type);
     }
     haze.update(dt, time, cam());
-    strobe.update(dt); pulse.update(dt); sparks.update(dt);
+    strobe.update(dt); pulse.update(dt); sparks.update(dt); dust.update(dt);
+    { const sc = shared.sunCol.value, sk = shared.skyCol.value; dust.mat.uniforms.uCol.value.setRGB(0.62 * (0.35 + 0.65 * sc.r) + 0.1 * sk.r, 0.56 * (0.35 + 0.65 * sc.g) + 0.1 * sk.g, 0.46 * (0.35 + 0.65 * sc.b) + 0.1 * sk.b); }
     screen.update(dt);
     // flash light envelope
     if (lightState.peak > 0) { lightState.t += dt; const u = lightState.t / lightState.dur; light.intensity = u >= 1 ? 0 : lightState.peak * Math.pow(1 - u, 2.2); if (u >= 1) lightState.peak = 0; } else light.intensity = 0;

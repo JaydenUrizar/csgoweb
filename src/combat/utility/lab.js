@@ -109,7 +109,7 @@ async function buildLab(ctx, util) {
     group, collider, actors, me,
     /** put the local view at eye position (x,y,z) looking yaw/pitch (radians) */
     view(x, y, z, yaw = 0, pitch = 0) { me.pos.set(x, y - me.eyeHeight, z); me.yaw = yaw; me.pitch = pitch; me.vel.set(0, 0, 0); const c = R.camera; c.position.set(x, y, z); c.rotation.set(pitch, yaw, 0, 'YXZ'); c.updateMatrixWorld(true); },
-    lookAt(from, to) { const d = to.clone().sub(from); const yaw = Math.atan2(-d.x, -d.z), pitch = Math.asin(d.y / d.length()); lab.view(from.x, from.y, from.z, yaw, pitch); },
+    lookAt(from, to) { const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z; const yaw = Math.atan2(-dx, -dz), pitch = Math.asin(dy / Math.hypot(dx, dy, dz)); lab.view(from.x, from.y, from.z, yaw, pitch); },
     ceilings(on) { for (const c of ceilings) c.visible = on; },
     reset() { util.clear(); for (const a of Object.values(actors)) { a.alive = true; a.hp = 100; a.armor = 0; a.blind = null; a.vel.set(0, 0, 0); } me.blind = null; me.hp = 100; },
     place(name, x, z) { const a = actors[name]; a.pos.set(x, 0, z); },

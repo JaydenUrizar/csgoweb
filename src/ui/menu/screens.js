@@ -1,5 +1,5 @@
 // Screen builders: boot, main menu, help/cheat-sheet, credits, pause, match-end recap.
-import { h, ICON, keyLabel } from './ui.js';
+import { h, ICON, keyLabel, makeControls } from './ui.js';
 import { logoSVG, emblemSVG } from './logo.js';
 
 export const TIPS = [
@@ -123,17 +123,22 @@ export function buildCredits(ctx, A) {
 }
 
 export function buildPause(ctx, A) {
+  const K = makeControls(ctx), S = ctx.settings;
+  const sens = K.slider({ min: .1, max: 8, step: .01, def: 1, get: () => S.get('sensitivity') ?? 1, set: (v) => S.set('sensitivity', v), fmt: (v) => v.toFixed(2), label: 'Sensitivity' });
+  const vol = K.slider({ min: 0, max: 1, step: .01, def: .8, get: () => S.get('volume') ?? .8, set: (v) => S.set('volume', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'Master volume' });
+  const qrow = (l, c) => h('div', { class: 'qr' }, h('span', null, l), c.el);
   const sub = h('div', { class: 'sub' }, 'Match in progress');
   const mk = (cls, label, key, fn, id) => h('button', { class: 'fx-pb ' + cls, 'data-id': id, 'data-autofocus': id === 'resume' ? '' : null, onClick: fn }, h('span', null, label), key ? h('span', { class: 'fx-key' }, key) : null);
   const box = h('div', { class: 'fx-card fx-pbox fx-inU' }, h('div', { class: 'ttl' }, 'Paused'), sub,
     h('div', { class: 'list' }, mk('pri', 'Resume', 'Esc', () => A.resume(), 'resume'), mk('', 'Settings', '', () => A.open('settings'), 'settings'), mk('', 'Controls', 'F1', () => A.open('cheat'), 'controls'), mk('danger', 'Leave match', '', () => A.confirmLeave(), 'leave')),
+    h('div', { class: 'fx-quick' }, qrow('Sensitivity', sens), qrow('Master volume', vol)),
     h('div', { class: 'foot' }, 'Click Resume to recapture the mouse'));
   const el = h('div', { class: 'fx-screen fx-pause' }, h('div', { class: 'fx-layer fx-dim' }), box);
   return {
     el, refresh() {
       const m = ctx.match; let t = 'Match in progress';
       if (m && !m.__stub && m.scores) t = `Round ${m.round || 1} · Ember ${m.scores.ember ?? 0} – ${m.scores.tide ?? 0} Tide`;
-      sub.textContent = t;
+      sub.textContent = t; sens.refresh(); vol.refresh();
     },
   };
 }

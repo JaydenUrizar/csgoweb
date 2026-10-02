@@ -69,6 +69,11 @@ export function createFx({ muzzle, castRoot, root }) {
   for (let i = 0; i < CAP; i++) { const m = new THREE.Mesh(cellGeo, cellMat); m.visible = false; m.frustumCulled = false; castRoot.add(m); cells.push({ m, vx: 0, vy: 0, vz: 0, sx: 0, sy: 0, sz: 0, life: 0, max: 1, size: 1 }); }
   let nextCell = 0;
 
+  // ---- muzzle smoke puffs (view-space billboards, normal blending) ----
+  const gtex = glowTexture(), PUFF = 10, puffs = [];
+  for (let i = 0; i < PUFF; i++) { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: gtex, color: 0x9a9aa6, transparent: true, depthWrite: false, opacity: 0 })); m.visible = false; m.frustumCulled = false; m.renderOrder = 8; castRoot.add(m); puffs.push({ m, life: 0, max: 1, vx: 0, vy: 0, vz: 0, s0: 0.05, s1: 0.2, a: 0.3 }); }
+  let nextPuff = 0;
+
   // ---- big dropped cell (reload) : dim cell casing box ----
   const bigMat = new THREE.MeshBasicMaterial({ toneMapped: false, color: 0xffffff, vertexColors: false });
   const bigGeo = new THREE.BoxGeometry(1, 1, 1);
@@ -86,7 +91,7 @@ export function createFx({ muzzle, castRoot, root }) {
     flashLife() { return F.t; },
     /** Trigger a muzzle flash. spec = profile.flash, colour = THREE.Color of the tagger glow. */
     fire(spec, color, power = 1) {
-      F.t = F.life = spec.style === 'bolt' ? 0.085 : spec.style === 'wide' ? 0.07 : 0.058; F.size = spec.size * (0.9 + frand() * 0.25) * power; F.style = spec.style;
+      F.t = F.life = spec.style === 'bolt' ? 0.1 : spec.style === 'wide' ? 0.085 : 0.07; F.size = spec.size * (0.9 + frand() * 0.25) * power; F.style = spec.style;
       F.tint.copy(color).lerp(_c.set(1, 0.75, 0.35), 0.35);
       starMat.color.copy(F.tint).multiplyScalar(2.2); coneMat.color.copy(F.tint).multiplyScalar(2.0); glowMat.color.copy(F.tint).multiplyScalar(1.6);
       star.geometry = starGeo(spec.spikes || 8); star.rotation.z = frand() * 6.28; star2.rotation.z = frand() * 6.28;
@@ -94,6 +99,14 @@ export function createFx({ muzzle, castRoot, root }) {
       ringM.visible = spec.style === 'ring';
       cone.scale.set(0.03 * F.size, 0.03 * F.size, 0.09 * F.size * spec.len); cone2.scale.copy(cone.scale);
       flash.visible = true; light.color.copy(F.tint); F.lightPeak = 2.2 * spec.size;
+    },
+    /** Smoke puff at a view-space point. size ~1 for a rifle. */
+    smoke(px, py, pz, size = 1, n = 2) {
+      for (let k = 0; k < n; k++) {
+        const c = puffs[nextPuff]; nextPuff = (nextPuff + 1) % PUFF;
+        c.m.position.set(px + (frand() - 0.5) * 0.02, py + (frand() - 0.5) * 0.02, pz - 0.02 - k * 0.04); c.vx = (frand() - 0.5) * 0.05; c.vy = 0.03 + frand() * 0.05; c.vz = -0.18 - frand() * 0.15;
+        c.life = c.max = 0.5 + frand() * 0.25; c.s0 = (0.05 + 0.02 * k) * size; c.s1 = (0.2 + 0.07 * k) * size; c.a = 0.3 + frand() * 0.12; c.m.visible = true; c.m.material.color.setRGB(0.78, 0.66, 0.55);
+      }
     },
     /** Eject a glowing cell from world position/velocity given in view (castRoot) space. */
     eject(px, py, pz, vx, vy, vz, color, size = 1) {
@@ -119,13 +132,19 @@ export function createFx({ muzzle, castRoot, root }) {
         if (F.t <= 0) { flash.visible = false; light.intensity = 0; }
         else {
           const e = u * u, s = F.size;
-          star.scale.setScalar(0.085 * s * (0.65 + 0.7 * u)); star2.scale.setScalar(0.06 * s * (0.55 + 0.6 * u)); glow.scale.setScalar(0.2 * s * (0.6 + 0.5 * u)); glow.material.opacity = 1;
-          cone.scale.z = (F.style === 'bolt' ? 0.34 : 0.14) * s * (1 + (1 - u) * 0.6); cone2.scale.z = cone.scale.z; cone.scale.x = cone.scale.y = cone2.scale.x = cone2.scale.y = 0.03 * s * (0.5 + u);
+          star.scale.setScalar(0.125 * s * (0.65 + 0.7 * u)); star2.scale.setScalar(0.088 * s * (0.55 + 0.6 * u)); glow.scale.setScalar(0.32 * s * (0.6 + 0.5 * u)); glow.material.opacity = 1;
+          cone.scale.z = (F.style === 'bolt' ? 0.5 : 0.24) * s * (1 + (1 - u) * 0.7); cone2.scale.z = cone.scale.z; cone.scale.x = cone.scale.y = cone2.scale.x = cone2.scale.y = 0.042 * s * (0.5 + u);
           if (F.style === 'wide') { cone.scale.x = cone.scale.y = cone2.scale.x = cone2.scale.y = 0.06 * s * (0.5 + u); }
           if (ringM.visible) { ringM.scale.setScalar(0.035 * s + (1 - u) * 0.12 * s); }
           light.intensity = F.lightPeak * e;
           starMat.opacity = coneMat.opacity = glowMat.opacity = 0.25 + 0.75 * u;
         }
+      }
+      for (const c of puffs) if (c.life > 0) {
+        c.life -= dt; if (c.life <= 0) { c.m.visible = false; continue; }
+        const k = 1 - c.life / c.max; c.m.position.x += c.vx * dt; c.m.position.y += c.vy * dt; c.m.position.z += c.vz * dt; c.vz *= 1 - 2.2 * dt; c.vy *= 1 - 1.0 * dt;
+        c.m.scale.setScalar(c.s0 + (c.s1 - c.s0) * Math.sqrt(k)); c.m.material.opacity = c.a * (1 - k) * Math.min(1, k * 8);
+        const g = 0.78 + 0.0 * k; c.m.material.color.setRGB(0.78 + (0.62 - 0.78) * k, 0.66 + (0.62 - 0.66) * k, 0.55 + (0.66 - 0.55) * k); void g;
       }
       for (const c of cells) if (c.life > 0) {
         c.life -= dt; if (c.life <= 0) { c.m.visible = false; continue; }
@@ -153,7 +172,7 @@ export function createFx({ muzzle, castRoot, root }) {
       }
     },
     setCellColor(c) { cellMat.color.copy(c).multiplyScalar(2); },
-    clear() { flash.visible = false; light.intensity = 0; F.t = 0; for (const c of cells) { c.life = 0; c.m.visible = false; } dropped.life = 0; dropped.m.visible = false; trail.visible = false; },
+    clear() { flash.visible = false; light.intensity = 0; F.t = 0; for (const c of cells) { c.life = 0; c.m.visible = false; } for (const c of puffs) { c.life = 0; c.m.visible = false; } dropped.life = 0; dropped.m.visible = false; trail.visible = false; },
   };
   return api;
 }

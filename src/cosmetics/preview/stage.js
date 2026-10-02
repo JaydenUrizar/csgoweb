@@ -5,22 +5,23 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { createRig, TEAM_COL } from './rig.js';
+import { createRig, TEAM_COL, makeSkinnedTagger } from './rig.js';
+import { createRealRig } from './real.js';
 import { ParticleSystem, RibbonTrail, TagOutFx, SHAPE } from './fx.js';
 import { backdropTexture, radialTexture, mix } from './textures.js';
 
 const FOCUS = {
   body:   { y: 1.0, dist: 4.7, fov: 30, cy: 1.0, yaw: null },
-  head:   { y: 1.55, dist: 1.85, fov: 30, cy: 1.6, yaw: 0 },
+  head:   { y: 1.45, dist: 2.1, fov: 30, cy: 1.55, yaw: 0 },
   back:   { y: 0.9, dist: 4.5, fov: 30, cy: 1.1, yaw: Math.PI },
-  tagger: { y: 1.2, dist: 2.7, fov: 30, cy: 1.3, yaw: 0.15, gun: true },
+  tagger: { y: 1.15, dist: 3.3, fov: 30, cy: 1.2, yaw: 0, gun: true },
   charm:  { y: 0.95, dist: 2.3, fov: 30, cy: 1.05, yaw: 1.1 },
   name:   { y: 1.75, dist: 3.0, fov: 30, cy: 1.85, yaw: 0 },
   wide:   { y: 1.0, dist: 5.0, fov: 30, cy: 1.1, yaw: 0.45 },
   run:    { y: 0.8, dist: 6.0, fov: 30, cy: 1.15, yaw: 1.25 },
 };
 
-export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER', foreignRig = null } = {}) {
+export function createStage(canvas, { ctx = null, preserve = false, name = 'PLAYER', fallbackOnly = false } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: preserve });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
@@ -58,13 +59,19 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
   for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.9 + i * 0.25, 5.2), new THREE.MeshBasicMaterial({ map: shaftTex, color: 0xff7a2f, transparent: true, opacity: 0.16 + (i % 2) * 0.05, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })); m.position.set(-2.4 + i * 1.6, 2.4, -2.6 - (i % 2) * 0.6); m.rotation.z = (i - 1.5) * 0.09; scene.add(m); shafts.push(m); }
 
   // ---- rig
-  const rig = foreignRig ?? createRig();
-  scene.add(rig.root);
+  const rig = (!fallbackOnly && ctx && createRealRig(ctx, name)) || createRig();
+  rig.stageScene = scene; scene.add(rig.root); rig.enter?.();
   const glowFx = new ParticleSystem(1800, { additive: true }), solidFx = new ParticleSystem(700, { additive: false });
   scene.add(glowFx.points, solidFx.points);
   const ribbons = [new RibbonTrail(46), new RibbonTrail(46)]; for (const r of ribbons) scene.add(r.mesh);
   const tagFx = new TagOutFx(scene, glowFx, solidFx);
-  const platformParent = plat;
+  const inspect = { g: new THREE.Group(), key: '', obj: null, a: 0 }; inspect.g.position.y = 1.15; inspect.g.visible = false; scene.add(inspect.g);
+  function syncInspect() {
+    const sk = S.spec?.taggerSkin, kind = rig.tagger?.kind ?? 'arc'; if (!sk) return; const k = JSON.stringify(sk) + kind; if (k === inspect.key) return; inspect.key = k;
+    if (inspect.obj) { inspect.g.remove(inspect.obj); inspect.obj.traverse((o) => { if (o.isMesh && o.material?.dispose) o.material.dispose(); }); }
+    inspect.obj = makeSkinnedTagger(kind, sk); const len = { pip: 0.3, zip: 0.62, arc: 0.95, lance: 1.1 }[kind] ?? 0.9; inspect.obj.position.z = -len * 0.5 + 0.1; inspect.g.add(inspect.obj);
+    const sc = 1.45 / Math.max(0.5, len); inspect.g.scale.setScalar(Math.min(2.4, sc));
+  }
 
   // ---- composer
   let composer = null, bloom = null;
@@ -72,7 +79,7 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
     try {
       const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples: 4 });
       composer = new EffectComposer(renderer, rt); composer.addPass(new RenderPass(scene, camera));
-      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.5, 0.5, 1.0); composer.addPass(bloom); composer.addPass(new OutputPass());
+      bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.35, 0.5, 1.0); composer.addPass(bloom); composer.addPass(new OutputPass());
     } catch { composer = null; }
   }
 
@@ -114,10 +121,14 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
     fling(v) { S.yawVel = v; S.idleT = 0; },
     setDragging(b) { S.dragging = b; if (b) { S.yawGoal = null; S.idleT = 0; } },
     zoomBy(d) { S.zoom = Math.min(1.5, Math.max(0.6, S.zoom * (1 + d))); },
+    enter() { rig.enter?.(); if (S.spec) rig.setSpec(S.spec, { team: S.team, name: S.name }); },
+    leave() { rig.leave?.(); },
+    get isReal() { return !!rig.isReal; },
     playTagOut(effect, color) {
+      if (rig.isReal) { S.tagEffect = effect; S.tagColor = color ?? 0x9be7ff; S.tagPhase = 'real'; S.tagT = 0; rig.stopEmote?.(); rig.tagOut(effect); tagFlash = 0.6; return; }
       rig.stopEmote?.(); S.tagEffect = effect; S.tagColor = color ?? 0x9be7ff; S.tagPhase = 'freeze'; S.tagT = 0; rig.setCrystal?.(true);
     },
-    stopTagOut() { S.tagPhase = 'idle'; tagFx.stop(); rig.setCrystal?.(false); rig.setVisible?.(true); rig.root.scale.setScalar(1); },
+    stopTagOut() { if (rig.isReal && S.tagPhase !== 'idle') rig.respawn(); S.tagPhase = 'idle'; tagFx.stop(); rig.setCrystal?.(false); rig.setVisible?.(true); rig.root.scale.setScalar(1); },
     get tagPhase() { return S.tagPhase; },
     setTrail(spec) { S.trail = spec; },
     resize(w, h, dpr) {
@@ -138,12 +149,12 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
         if (S.yawGoal != null) { let d = S.yawGoal - S.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); S.yaw += d * (1 - Math.exp(-dt * 4.5)); if (Math.abs(d) < 0.01) S.yawGoal = S.yawGoal; S.yawVel = 0; }
         else { S.yaw += S.yawVel * dt; S.yawVel *= Math.exp(-dt * 2.6); if (S.turntable && S.idleT > 2.2 && !rig.emote && S.tagPhase === 'idle') S.yaw += dt * 0.42; }
       }
-      rig.root.rotation.y = S.yaw;
+      rig.root.rotation.y = S.yaw; if (rig.setNameVisible) rig.setNameVisible(S.focus === 'name');
       // camera targets
       for (const k of ['y', 'cy', 'fov']) S.cur[k] += (S.target[k] - S.cur[k]) * kk;
       S.cur.dist += (S.target.dist * S.zoom - S.cur.dist) * kk;
       let ty = S.cur.y, tx = 0, tz = 0;
-      if (S.focus === 'tagger' && rig.tagger?.group) { rig.tagger.group.getWorldPosition(_v); _v.y = _v.y * 0.85 + ty * 0.15; tx = _v.x * 0.9; ty = _v.y; tz = _v.z * 0.9; }
+      if (false) { if (!(rig.tagger.focus && rig.tagger.focus(_v))) rig.tagger.group.getWorldPosition(_v); _v.y = _v.y * 0.85 + ty * 0.15; tx = _v.x * 0.9; ty = _v.y; tz = _v.z * 0.9; }
       else if (S.focus === 'charm' && rig.animated?.charm) { rig.animated.charm.item.getWorldPosition(_v); tx = _v.x * 0.8; ty = _v.y * 0.6 + S.cur.y * 0.4; tz = _v.z * 0.8; }
       S.lookAt.x += (tx - S.lookAt.x) * kk; S.lookAt.y += (ty - S.lookAt.y) * kk; S.lookAt.z += (tz - S.lookAt.z) * kk;
       const el = S.cur.cy - S.lookAt.y;
@@ -153,6 +164,7 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
       void el;
       // tag-out timeline
       rig.update(dt);
+      const insp = S.focus === 'tagger'; if (insp) syncInspect(); inspect.g.visible = insp && !!inspect.obj; rig.root.visible = !insp; if (insp) { inspect.a += dt; inspect.g.rotation.set(0.12 * Math.sin(S.time * 0.8), S.yaw + Math.PI / 2 * 0 - 1.2, 0.05); inspect.g.position.y = 1.15 + Math.sin(S.time * 1.3) * 0.02; }
       if (S.tagPhase === 'freeze') {
         S.tagT += dt; rig.body.position.y += Math.sin(S.tagT * 40) * 0.002;
         if (S.tagT > 0.55) { S.tagPhase = 'burst'; S.tagT = 0; rig.setCrystal?.(false); rig.setVisible?.(false); tagFx.play(S.tagEffect, S.tagColor, S.spec ? [S.spec.suit.accent, S.spec.suit.base, S.spec.suit.patternColor, S.tagColor, 0xffffff, S.spec.visor.glow] : null, 0, 0); rig.root.getWorldPosition(_v); tagFx.group.rotation.y = 0; glowFx.emit(0, 1, 0, 0, 0, 0, 0.35, 0.3, 4.0, 0xffffff, S.tagColor, SHAPE.ring, 0, 0, 0.9); tagFlash = 1; }
@@ -163,6 +175,7 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
       } else if (S.tagPhase === 'back') {
         S.tagT += dt; const u = Math.min(1, S.tagT / 0.45); const s = 0.9 + 0.1 * Math.sin(u * Math.PI * 0.5) + 0.05 * Math.sin(u * Math.PI); rig.root.scale.setScalar(s); if (u >= 1) { S.tagPhase = 'idle'; rig.root.scale.setScalar(1); }
       }
+      if (S.tagPhase === 'real') { S.tagT += dt; if (S.tagT > 2.7) { rig.respawn(); S.tagPhase = 'realback'; S.tagT = 0; } } else if (S.tagPhase === 'realback') { S.tagT += dt; if (S.tagT > 0.9) S.tagPhase = 'idle'; }
       tagFx.update(dt);
       // dust
       S.dust -= dt; if (S.dust <= 0) { S.dust = 0.09; glowFx.emit((Math.random() - 0.5) * 4, Math.random() * 3.2, (Math.random() - 0.5) * 3 - 0.3, (Math.random() - 0.5) * 0.06, 0.05 + Math.random() * 0.1, 0, 5 + Math.random() * 3, 0.03 + Math.random() * 0.03, 0.02, mix(TEAM_COL[S.team], 0xffffff, 0.5), TEAM_COL[S.team], SHAPE.glow, 0, 0, 0.5); }
@@ -172,7 +185,7 @@ export function createStage(canvas, { resolve, preserve = false, name = 'PLAYER'
       // decor
       ticks.rotation.y += dt * 0.08; ring.material.color.setHex(TEAM_COL[S.team]).multiplyScalar(2.0 + 0.4 * Math.sin(S.time * 1.7));
       floorGlow.material.opacity = 0.5 + 0.08 * Math.sin(S.time * 1.7);
-      if (bloom) { bloom.strength += ((tagFlash > 0 ? 1.2 : 0.5) - bloom.strength) * Math.min(1, dt * 8); }
+      if (bloom) { bloom.strength += ((tagFlash > 0 ? 1.1 : 0.35) - bloom.strength) * Math.min(1, dt * 8); }
       tagFlash = Math.max(0, tagFlash - dt * 3);
     },
     render() {

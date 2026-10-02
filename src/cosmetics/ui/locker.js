@@ -80,8 +80,9 @@ export function createLocker(ctx, api) {
   // ================================================================== render pieces
   const rc = (r) => RARITY[r].css;
   function renderTabs() {
-    const tabs = CATEGORIES.map((c) => `<button class="lk-tab ${L.cat === c.id ? 'on' : ''}" role="tab" data-cat="${c.id}">${c.name}</button>`).join('') +
-      `<button class="lk-tab ${L.cat === 'sets' ? 'on' : ''}" role="tab" data-cat="sets">Sets</button>`;
+    const SHORT = { suit: 'Suits', helmet: 'Helmets', visor: 'Visors', pattern: 'Patterns', back: 'Back', trail: 'Trails', tagOut: 'Tag-out', skin: 'Skins', charm: 'Charms', nameplate: 'Plates', emote: 'Emotes' };
+    const tabs = CATEGORIES.map((c) => `<button class="lk-tab ${L.cat === c.id ? 'on' : ''}" role="tab" data-cat="${c.id}"><span class="f">${c.name}</span><span class="s">${SHORT[c.id]}</span></button>`).join('') +
+      `<button class="lk-tab ${L.cat === 'sets' ? 'on' : ''}" role="tab" data-cat="sets"><span class="f">Sets</span><span class="s">Sets</span></button>`;
     $('.lk-tabs').innerHTML = tabs;
     const on = $('.lk-tab.on'); on?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
     const lv = store.level();
@@ -93,7 +94,7 @@ export function createLocker(ctx, api) {
     const row = (c) => {
       const cat = CATEGORIES.find((x) => x.id === c); const it = BY_ID[cur()[c]];
       let sub = RARITY[it.rarity].name;
-      return `<button class="lk-slot ${L.cat === c ? 'on' : ''}" data-cat="${c}" style="--rc:${rc(it.rarity)}"><span class="im"><img alt="" src="${iconFor(it, 0.75)}"></span><span class="tx"><span class="k">${cat.slot}</span><span class="v">${esc(it.name)}</span><span class="rt">${sub}</span></span></button>`;
+      return `<button class="lk-slot ${L.cat === c ? 'on' : ''}" data-cat="${c}" style="--rc:${rc(it.rarity)}"><span class="im"><img alt="" src="${iconFor(it, 0.75, L.side)}"></span><span class="tx"><span class="k">${cat.slot}</span><span class="v">${esc(it.name)}</span><span class="rt">${sub}</span></span></button>`;
     };
     const wear = wearOf(cur().skinWear);
     $('.lk-side.l').innerHTML = `<div class="lk-sideh"><span>${TEAM_NAME[L.side]} KIT</span><span>${L.slot + 1}/${SLOT_COUNT}</span></div>` + left.map(row).join('');
@@ -124,7 +125,7 @@ export function createLocker(ctx, api) {
   function cardHTML(it, i) {
     const eq = cur()[it.cat] === it.id; const set = SET_BY_ID[it.set]; const stars = store.itemStars(it.id);
     const tag = it.cat === 'suit' && it.material !== 'matte' ? `<span class="hot">${it.material}</span>` : it.cat === 'skin' ? '' : '';
-    return `<button class="card r-${it.rarity} ${eq ? 'eq' : ''}" data-id="${it.id}" style="--rc:${rc(it.rarity)};--i:${Math.min(i, 30)}" aria-pressed="${eq}"><span class="ic"><img alt="" loading="lazy" src="${iconFor(it)}"><span class="glowf"></span></span><i class="bar"></i><span class="tick"></span>${stars ? `<span class="st">&#9733; ${stars}</span>` : ''}${tag}<span class="txt"><span class="nm">${esc(it.name)}</span><span class="sb">${esc(set.name)} &middot; ${RARITY[it.rarity].name}</span></span></button>`;
+    return `<button class="card r-${it.rarity} ${eq ? 'eq' : ''}" data-id="${it.id}" style="--rc:${rc(it.rarity)};--i:${Math.min(i, 30)}" aria-pressed="${eq}"><span class="ic"><img alt="" src="${iconFor(it, 1.5, L.side)}"><span class="glowf"></span></span><i class="bar"></i><span class="tick"></span>${stars ? `<span class="st">&#9733; ${stars}</span>` : ''}${tag}<span class="txt"><span class="nm">${esc(it.name)}</span><span class="sb">${esc(set.name)} &middot; ${RARITY[it.rarity].name}</span></span></button>`;
   }
   function renderGrid() {
     const wrap = $('.lk-gridw'); const grid = wrap.firstElementChild;
@@ -132,7 +133,7 @@ export function createLocker(ctx, api) {
       grid.className = 'sets';
       grid.innerHTML = SETS.filter((s) => s.id !== 'issue').map((s, i) => {
         const cp = setCompletion(cur(), s.id);
-        const imgs = s.items.map((id) => { const it = BY_ID[id]; const have = cur()[it.cat] === id; return `<img class="${have ? 'have' : ''}" style="--rc:${rc(it.rarity)}" title="${esc(it.name)}" alt="" src="${iconFor(it, 0.5)}">`; }).join('');
+        const imgs = s.items.map((id) => { const it = BY_ID[id]; const have = cur()[it.cat] === id; return `<img class="${have ? 'have' : ''}" style="--rc:${rc(it.rarity)}" title="${esc(it.name)}" alt="" src="${iconFor(it, 0.5, L.side)}">`; }).join('');
         return `<div class="setc" data-set="${s.id}" style="--sc:${'#' + s.color.toString(16).padStart(6, '0')};--i:${i}"><div class="hd"><span class="nm">${s.name}</span><span class="cp">${cp.have}/${cp.total} EQUIPPED</span></div><div class="bl">${esc(s.blurb)}</div><div class="mi">${imgs}</div><div class="ac"><button class="lk-cb pri" data-set-eq="${s.id}">${SVG.save}Equip full set</button></div></div>`;
       }).join('');
       wrap.scrollTop = 0; return;
@@ -173,7 +174,7 @@ export function createLocker(ctx, api) {
     $('.lk-foot').innerHTML = `<div class="lk-slots">${slots}</div>
       <div class="lk-code"><span class="lb">Share code</span><input type="text" value="${code}" spellcheck="false" aria-label="Loadout code" data-code><button class="lk-cb" data-a="copy">${SVG.copy}Copy</button><button class="lk-cb" data-a="import">Apply</button></div>
       <div class="lk-sp" style="flex:1"></div>
-      <div class="lk-acts"><button class="lk-btn" data-a="random">${SVG.dice}Randomise</button><button class="lk-btn" data-a="reset" ${dirty ? '' : 'disabled'}>${SVG.reset}Reset</button><button class="lk-btn pri" data-a="save">${SVG.save}${dirty ? 'Save &amp; equip' : (store.data.active === L.slot ? 'Equipped' : 'Equip loadout')}</button></div>`;
+      <div class="lk-acts"><button class="lk-btn" data-a="random">${SVG.dice}<span class="t">Randomise</span></button><button class="lk-btn" data-a="reset" ${dirty ? '' : 'disabled'}>${SVG.reset}<span class="t">Reset</span></button><button class="lk-btn pri" data-a="save">${SVG.save}<span class="t2">${dirty ? 'Save &amp; equip' : (store.data.active === L.slot ? 'Equipped' : 'Equip loadout')}</span></button></div>`;
   }
   function renderAll() { L.root.dataset.side = L.side; renderTabs(); renderSides(); renderTool(); renderGrid(); renderCtl(); renderFoot(); syncSideTog(); }
   function syncSideTog() { L.root.querySelectorAll('.lk-sidetog button').forEach((b) => b.classList.toggle('on', b.dataset.s === L.side)); }
@@ -364,9 +365,7 @@ export function createLocker(ctx, api) {
     if (L.stage || L.stageFail) return;
     const canvas = $('.lk-canvas');
     try {
-      let foreign = null;
-      try { const p = ctx.characters?.createPreview?.(); if (p && p.root && typeof p.setSpec === 'function' && typeof p.update === 'function') foreign = p; } catch { foreign = null; }
-      L.stage = createStage(canvas, { resolve, preserve: !!ctx.params?.get('test') || !!ctx.params?.get('preserve'), name: playerName(), foreignRig: foreign });
+      L.stage = createStage(canvas, { ctx, preserve: !!ctx.params?.get('test') || !!ctx.params?.get('preserve'), name: playerName() });
     } catch (err) {
       L.stageFail = true; $('.lk-main').insertAdjacentHTML('afterbegin', '<div class="empty" style="position:absolute;inset:0;display:grid;place-items:center">3D preview unavailable (WebGL)</div>'); ctx.errors?.push?.('locker stage: ' + (err?.stack || err)); return;
     }
@@ -387,8 +386,8 @@ export function createLocker(ctx, api) {
     L.cat = opts.cat && (opts.cat === 'sets' || CATEGORIES.some((c) => c.id === opts.cat)) ? opts.cat : 'suit'; L.q = ''; L.rar.clear(); L.setFilter = 'all'; L.sort = 'default'; L.over = null; L.view = null; L.runPinned = false;
     L.root.classList.add('open'); L.open = true;
     L.root.querySelectorAll('.lk-top,.lk-inv,.lk-side,.lk-ctl,.lk-sidetog').forEach((el) => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
-    renderAll(); initStage(); syncStage(); applyFocus(); renderCtl();
-    L.prevPaused = ctx.engine?.paused; if (!ctx.manualStepping && ctx.engine) ctx.engine.paused = true;
+    renderAll(); if (L.stage) L.stage.enter(); initStage(); syncStage(); applyFocus(); renderCtl();
+    L.prevPaused = ctx.engine?.paused; if (ctx.engine) ctx.engine.paused = true;
     ctx.render?.renderer && (L.prevCanvasVis = ctx.render.renderer.domElement.style.visibility, ctx.render.renderer.domElement.style.visibility = 'hidden');
     if (opts.cat === 'emote') L.stage?.playEmote(cur().emote);
     if (!ctx.manualStepping) { L.last = performance.now(); cancelAnimationFrame(L.raf); L.raf = requestAnimationFrame(frame); }
@@ -400,9 +399,9 @@ export function createLocker(ctx, api) {
   function close() {
     if (!L.open) return; L.open = false; L.root.classList.remove('open'); cancelAnimationFrame(L.raf); L.raf = 0;
     clearTimeout(L.tFx); clearTimeout(L.tHover); clearTimeout(L.tLeave);
-    if (ctx.engine && !ctx.manualStepping) ctx.engine.paused = !!L.prevPaused;
+    if (ctx.engine) ctx.engine.paused = !!L.prevPaused;
     if (ctx.render?.renderer) ctx.render.renderer.domElement.style.visibility = L.prevCanvasVis || '';
-    L.stage?.stopEmote(); L.stage?.stopTagOut();
+    L.stage?.stopEmote(); L.stage?.stopTagOut(); L.stage?.leave();
     emit('ui:close', { id: 'locker' }); emit('locker:close');
   }
   function dispose() { close(); L.stage?.dispose(); L.stage = null; L.ro?.disconnect(); L.root?.remove(); L.root = null; }
@@ -417,5 +416,5 @@ export function createLocker(ctx, api) {
     setLoadout: (l) => { L.drafts[L.slot][L.side] = normalize(l, L.side); L.over = null; renderSides(); refreshEquipped(); renderFoot(); renderCtl(); syncStage(); },
     settle(seconds = 1.2) { const n = Math.ceil(seconds / 0.05); for (let i = 0; i < n; i++) L.stage?.tick(0.05); L.stage?.render(); },
   };
-  return { open, close, isOpen: () => L.open, tick: (dt) => { if (L.open && ctx.manualStepping) tick(dt); }, dispose, debug, requestClose };
+  return { open, close, isOpen: () => L.open, tick: () => {}, dispose, debug, requestClose };
 }

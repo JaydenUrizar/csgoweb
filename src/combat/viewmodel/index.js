@@ -39,8 +39,8 @@ export function createViewmodel(ctx) {
     if (R.renderer && !viewScene.environment) {
       const pm = new THREE.PMREMGenerator(R.renderer); const envScene = new THREE.Scene(); envScene.background = new THREE.Color(0x28303c);
       const panel = (c, i, p, s) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(s[0], s[1]), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(i), side: THREE.DoubleSide })); m.position.set(...p); m.lookAt(0, 0, 0); envScene.add(m); };
-      panel(0xffffff, 9, [-3, 4, 2], [3, 3]); panel(0xbfd8ff, 4, [4, 1, -3], [2, 5]); panel(0xffd2a0, 3, [0, -3, 2], [4, 2]); panel(0xffffff, 2.2, [0, 5, -4], [6, 2]); panel(0x8fa8c8, 1.2, [-5, 0, -2], [2, 6]);
-      viewScene.environment = pm.fromScene(envScene, 0.04).texture; viewScene.environmentIntensity = 0.85; pm.dispose();
+      panel(0xffffff, 4.5, [-3, 4, 2], [3, 3]); panel(0xbfd8ff, 4, [4, 1, -3], [2, 5]); panel(0xffd2a0, 3, [0, -3, 2], [4, 2]); panel(0xffffff, 2.2, [0, 5, -4], [6, 2]); panel(0x8fa8c8, 1.2, [-5, 0, -2], [2, 6]);
+      viewScene.environment = pm.fromScene(envScene, 0.04).texture; viewScene.environmentIntensity = 0.7; pm.dispose();
     }
   } catch (e) { /* environment is optional */ }
   const muzzleFxLight = null; void muzzleFxLight;
@@ -89,6 +89,7 @@ export function createViewmodel(ctx) {
     const model = getViewModel(id), prof = profile(id);
     S.id = id; S.model = model; S.prof = prof; S.meta = model.meta; S.clips = clipsFor(id, model.meta, prof);
     model.mats.apply(skin); S.skin = skin;
+    model.root.scale.x = ['rifle', 'smg', 'sniper', 'heavy', 'shotgun'].includes(model.meta.cls) ? 0.86 : 1;   // slimmer flanks: reads as a side profile, not a block
     rig.add(model.root); model.root.visible = true; for (const n in model.parts) model.parts[n].visible = true;
     model.root.traverse((o) => o.layers.enable(3));
     muzzleObj.position.copy(model.anchors.muzzle.position);
@@ -99,7 +100,7 @@ export function createViewmodel(ctx) {
     handR.root.visible = !!h.r; handL.root.visible = !!h.l;
     fx.setCellColor(model.mats.glowColor);
     refreshStyle();
-    rig.visible = S.visible;
+    rig.visible = false; S.fresh = true;   // stay hidden until the next update() has posed the rig (no first-frame flash at the camera)
   }
   const skinOf = (s) => (s && s.taggerSkin ? s.taggerSkin : s || null);
 
@@ -191,6 +192,7 @@ export function createViewmodel(ctx) {
     S.heat = Math.min(1, S.heat + pr.heat);
     // visuals
     fx.fire(pr.flash, S.model.mats.glowColor, p.power ?? 1);
+    muzzleObj.updateWorldMatrix(true, false); muzzleObj.getWorldPosition(_p); castRoot.worldToLocal(_p); fx.smoke(_p.x, _p.y, _p.z, (pr.flash.size || 1) * (S.meta.cls === 'pistol' ? 0.6 : 1), S.meta.cls === 'pistol' ? 1 : 2);
     S.model.mats.flash = 1;
     if (!S.meta.afterFire && !p.silent) ejectCasing(true);
     if (S.ammo <= 0) S.ammoLock = -1;
@@ -348,7 +350,7 @@ export function createViewmodel(ctx) {
     // scope zoom
     S.fovMul = meta.scope ? lerp(1, meta.scope.zoom[Math.min(S.zoomLevel, meta.scope.zoom.length - 1)], smooth(0.35, 1, sc)) : 1;
     const hide = !S.visible || S.hidden || (meta.scope && sc > 0.93);
-    rig.visible = !hide; handR.root.visible = !hide && !!hd.r; handL.root.visible = !hide && !!hd.l;
+    S.fresh = false; rig.visible = !hide; handR.root.visible = !hide && !!hd.r; handL.root.visible = !hide && !!hd.l;
     // fov
     const vf = vFovOf(settings.fov || 68); if (Math.abs(viewCamera.fov - vf) > 0.01) { viewCamera.fov = vf; viewCamera.updateProjectionMatrix(); }
     // matrices, sleeves, fx
@@ -420,7 +422,7 @@ export function createViewmodel(ctx) {
     setTagger(id, skin = null, opts = {}) { if (ctx.__vmGallery && !opts.__g) return; return setTaggerRaw(id, skin, opts); },
     event(name, p) { if (ctx.__vmGallery) return; return event(name, p); },
     update,
-    setVisible(b) { S.visible = !!b; rig.visible = S.visible && !S.hidden; fx.clear(); },
+    setVisible(b) { S.visible = !!b; rig.visible = S.visible && !S.hidden && !S.fresh; fx.clear(); },
     worldModel: (id, skin) => getWorldModel(id, skinOf(skin)),
     get muzzle() { return muzzleObj; },
     /** World-space point for tracers/casings: projects the on-screen muzzle through the world camera at `depth` metres. */
@@ -431,6 +433,8 @@ export function createViewmodel(ctx) {
       _p2.sub(_v3).normalize(); return out.copy(_v3).addScaledVector(_p2, depth);
     },
     /** Multiply the world camera FOV by this (1 = no zoom). Smoothly follows scope-in/out. */
+    /** HUD asks: 'does the viewmodel draw its own scope overlay?' -> true while the weapon is still raising so the HUD reticle waits for the lens to hide. */
+    get drawsScopeOverlay() { return !(S.scopeIn && S.scopeT > 0.9); },
     get fovMul() { return S.fovMul; }, get scopeT() { return S.scopeT; }, get scoped() { return S.scopeT > 0.93; },
     get zoomLevels() { return S.meta?.scope?.zoom.length || 0; },
     get current() { return S.id; }, get busy() { return act.on; }, get action() { return act.on ? act.name : (S.hidden ? 'hidden' : 'idle'); },

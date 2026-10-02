@@ -1,0 +1,10 @@
+import { open } from './lib.mjs';
+const [type='haze', vp='b', t='3', place='0,0.07,12'] = process.argv.slice(2);
+const g = await open({ params: 'test=1&seed=1&scene=utility-lab&labui=0', size: [1280, 720], wait: 180000 });
+const V = { a: [-8, 1.62, 22, -0.5, 0.1], b: [0, 1.62, 22, 0, 0.12], c: [6, 2.2, 21, 0.45, 0.05], d:[0,1.62,2.5,0,-0.02] }[vp];
+await g.game((game, v) => game.ctx.utilityLab.view(...v), V);
+const [x,y,z]=place.split(',').map(Number);
+await g.game((game, a) => game.ctx.combat.utility.debug.spawn(a[0], { x: a[1], y: a[2], z: a[3] }), [type,x,y,z]);
+await g.advance(+t); await g.page.screenshot({ path: `shots/utility/v_${type}_${vp}.png`, timeout: 120000 });
+console.log(JSON.stringify(await g.game((game)=>game.ctx.combat.utility.debug.state().smokes)));
+console.log((await g.errors()).filter(e=>!/ERR_CERT/.test(e)).slice(0,4)); await g.close();

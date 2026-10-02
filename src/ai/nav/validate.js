@@ -60,12 +60,47 @@ export function validatePaths(sys, opts = {}) {
       if (bad) break; prev = cur;
     }
     if (startClip) rep.startInWall++;
+    for (let k = 0; k + 2 < p.length; k++) if (p.flags[k] === 1) { let d = 0, hit = false; for (let q = k + 1; q < Math.min(p.length, k + 4); q++) { d += Math.hypot(p[q].x - p[q - 1].x, p[q].z - p[q - 1].z); if (p.flags[q] === 2 && d < 6 && Math.abs(p[q].y - p[k - (k > 0 ? 1 : 0)].y) < 0.4) { hit = true; break; } } if (hit) { rep.hopOvers = (rep.hopOvers || 0) + 1; break; } }
     const ratio = p.dist / Math.max(1e-3, Math.hypot(to.x - from.x, to.z - from.z)); if (ratio > rep.ratioMax && p.dist > 8) rep.ratioMax = ratio;
     if (bad) { rep.badPaths = (rep.badPaths || 0) + 1; (rep.badSamples = rep.badSamples || []).length < 3 && rep.badSamples.push({ from: from.toArray().map((v) => +v.toFixed(2)), to: to.toArray().map((v) => +v.toFixed(2)), path: p.map((q, k) => [+q.x.toFixed(2), +q.y.toFixed(2), +q.z.toFixed(2), p.flags[k]]) }); }
   }
   rep.ms = performance.now() - t0; rep.hash = hash >>> 0;
   rep.clean = rep.fail === 0 && !rep.badPaths;
   rep.avgPts = rep.points / Math.max(1, rep.ok); rep.avgLen = rep.dist / Math.max(1, rep.ok); rep.detour = rep.dist / Math.max(1, rep.straight);
-  rep.badPaths = rep.badPaths || 0;
+  rep.badPaths = rep.badPaths || 0; rep.hopOvers = rep.hopOvers || 0;
   return rep;
+}
+
+/** Fraction of standable spots (capsule fits, floor ok) within 3 m of the navgrid that have no node within 1 m. */
+export function coverageReport(sys, samples = 4000, seed = 3) {
+  const g = sys.g, cfg = sys.cfg, bvh = sys.bvh, rnd = mulberry32(seed * 977 + 1), b = g.bounds;
+  const hits = makeCapsule(bvh, { radius: 0.36, stepUp: cfg.stepUp, height: cfg.height });
+  const ray = new THREE.Ray(new THREE.Vector3(), new THREE.Vector3(0, -1, 0)); let tested = 0, miss = 0; const missAt = [];
+  for (let i = 0; i < samples * 6 && tested < samples; i++) {
+    const x = b.min.x + rnd() * (b.max.x - b.min.x), z = b.min.z + rnd() * (b.max.z - b.min.z);
+    const nn = g.nearest(x, 1, z, 3); if (nn < 0) continue;
+    let y = b.max.y + 0.5, found = null;
+    for (let k = 0; k < 8; k++) { ray.origin.set(x, y, z); const h = bvh.raycastFirst(ray, THREE.FrontSide, 0, y - b.min.y + 1); if (!h) break; const hy = y - h.distance; if (h.face.normal.y > 0.72 && Math.abs(hy - g.py[nn]) < 1.2 || (h.face.normal.y > 0.72 && g.nearest(x, hy, z, 3) >= 0 && Math.abs(g.py[g.nearest(x, hy, z, 3)] - hy) < 1.2)) { found = hy; break; } y = hy - 0.02; }
+    if (found === null || hits(x, found, z)) continue;
+    ray.origin.set(x, found + 0.05, z); ray.direction.set(0, 1, 0); const up = bvh.raycastFirst(ray, THREE.DoubleSide, 0, 1.8); ray.direction.set(0, -1, 0); if (up) continue;
+    tested++; const n = g.nearest(x, found, z, 1.0); if (n < 0 || Math.abs(g.py[n] - found) > 1.0) { miss++; if (missAt.length < 8) missAt.push([+x.toFixed(1), +found.toFixed(1), +z.toFixed(1)]); }
+  }
+  return { tested, miss, missRate: miss / Math.max(1, tested), missAt };
+}
+
+/** Timing of the tactical queries (wall clock, µs): coverPoints / holdSpots / holdAngles / visible. */
+export function tacticsBench(sys, calls = 150, seed = 11) {
+  const g = sys.g, T = sys.tactics, rnd = mulberry32(seed * 131 + 7), a = new THREE.Vector3(), b = new THREE.Vector3();
+  const stat = (arr) => { arr.sort((x, y) => x - y); return { avg: +(arr.reduce((s, x) => s + x, 0) / arr.length).toFixed(1), p95: +arr[Math.floor(arr.length * 0.95)].toFixed(1), max: +arr[arr.length - 1].toFixed(1) }; };
+  const out = {}; const t = { cover: [], hold: [], angles: [], vis: [], rand: [] };
+  for (let i = 0; i < calls; i++) {
+    g.nodePos(Math.floor(rnd() * g.N), a); let n2 = Math.floor(rnd() * g.N); g.nodePos(n2, b);
+    let t0 = performance.now(); T.coverPoints(a, b, 12, { max: 3 }); t.cover.push((performance.now() - t0) * 1000);
+    t0 = performance.now(); T.holdSpots(a, b, 14); t.hold.push((performance.now() - t0) * 1000);
+    t0 = performance.now(); T.holdAngles(a); t.angles.push((performance.now() - t0) * 1000);
+    t0 = performance.now(); T.visible(a, b); t.vis.push((performance.now() - t0) * 1000);
+    t0 = performance.now(); T.randomPointNear(a, 6); t.rand.push((performance.now() - t0) * 1000);
+  }
+  for (const k of Object.keys(t)) out[k] = stat(t[k]);
+  return out;
 }

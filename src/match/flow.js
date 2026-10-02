@@ -170,6 +170,8 @@ export function createMatch(ctx, o = {}) {
   }
   env.syncOwned = syncOwned;
 
+  /** put the human back into play mode (leaves spectate / free cam / death cam) */
+  function respawnPlayer(pos, yaw) { safe('player.respawn', () => ctx.player?.respawn?.({ pos, yaw })); }
   function resetActor(a, wipe) {
     const s = ms(a), wasAlive = a.alive;
     if (wasAlive) syncOwned(a);
@@ -179,6 +181,7 @@ export function createMatch(ctx, o = {}) {
     else { const c = C(); if (c?.resetLoadout) safe('combat.reset', () => c.resetLoadout(a, { keepWeapons: true })); }
     s.lastBuy = s.bought.map((b) => b.id); s.round = freshRound(); s.bought.length = 0; s.useUntil = -1; s.outRound = 0; s.deadAt = -1; s.survived = true;
     a.pos.copy(s.spawn); a.yaw = s.spawnYaw;
+    if (a === ctx.localActor) respawnPlayer(s.spawn, s.spawnYaw);
     safe('characters.revive', () => { if (ctx.characters?.revive) ctx.characters.revive(a); else ctx.characters?.setVisible?.(a, true); });
     emit('actor:respawn', { actor: a });
   }
@@ -415,7 +418,7 @@ export function createMatch(ctx, o = {}) {
   function setSpectate(a) {
     if (M.spectating === a) return;
     M.spectating = a;
-    if (TUNE.spectate) safe('player.spectate', () => ctx.player?.spectate?.(a));
+    if (TUNE.spectate && (a || (local() && !local().alive))) safe('player.spectate', () => ctx.player?.spectate?.(a));
     emit('spectate', { actor: a });
   }
   function nextAlive(from, dir = 1) {
@@ -463,6 +466,7 @@ export function createMatch(ctx, o = {}) {
         if (M.clock - s.deadAt >= TUNE.warmupRespawn) {
           const l = spawnList(a.team); const sp = l[rint(0, l.length - 1)];
           a.alive = true; a.tagged = false; a.hp = 100; a.pos.copy(sp.pos); a.yaw = sp.yaw; a.vel.set(0, 0, 0); s.deadAt = -1;
+          if (a === ctx.localActor) respawnPlayer(sp.pos, sp.yaw);
           safe('characters.revive', () => ctx.characters?.revive?.(a)); emit('actor:respawn', { actor: a });
         }
       }

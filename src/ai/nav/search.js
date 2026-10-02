@@ -20,12 +20,17 @@ export class Searcher {
   begin(start, goal, weight = 1.1, danger = null, dangerW = 0) {
     const g = this.g; this.gen++; if (this.gen > 4e9) { this.stamp.fill(0); this.gen = 1; }
     this.start = start; this.goal = goal; this.weight = weight; this.danger = danger; this.dangerW = dangerW;
-    this.gx = g.px[goal]; this.gy = g.py[goal]; this.gz = g.pz[goal]; this.hn = 0; this.expanded = 0; this.done = false; this.found = false;
+    this.gx = g.px[goal]; this.gy = g.py[goal]; this.gz = g.pz[goal]; this.hn = 0;
+    this.alt = g.alt || null; if (this.alt) { const K = this.alt.k; if (!this.gF) { this.gF = new Float32Array(K); this.gB = new Float32Array(K); } for (let l = 0; l < K; l++) { this.gF[l] = this.alt.F[goal * K + l]; this.gB[l] = this.alt.B[goal * K + l]; } } this.expanded = 0; this.done = false; this.found = false;
     this.stamp[start] = this.gen; this.gs[start] = 0; this.par[start] = -1; this.plink[start] = 0; this.closed[start] = 0;
     this.fs[start] = weight * this._h(start); this._push(start);
     if (start === goal) { this.done = true; this.found = true; }
   }
-  _h(n) { const g = this.g; const dx = g.px[n] - this.gx, dy = g.py[n] - this.gy, dz = g.pz[n] - this.gz; return Math.sqrt(dx * dx + dy * dy + dz * dz); }
+  _h(n) {
+    const g = this.g; const dx = g.px[n] - this.gx, dy = g.py[n] - this.gy, dz = g.pz[n] - this.gz; let h = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const alt = this.alt; if (alt) { const K = alt.k, F = alt.F, B = alt.B, gF = this.gF, gB = this.gB, o = n * K; for (let l = 0; l < K; l++) { const a = gF[l] - F[o + l], b = B[o + l] - gB[l]; if (a > h) h = a; if (b > h) h = b; } }
+    return h;
+  }
   /** Run up to maxExp expansions. Returns true when finished (check .found). */
   step(maxExp) {
     if (this.done) return true;

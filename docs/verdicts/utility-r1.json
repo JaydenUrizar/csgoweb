@@ -1,0 +1,25 @@
+{"piece":"utility","round":1,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"Haze in the open at 4 s (l_haze_open_4) vs CS2 t4_009. CS2's smoke billows around and over the crates with soft wispy edges and real light and shade. Ours is a tight round cotton-ball blob, about 7 m wide, with a hard outline and a repeating 'bubble-wrap' puff texture. It does not wrap around nearby props."},
+ {"pair":2,"picked":"ref","truth":"ref","why":"Shooting through smoke (m_punch01, 5 shots via weapon:fire) vs CS2 t4_024. In CS2 the tracer visibly cuts through the smoke. Ours shows only a small ring-shaped dent on the near surface and the far side stays fully opaque, so the target behind it is invisible."},
+ {"pair":3,"picked":"ref","truth":"ref","why":"Pulse at 0.15 s (l_pulse_0.15) vs CS2 HE t2_036. CS2 has a punchy fireball with debris and dust. Ours is an overexposed white glow with a pale hex dome, low contrast on a beige floor. It has no ground dust or debris and looks like a flashbang."}],
+"winner_overall":"ref","score":5.8,
+"biggest_gap":"What the smoke shows and what blocksLine reports do not match after bullets pass through it. Repro: utility-lab, spawn haze at (0,0.07,14), wait 3 s, place actor B at (1.5,0,9), stand at eye (-0.5,1.62,21) and emit 5 'weapon:fire' events aimed at B. opticalDepth drops from 6.6 to 0.00 and blocksLine is false at 0.1 s and still 0.01 / false at 0.6 s. On screen (m_punch01/m_punch06) the smoke is still fully opaque, with only a ~0.5 m ring dent on the near side, and B cannot be seen. Bots use blocksLine for LOS (ai/nav/tactics.js), so anyone spraying into a smoke gives bots a clear sightline for about 1.9 s that the player never sees. In CS2 (t4_024) the bullet makes a visible see-through tunnel. Fix: carve the rendered puffs from the same wake field so they thin along the shot line, or keep blocksLine true until the wake is visibly open. Add a test that compares a screen-space sample through the hole with opticalDepth.",
+"other_gaps":[
+ "Haze look: a single 'cauliflower' of identical round puffs with a crisp outline and visible sphere edges, too small and round (radius 3.6 m). It looks the same at 4 s and 12 s. It needs wispy, noise-broken edges, a lower and wider dome, flow around props, and visible billowing over time.",
+ "The haze ignores scene lighting. In the real map at Ember spawn (r_smoke_side) it is pure white and almost glowing in a shaded alley. CS2 smoke picks up ambient and shadow and goes grey in shade.",
+ "Pulse reads as a second flashbang. At 5 m it washes the whole screen white (r_pulse) and its hue is the same as Strobe's. Give it its own colour, ground dust and debris, and a shorter, more contained flash.",
+ "The trajectory preview is weak. In the lab (l_preview) the arc is barely visible. In the map (r_hold) it is a 1 px dotted vertical line, with no landing ring visible against the wall.",
+ "In the lab, a corridor smoke fills only about 4 m each way (density grid z -10..-2 for a pop at z -6), not the ~8 m each way the docs claim. Render and density do follow each other.",
+ "Grenades that leave the map fall forever (y = -736 after 20 s, rest=false). There is no kill plane or despawn."],
+"bugs":[
+ "blocksLine/opticalDepth report a line through a bullet wake as clear while the rendered smoke is still opaque, so bots see through smoke the player cannot (see biggest_gap).",
+ "tools/utility_test.mjs --quick crashes on a 30 s page.screenshot timeout after 'haze gone after ~18 s' (SwiftShader), so the builder's 27-assertion suite never finishes and the strobe/pulse/console-error checks never run.",
+ "Thrown grenades with no in-world floor below never stop falling (u.debug.state shows them alive at y -700)."],
+"strengths":[
+ "Throw physics are solid and deterministic. A point-blank wall throw, straight down, into the ceiling, onto stairs, onto the ramp and into a thin half-wall all came to rest correctly. In 200 random throws, none tunnelled through a wall.",
+ "The flood-fill keeps smoke inside the corridor (density does not leak through walls). Being inside the smoke gives a full grey murk. Smoke blocks feet, chest, head and over-the-top lines.",
+ "Strobe works well: full white for about 1 s, then a blurred afterimage fades out by about 3.4 s. Strength falls off sensibly with facing angle (0.98 facing, 0.46 at 90 deg, 0.15 behind). Walls block it, and so does smoke.",
+ "The throw viewmodel works in the real map: slot 4 shows the grenade, the swing and release play, the HUD count goes down, and the previous weapon comes back. Sounds are bound for pin, throw, bounce, pop, hiss, ring and boom.",
+ "Cheap to run: no extra draw calls with smoke (184 vs 185), about 1100 cells / 192 puffs, and no console errors in the lab or the map."],
+"pass":false}

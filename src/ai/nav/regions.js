@@ -41,7 +41,11 @@ export function normaliseCallouts(list) {
   return out;
 }
 
-export function buildRegions(g, calloutsIn, cfg) {
+/** Synchronous wrapper. */
+export function buildRegions(g, calloutsIn, cfg) { const it = buildRegionsGen(g, calloutsIn, cfg, Infinity); while (!it.next().done); return g.areas; }
+/** Generator version: yields roughly every budgetMs of work. */
+export function* buildRegionsGen(g, calloutsIn, cfg, budgetMs = 3) {
+  let tS = performance.now(); const due = () => performance.now() - tS >= budgetMs;
   const N = g.N, callouts = normaliseCallouts(calloutsIn);
   const region = new Int16Array(N).fill(-1), dist = new Float64Array(N).fill(Infinity), eff = new Float64Array(N).fill(Infinity);
   const areas = []; const heap = new MinHeap(4096);
@@ -56,7 +60,9 @@ export function buildRegions(g, calloutsIn, cfg) {
     seedR[id] = c.r; if (eff[node] > 0) { eff[node] = 0; dist[node] = 0; region[node] = id; heap.push(0, node); }
   }
   // weighted Dijkstra: effective cost scaled by 8/radius so big callouts claim more
+  let spin = 0;
   while (heap.n) {
+    if ((++spin & 1023) === 0 && due()) { yield 0; tS = performance.now(); }
     const u = heap.pop(), key = heap.popKey; if (key > eff[u] + 1e-6) continue;
     const id = region[u], sc = 8 / seedR[id];
     const relax = (v, len) => { const d = dist[u] + len, e = eff[u] + len * sc; if (e < eff[v]) { eff[v] = e; dist[v] = d; region[v] = id; heap.push(e, v); } };
@@ -79,6 +85,7 @@ export function buildRegions(g, calloutsIn, cfg) {
   relaxD();
   let zone = 0, unclaimed = 0; for (let i = 0; i < N; i++) if (region[i] < 0) unclaimed++;
   while (unclaimed > 0) {
+    if (due()) { yield 0; tS = performance.now(); }
     let s = -1, bd = -1; for (let i = 0; i < N; i++) if (region[i] < 0) { const d = D[i] === Infinity ? 1e9 : D[i]; if (d > bd) { bd = d; s = i; } }
     const id = areas.length; areas.push({ id, name: 'Zone ' + (++zone), x: g.px[s], z: g.pz[s], y: g.py[s], seed: s, callout: false, r: R, count: 0 });
     const d2 = new Map(), claimed = [s]; heap.clear(); heap.push(0, s); d2.set(s, 0); region[s] = id; unclaimed--;
@@ -96,6 +103,7 @@ export function buildRegions(g, calloutsIn, cfg) {
     const cnt = new Int32Array(areas.length); for (let i = 0; i < N; i++) cnt[region[i]]++;
     let merged = false;
     for (const a of areas) {
+      if (due()) { yield 0; tS = performance.now(); }
       if (a.callout || cnt[a.id] === 0 || cnt[a.id] >= minNodes) continue;
       const border = new Map();
       for (let i = 0; i < N; i++) if (region[i] === a.id) for (let k = 0; k < 8; k += 2) { const v = nb[i * 8 + k]; if (v >= 0 && region[v] !== a.id) border.set(region[v], (border.get(region[v]) || 0) + 1); }

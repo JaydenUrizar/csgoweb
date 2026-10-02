@@ -1,5 +1,5 @@
 // All menu CSS (injected once). Prefix .fx-. Scales with viewport via the root font-size clamp (1024x600 .. 4K).
-export const FONT_LINK = 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700;1,800&family=Barlow:wght@400;500;600&display=swap';
+
 
 export const CSS = /* css */ `
 #ui > .fx{position:absolute;inset:0;pointer-events:none;overflow:clip;
@@ -8,7 +8,7 @@ export const CSS = /* css */ `
   --ink:#04060b;--glass:rgba(12,15,22,.72);--glass2:rgba(8,10,16,.9);--panel:rgba(20,25,35,.62);
   --line:rgba(255,255,255,.085);--line2:rgba(255,255,255,.2);--txt:#eaf0f8;--dim:#93a0b6;--mute:#5f6b7f;--ok:#6dff9a;--bad:#ff5d6c;
   --disp:'Barlow Condensed','Roboto Condensed','Arial Narrow','Liberation Sans Narrow','Helvetica Neue',Arial,sans-serif;
-  --body:'Barlow','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --body:'Barlow Condensed','Barlow','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
   --ease:cubic-bezier(.2,.8,.2,1);
   font:500 1rem/1.3 var(--body);color:var(--txt);font-size:clamp(11px,min(1.02vw,1.85vh),40px);
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;letter-spacing:.01em;cursor:default}
@@ -56,7 +56,7 @@ button.fx-chip:hover{border-color:var(--line2);color:var(--txt);background:rgba(
 .fx-ico:hover{color:#fff;border-color:rgba(var(--acc-rgb),.6);background:rgba(var(--acc-rgb),.16);transform:translateY(-1px)}
 .fx-avatar{width:1.5rem;height:1.5rem;border-radius:50%;background:conic-gradient(from 200deg,var(--ember),var(--tide),var(--ember));box-shadow:0 0 0 1px rgba(255,255,255,.3) inset}
 .fx-foot{position:absolute;left:0;right:0;bottom:0;height:3.4rem;display:flex;align-items:center;gap:1.6rem;padding:0 2.6rem;font:600 .86rem var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);pointer-events:none}
-.fx-foot .tip{color:var(--dim);letter-spacing:.06em;font:500 .95rem var(--body);text-transform:none;transition:opacity .4s}
+.fx-foot .tip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%;color:var(--dim);letter-spacing:.06em;font:500 .95rem var(--body);text-transform:none;transition:opacity .4s}
 .fx-foot .tip b{color:var(--acc);font:700 .82rem var(--disp);letter-spacing:.16em;margin-right:.6rem}
 .fx-hint{display:inline-flex;align-items:center;gap:.5rem}
 .fx-key{display:inline-grid;place-items:center;min-width:1.7em;height:1.7em;padding:0 .45em;border:1px solid var(--line2);border-bottom-width:2px;border-radius:3px;background:rgba(255,255,255,.06);font:700 .82em/1 var(--disp);letter-spacing:.06em;color:var(--txt);text-transform:uppercase;white-space:nowrap}
@@ -239,7 +239,7 @@ button.fx-chip:hover{border-color:var(--line2);color:var(--txt);background:rgba(
 /* crosshair designer */
 .fx-xh{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:2.2rem;align-items:start}
 .fx-xh-prev{position:sticky;top:0}
-.fx-xh-view{position:relative;width:100%;aspect-ratio:4/3;border:1px solid var(--line2);border-radius:3px;overflow:hidden;background:#222}
+.fx-xh-view{position:relative;width:100%;aspect-ratio:16/10;border:1px solid var(--line2);border-radius:3px;overflow:hidden;background:#222}
 .fx-xh-view canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .fx-xh-view .cap{position:absolute;left:.7rem;top:.6rem;font:700 .74rem var(--disp);letter-spacing:.2em;color:rgba(255,255,255,.75);text-shadow:0 1px 3px rgba(0,0,0,.8);text-transform:uppercase}
 .fx-xh-bg{display:flex;gap:.4rem;margin-top:.7rem;flex-wrap:wrap}
@@ -250,7 +250,7 @@ button.fx-chip:hover{border-color:var(--line2);color:var(--txt);background:rgba(
 .fx-sw button{width:1.7rem;height:1.7rem;border-radius:2px;border:2px solid rgba(255,255,255,.15);background:var(--c);transition:transform .12s var(--ease),border-color .12s}
 .fx-sw button:hover{transform:scale(1.15)}
 .fx-sw button.on{border-color:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.6),0 0 .8rem var(--c)}
-.fx-hue{-webkit-appearance:none;appearance:none;width:100%;height:.7rem;border-radius:.4rem;background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);cursor:pointer;margin:0}
+.fx-hue{-webkit-appearance:none;appearance:none;flex:1;min-width:7rem;width:100%;height:.7rem;border-radius:.4rem;background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);cursor:pointer;margin:0}
 .fx-hue::-webkit-slider-thumb{-webkit-appearance:none;width:.9rem;height:1.3rem;border-radius:2px;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.55)}
 .fx-hue::-moz-range-thumb{width:.9rem;height:1.3rem;border-radius:2px;background:#fff;border:0}
 .fx-vmprev{position:relative;width:100%;aspect-ratio:16/9;border:1px solid var(--line2);border-radius:3px;overflow:hidden;background:linear-gradient(180deg,#3a5a7a,#b9a27c 58%,#7d6a4c)}
@@ -273,7 +273,7 @@ button.fx-chip:hover{border-color:var(--line2);color:var(--txt);background:rgba(
 .fx-cred small{display:block;margin-top:.3rem;font:500 .92rem/1.5 var(--body);color:var(--mute);letter-spacing:.02em}
 
 /* ---------- pause / end / overlays ---------- */
-.fx-pause .fx-pbox{position:absolute;left:50%;top:50%;translate:-50% -50%;width:27rem;padding:1.9rem 1.9rem 1.7rem}
+.fx-pause .fx-pbox{position:absolute;left:50%;top:50%;translate:-50% -50%;width:29rem;padding:1.9rem 1.9rem 1.7rem}
 .fx-pause .ttl{font:800 2.6rem/1 var(--disp);letter-spacing:.18em;text-transform:uppercase;text-align:center;margin-bottom:.25rem}
 .fx-pause .sub{text-align:center;font:600 .9rem var(--disp);letter-spacing:.3em;text-transform:uppercase;color:var(--dim);margin-bottom:1.6rem}
 .fx-pause .list{display:flex;flex-direction:column;gap:.5rem}
@@ -283,6 +283,9 @@ button.fx-chip:hover{border-color:var(--line2);color:var(--txt);background:rgba(
 .fx-pb.pri:hover{filter:brightness(1.1);transform:translateX(3px)}
 .fx-pb.danger:hover,.fx-pb.danger:focus-visible{border-color:var(--bad);background:rgba(255,93,108,.18)}
 .fx-pb .fx-key{font-size:.62em}
+.fx-quick{margin-top:1.1rem;padding-top:.9rem;border-top:1px solid var(--line)}
+.fx-quick .qr{display:flex;align-items:center;gap:.8rem;height:2.2rem;font:700 .86rem var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.fx-quick .qr>span{flex:0 0 8rem}.fx-quick .fx-sl{max-width:none}.fx-quick .fx-val{flex:0 0 3.4rem;font-size:1.05rem}
 .fx-pause .foot{margin-top:1.2rem;text-align:center;font:600 .82rem var(--disp);letter-spacing:.16em;color:var(--mute);text-transform:uppercase}
 .fx-pause .lost{margin:-.6rem 0 1.2rem;text-align:center;font:500 .92rem var(--body);color:var(--dim)}
 .fx-confirm{position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,5,10,.7);backdrop-filter:blur(3px);z-index:5}
@@ -320,7 +323,7 @@ button.fx-chip:hover{border-color:var(--line2);color:var(--txt);background:rgba(
 .fx-end .fx-eact .fx-go{width:18rem;margin:0;height:4rem;font-size:1.7rem}
 .fx-end .fx-eact .fx-btn{height:4rem;padding:0 2rem;font-size:1.2rem}
 
-.fx-tut{position:absolute;left:50%;top:5.2rem;translate:-50% 0;width:29rem;padding:1.05rem 1.2rem 1rem;pointer-events:none}
+.fx-tut{position:absolute;left:1.8rem;top:calc(50% - 8rem);width:23rem;padding:1.05rem 1.2rem 1rem;pointer-events:none}
 .fx-tut .hd{display:flex;align-items:center;gap:.7rem;font:800 .78rem var(--disp);letter-spacing:.26em;text-transform:uppercase;color:var(--acc)}
 .fx-tut .hd .st{margin-left:auto;display:flex;gap:.25rem}.fx-tut .hd .st i{width:1.3rem;height:3px;background:rgba(255,255,255,.16);transition:background .3s}.fx-tut .hd .st i.d{background:var(--acc)}.fx-tut .hd .st i.c{background:#fff}
 .fx-tut h4{margin:.5rem 0 .25rem;font:800 1.55rem/1 var(--disp);letter-spacing:.08em;text-transform:uppercase}
@@ -338,8 +341,8 @@ button.fx-chip:hover{border-color:var(--line2);color:var(--txt);background:rgba(
 .fx-toast{position:absolute;left:50%;bottom:5.6rem;translate:-50% 0;padding:.7rem 1.3rem;border:1px solid var(--line2);background:rgba(10,13,20,.9);backdrop-filter:blur(8px);border-radius:2px;font:700 1rem var(--disp);letter-spacing:.14em;text-transform:uppercase;pointer-events:none;opacity:0;transform:translateY(8px);transition:all .3s var(--ease)}
 .fx-toast.on{opacity:1;transform:none}
 .fx-fps{position:absolute;right:1rem;top:.7rem;padding:.25rem .6rem;font:700 .92rem var(--disp);letter-spacing:.1em;color:#cfe;background:rgba(0,0,0,.45);border-radius:2px;font-variant-numeric:tabular-nums;pointer-events:none}
-.fx-wipe{position:absolute;inset:0;background:#04060b;opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:20;display:grid;place-items:center}
-.fx-wipe.on{opacity:1;pointer-events:auto}
+.fx-wipe{position:absolute;inset:0;background:#04060b;opacity:0;pointer-events:none;transition:opacity .55s ease;z-index:20;display:grid;place-items:center}
+.fx-wipe.on{opacity:1;pointer-events:auto;transition-duration:.12s}
 .fx-wipe .msg{font:800 1.2rem var(--disp);letter-spacing:.42em;color:var(--dim);text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:1.1rem}
 .fx-wipe .bar{width:16rem;height:3px;background:rgba(255,255,255,.1);overflow:hidden}.fx-wipe .bar i{display:block;height:100%;width:40%;background:linear-gradient(90deg,var(--ember),var(--tide));animation:fxInd 1s ease-in-out infinite}
 @keyframes fxInd{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}

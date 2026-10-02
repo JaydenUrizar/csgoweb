@@ -1,7 +1,7 @@
 {
- "updated": "2026-10-02T01:29:37.760Z",
- "wave": 1,
- "phase": "Builders fan out — 14 pieces built in parallel",
+ "updated": "2026-10-02T06:28:18.715Z",
+ "wave": 2,
+ "phase": "Integration pass — one fresh agent plays the whole game and unifies it",
  "pieces": [
   {
    "id": "render",
@@ -45,12 +45,20 @@
    "id": "nav",
    "name": "Navigation & pathing",
    "group": "ai",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:54.568Z"
+   "status": "building",
+   "round": 2,
+   "score": 6.8,
+   "gap": "Tactical and path query cost tails will stall the main thread. On the real map (load avg ~28 on 4 cores) holdSpots(A site, toward Long Ramp, 12) took 176 ms and holdSpots(B, toward Tunnel Mouth) 350 ms per call. coverPoints took 5",
+   "history": [
+    {
+     "t": "2026-10-02T06:28:18.336Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 6.8,
+     "gap": "Tactical and path query cost tails will stall the main thread. On the real map (load avg ~28 on 4 cores) holdSpots(A site, toward Long Ramp, 12) took 176 ms and holdSpots(B, toward Tunnel Mouth) 350 ms per call. coverPoints took 5"
+    }
+   ],
+   "updated": "2026-10-02T06:28:18.336Z"
   },
   {
    "id": "move",
@@ -94,24 +102,40 @@
    "id": "viewmodel",
    "name": "First-person viewmodels & animation",
    "group": "feel",
-   "status": "queued",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:55.268Z",
+   "status": "building",
+   "round": 2,
+   "score": 4.8,
+   "gap": "Weapon silhouettes/finish read as stacked boxes with a skin that destroys form. Repro: ?test=1&seed=1&match=1&phase=live, give arc/rail/halo/lance/scatter/storm (shots/critic-viewmodel/g_sheet1.png, g_sheet2.png). The default in-m",
+   "history": [
+    {
+     "t": "2026-10-02T06:28:18.606Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 4.8,
+     "gap": "Weapon silhouettes/finish read as stacked boxes with a skin that destroys form. Repro: ?test=1&seed=1&match=1&phase=live, give arc/rail/halo/lance/scatter/storm (shots/critic-viewmodel/g_sheet1.png, g_sheet2.png). The default in-m"
+    }
+   ],
+   "updated": "2026-10-02T06:28:18.607Z",
    "note": "Builder was stopped mid-work; awaiting go-ahead to relaunch"
   },
   {
    "id": "utility",
    "name": "Utility (Haze / Strobe / Pulse)",
    "group": "feel",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:54.754Z"
+   "status": "building",
+   "round": 2,
+   "score": 5.8,
+   "gap": "What the smoke shows and what blocksLine reports do not match after bullets pass through it. Repro: utility-lab, spawn haze at (0,0.07,14), wait 3 s, place actor B at (1.5,0,9), stand at eye (-0.5,1.62,21) and emit 5 'weapon:fire'",
+   "history": [
+    {
+     "t": "2026-10-02T06:28:18.405Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 5.8,
+     "gap": "What the smoke shows and what blocksLine reports do not match after bullets pass through it. Repro: utility-lab, spawn haze at (0,0.07,14), wait 3 s, place actor B at (1.5,0,9), stand at eye (-0.5,1.62,21) and emit 5 'weapon:fire'"
+    }
+   ],
+   "updated": "2026-10-02T06:28:18.406Z"
   },
   {
    "id": "avatars",
@@ -136,12 +160,20 @@
    "id": "cosmetics",
    "name": "Cosmetics & locker",
    "group": "look",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:54.884Z"
+   "status": "building",
+   "round": 2,
+   "score": 5.8,
+   "gap": "The locker preview is not what you get in game. The preview is a stand-in blocky rig with the raw suit colours. In game, characters.refreshCosmetics recolours the suit to the team: an Ember player who equips Neon Drift Skin (shown",
+   "history": [
+    {
+     "t": "2026-10-02T06:28:18.472Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 5.8,
+     "gap": "The locker preview is not what you get in game. The preview is a stand-in blocky rig with the raw suit colours. In game, characters.refreshCosmetics recolours the suit to the team: an Ember player who equips Neon Drift Skin (shown"
+    }
+   ],
+   "updated": "2026-10-02T06:28:18.472Z"
   },
   {
    "id": "vfx",
@@ -185,11 +217,12 @@
    "id": "bots",
    "name": "Bot AI",
    "group": "ai",
-   "status": "queued",
-   "round": 0,
+   "status": "judging",
+   "round": 1,
    "score": 0,
    "gap": "",
-   "history": []
+   "history": [],
+   "updated": "2026-10-02T06:28:18.658Z"
   },
   {
    "id": "flow",
@@ -233,12 +266,20 @@
    "id": "menu",
    "name": "Menus, settings & onboarding",
    "group": "ui",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:55.206Z"
+   "status": "building",
+   "round": 2,
+   "score": 6.6,
+   "gap": "Every in-match overlay (pause, settings-from-pause, F1 cheat-sheet, tutorial card) renders BELOW the HUD. Repro: normal URL -> Play -> Esc (or pointer unlock) -> Settings; or press F1 in game. The radar, scorebar, round banner/kil",
+   "history": [
+    {
+     "t": "2026-10-02T06:28:18.542Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 6.6,
+     "gap": "Every in-match overlay (pause, settings-from-pause, F1 cheat-sheet, tutorial card) renders BELOW the HUD. Repro: normal URL -> Play -> Esc (or pointer unlock) -> Settings; or press F1 in game. The radar, scorebar, round banner/kil"
+    }
+   ],
+   "updated": "2026-10-02T06:28:18.542Z"
   },
   {
    "id": "perf",
@@ -252,6 +293,11 @@
   }
  ],
  "log": [
+  {
+   "t": "2026-10-02T06:28:18.715Z",
+   "text": "WAVE 2 — Integration pass — one fresh agent plays the whole game and unifies it",
+   "kind": "wave"
+  },
   {
    "t": "2026-10-02T01:29:37.759Z",
    "text": "Round 1 blind critics: all 9 judged pieces failed (5.2–7.3/10). Builders sent back in with each critic's biggest gap.",

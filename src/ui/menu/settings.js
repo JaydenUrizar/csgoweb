@@ -83,8 +83,7 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
       row('Sensitivity', 'Counter-Strike scale — same feel as your CS2 sens', R(sens), { tall: true }),
       row('Mouse DPI', 'Your mouse\'s hardware DPI, for eDPI & cm/360', R(dpiBox)),
       h('div', { class: 'fx-row', style: { borderBottom: 0 } }, h('div', { class: 'lb' }, h('b', null, 'Readout')), h('div', { class: 'ct', style: { justifyContent: 'flex-start' } }, readout)),
-      row('Invert Y', null, R(kit.toggle({ get: () => get('invertY'), set: (v) => put('invertY', v), label: 'Invert Y' }))),
-      row('Raw input', 'Bypass OS pointer acceleration (recommended)', R(kit.toggle({ get: () => get('rawInput'), set: (v) => put('rawInput', v), label: 'Raw input' })))),
+      row('Invert Y', null, R(kit.toggle({ get: () => get('invertY'), set: (v) => put('invertY', v), label: 'Invert Y' })))),
     group('View', row('Field of view', 'Horizontal field of view', R(kit.slider({ min: 80, max: 120, step: 1, def: 100, ticks: [90, 100, 110], get: () => get('fov'), set: (v) => put('fov', v), fmt: (v) => v, unit: '°', label: 'Field of view' })))),
     group('Movement', row('Toggle crouch', 'Press once to crouch, again to stand', R(kit.toggle({ get: () => get('crouchToggle'), set: (v) => put('crouchToggle', v), label: 'Toggle crouch' }))), row('Head bob', 'Camera bob while running', R(kit.slider({ min: 0, max: 1.5, step: .05, def: 1, get: () => get('headBob'), set: (v) => put('headBob', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'Head bob' }))), row('Auto bunny-hop', 'Hold jump to keep hopping', R(kit.toggle({ get: () => get('autoBhop'), set: (v) => put('autoBhop', v), label: 'Auto bunny hop' })))),
     ...BIND_GROUPS.map(([t, l]) => h('section', { class: 'fx-grp' }, h('h3', null, t + ' keys'), h('div', { class: 'fx-keys' }, l.map(keyRow)))),
@@ -102,12 +101,9 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
   const paintFs = () => { fsBtn.textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Enter fullscreen'; };
   refreshers.push(paintFs);
   const video = () => h('div', null,
-    group('Quality', h('div', { class: 'fx-row', style: { borderBottom: 0, paddingTop: '.8rem' } }, qc),
-      row('Resolution scale', 'Render below native to gain FPS', h('div', { style: { display: 'contents' } }, R(kit.slider({ min: 50, max: 100, step: 5, def: 100, get: () => get('resolutionScale'), set: (v) => { put('resolutionScale', v); ctx.render?.setResolutionScale?.(v / 100); resPaint(); }, fmt: (v) => v, unit: '%', label: 'Resolution scale' }))))),
-    h('div', { class: 'fx-note', style: { marginTop: '-1rem', marginBottom: '1.6rem' } }, 'Rendering at ', resVal),
+    group('Quality', h('div', { class: 'fx-row', style: { borderBottom: 0, paddingTop: '.8rem' } }, qc)),
     group('Display', row('Fullscreen', 'Or press F11', fsBtn), row('Show FPS', 'Small counter, top right', R(kit.toggle({ get: () => get('showFps'), set: (v) => put('showFps', v), label: 'Show FPS' })))),
     group('Effects',
-      row('Motion blur', 'Off by default — competitive clarity', R(kit.toggle({ get: () => get('motionBlur'), set: (v) => { put('motionBlur', v); ctx.render?.screen?.setMotionBlur?.(v); }, label: 'Motion blur' }))),
       row('Screen shake', 'Camera shake on impacts and pulses', R(kit.slider({ min: 0, max: 1, step: .05, def: 1, get: () => get('screenShake'), set: (v) => put('screenShake', v), fmt: (v) => Math.round(v * 100), unit: '%', label: 'Screen shake' })))),
     group('Accessibility', row('Colour-blind mode', 'Re-maps team & effect colours', R(kit.pills([['off', 'Off'], ['deut', 'Deuter.'], ['prot', 'Protan.'], ['trit', 'Tritan.']], { get: () => get('colorblind'), set: (v) => { put('colorblind', v); ctx.render?.setColorblind?.(v); } })))));
 
@@ -156,8 +152,8 @@ export function createSettingsUI(ctx, { toast, onClose, sfxTone }) {
 
   // ---------------- shell ----------------
   const TABS = [
-    { id: 'controls', label: 'Controls', icon: ICON.keyboard, build: controls, reset: ['sensitivity', 'invertY', 'rawInput', 'fov', 'mouseDpi', 'autoBhop', 'crouchToggle', 'headBob', 'keybinds'] },
-    { id: 'video', label: 'Video', icon: ICON.monitor, build: video, reset: ['quality', 'resolutionScale', 'showFps', 'motionBlur', 'screenShake', 'colorblind'] },
+    { id: 'controls', label: 'Controls', icon: ICON.keyboard, build: controls, reset: ['sensitivity', 'invertY', 'fov', 'mouseDpi', 'autoBhop', 'crouchToggle', 'headBob', 'keybinds'] },
+    { id: 'video', label: 'Video', icon: ICON.monitor, build: video, reset: ['quality', 'showFps', 'screenShake', 'colorblind'] },
     { id: 'audio', label: 'Audio', icon: ICON.speaker, build: audio, reset: ['volume', 'sfxVolume', 'musicVolume', 'voiceVolume'] },
     { id: 'crosshair', label: 'Crosshair', icon: ICON.cross, build: () => xh.el, reset: ['crosshair'] },
     { id: 'viewmodel', label: 'Viewmodel & HUD', icon: ICON.gun, build: viewmodel, reset: ['viewmodel', 'hudScale'] },

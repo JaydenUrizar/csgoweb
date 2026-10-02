@@ -1,9 +1,8 @@
 // Model builder: turns tagger definitions (see m_*.js) into THREE groups with movable parts, gauge segments and anchors.
 import * as THREE from 'three';
-import { Part, toGeometries, S } from './geo.js';
-import { MatSet } from './mats.js';
+import { Part, S } from './geo.js';
+import { MatSet, MAT_ID } from './mats.js';
 
-const gaugeGeo = new THREE.BoxGeometry(1, 1, 1);
 const DEG = Math.PI / 180;
 
 export class Builder {
@@ -29,35 +28,57 @@ export class Builder {
   }
 }
 
-/** Build the runtime model. Returns { root, parts:{name:Group}, pivots, gauge:{segs:[Mesh]}, mats, meta, anchors }. */
-export function makeModel(id, defFn, { world = false, geomCache = null } = {}) {
+const GAUGE_KEY = /^g\d+$/;
+/** Merge all of a part's per-material triangles into ONE opaque geometry (per-vertex sub-material id `aMat`) + one glass geometry. */
+export function mergePart(part) {
+  const op = { pos: [], nor: [], col: [], uv: [], id: [] }, gl = { pos: [], nor: [], col: [], uv: [] }, gauge = {};
+  let vtx = 0;
+  for (const [key, t] of part.mats) {
+    if (!t.count) continue;
+    if (key === 'glass') { gl.pos.push(...t.pos); gl.nor.push(...t.nor); gl.col.push(...t.col); gl.uv.push(...t.uv); continue; }
+    const id = GAUGE_KEY.test(key) ? MAT_ID.core : (MAT_ID[key] ?? MAT_ID.body), n = t.count * 3;
+    for (let i = 0; i < t.pos.length; i++) op.pos.push(t.pos[i]);
+    for (let i = 0; i < t.nor.length; i++) op.nor.push(t.nor[i]);
+    for (let i = 0; i < t.col.length; i++) op.col.push(t.col[i]);
+    for (let i = 0; i < t.uv.length; i++) op.uv.push(t.uv[i]);
+    for (let i = 0; i < n; i++) op.id.push(id);
+    if (GAUGE_KEY.test(key)) gauge[+key.slice(1)] = { start: vtx, count: n };
+    vtx += n;
+  }
+  const mk = (o, withId) => {
+    if (!o.pos.length) return null;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(o.pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(o.nor, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(o.col, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(o.uv, 2));
+    if (withId) g.setAttribute('aMat', new THREE.Float32BufferAttribute(o.id, 1));
+    g.computeBoundingSphere(); return g;
+  };
+  return { opaque: mk(op, true), glass: mk(gl, false), gauge };
+}
+
+/** Build the runtime model. Returns { root, parts:{name:Group}, pivots, gauge:{segs,n}, mats, meta, anchors }. */
+export function makeModel(id, defFn, { world = false } = {}) {
   const b = new Builder(id, world);
   const meta = defFn(b) || {};
-  if (world) for (const gs of b.gaugeSpecs) gs.segs.forEach((sg) => b.main.box('core', sg.p, sg.s, { rot: sg.r }));
+  // gauge segments become boxes inside their part's merged geometry (key g<index>; static 'core' in world builds)
+  let gi = 0; const gaugeOrder = [];
+  for (const gs of b.gaugeSpecs) {
+    const part = b.parts.get(gs.partName) || b.main;
+    for (const sg of gs.segs) { part.box(world ? 'core' : 'g' + gi, sg.p, sg.s, { rot: sg.r }); gaugeOrder.push({ part: gs.partName, i: gi }); gi++; }
+  }
   const root = new THREE.Group(); root.name = 'tagger-' + id;
   const mats = new MatSet(meta.skin);
-  const parts = {}, pivots = {};
+  const parts = {}, pivots = {}, gauge = { segs: [], n: 0 };
+  const ranges = {};
   for (const [name, part] of b.parts) {
     const g = new THREE.Group(); g.name = name; g.position.set(part.pivot[0] * S, part.pivot[1] * S, part.pivot[2] * S);
     root.add(g); parts[name] = g; pivots[name] = part.pivot;
-    for (const [key, geo] of toGeometries(part)) {
-      const mesh = new THREE.Mesh(geo, mats[key] || mats.body);
-      mesh.name = name + ':' + key; mesh.matrixAutoUpdate = false; mesh.updateMatrix();
-      if (key === 'glass') mesh.renderOrder = 2; else if (key === 'glow') mesh.renderOrder = 1;
-      g.add(mesh);
-    }
+    const m = mergePart(part);
+    if (m.opaque) { const mesh = new THREE.Mesh(m.opaque, mats.opaque); mesh.name = name + ':o'; mesh.matrixAutoUpdate = false; mesh.updateMatrix(); g.add(mesh); }
+    if (m.glass) { const mesh = new THREE.Mesh(m.glass, mats.glass); mesh.name = name + ':g'; mesh.matrixAutoUpdate = false; mesh.updateMatrix(); mesh.renderOrder = 2; g.add(mesh); }
+    for (const k in m.gauge) ranges[name + '#' + k] = { geo: m.opaque, ...m.gauge[k] };
   }
-  const gauge = { segs: [], n: 0 };
-  for (const gs of world ? [] : b.gaugeSpecs) {
-    const holder = parts[gs.partName] || parts.main, pv = pivots[gs.partName] || [0, 0, 0];
-    for (const sg of gs.segs) {
-      const m = new THREE.Mesh(gaugeGeo, mats.core);
-      m.scale.set(sg.s[0] * S, sg.s[1] * S, sg.s[2] * S);
-      m.position.set((sg.p[0] - pv[0]) * S, (sg.p[1] - pv[1]) * S, (sg.p[2] - pv[2]) * S);
-      if (sg.r) m.rotation.set(sg.r[0] * DEG, sg.r[1] * DEG, sg.r[2] * DEG, 'YXZ');
-      m.name = 'gauge'; holder.add(m); gauge.segs.push(m);
-    }
-  }
+  if (!world) for (const o of gaugeOrder) { const r = ranges[(b.parts.has(o.part) ? o.part : 'main') + '#' + o.i]; if (r) gauge.segs.push(r); }
   gauge.n = gauge.segs.length;
   const anchors = {};
   const mkAnchor = (name, p) => { const o = new THREE.Object3D(); o.name = name; o.position.set(p[0] * S, p[1] * S, p[2] * S); root.add(o); anchors[name] = o; return o; };
@@ -67,9 +88,15 @@ export function makeModel(id, defFn, { world = false, geomCache = null } = {}) {
   return { id, root, parts, pivots, gauge, mats, meta, anchors, b };
 }
 
-/** Apply ammo readout to gauge segments: lit count follows frac (bottom-up), colour handled by mats. */
+/** Apply ammo readout to gauge segments: lit count follows frac (bottom-up). Rewrites the per-vertex sub-material id. */
 export function setGauge(model, frac) {
   const n = model.gauge.n; if (!n) return;
-  const lit = Math.ceil(frac * n - 1e-4);
-  for (let i = 0; i < n; i++) model.gauge.segs[i].material = i < lit ? model.mats.core : model.mats.coreOff;
+  const lit = Math.ceil(frac * n - 1e-4), touched = new Set();
+  for (let i = 0; i < n; i++) {
+    const r = model.gauge.segs[i], a = r.geo.attributes.aMat, v = i < lit ? MAT_ID.core : MAT_ID.coreOff;
+    if (a.array[r.start] === v) continue;
+    for (let k = 0; k < r.count; k++) a.array[r.start + k] = v;
+    touched.add(a);
+  }
+  for (const a of touched) a.needsUpdate = true;
 }

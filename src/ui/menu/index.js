@@ -1,5 +1,8 @@
 // FLUX TAG — menus, settings, pause, onboarding, match-end. See docs/pieces/menu.md.
-import { CSS, FONT_LINK } from './style.js';
+import { CSS } from './style.js';
+import f500 from '../hud/fonts/bc500.woff2?url';
+import f600 from '../hud/fonts/bc600.woff2?url';
+import f700 from '../hud/fonts/bc700.woff2?url';
 import { LOGO_CSS } from './logo.js';
 import { h, wireSfx, createNav } from './ui.js';
 import { createBackdrop } from './backdrop.js';
@@ -21,9 +24,9 @@ export function create(ctx) {
 
   // ------------------------------------------------------------------ DOM
   const style = document.createElement('style'); style.id = 'fx-style';
-  style.textContent = CSS + LOGO_CSS + '\nhtml.fx-menu #ui>:not(.fx),html.fx-nohud #ui>:not(.fx){visibility:hidden!important}\n';
+  const ff = (w, u) => `@font-face{font-family:"Barlow Condensed";font-weight:${w};font-style:normal;font-display:swap;src:url(${u}) format("woff2")}`;
+  style.textContent = ff(500, f500) + ff(600, f600) + ff(700, f700) + ff(800, f700) + CSS + LOGO_CSS + '\nhtml.fx-menu #ui>:not(.fx),html.fx-nohud #ui>:not(.fx){visibility:hidden!important}\n';
   document.head.append(style);
-  try { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = FONT_LINK; document.head.append(l); } catch {}
   if (test) document.documentElement.classList.add('fx-test');
   const uiRoot = document.getElementById('ui');
   const root = h('div', { class: 'fx', lang: 'en' });
@@ -95,6 +98,7 @@ export function create(ctx) {
 
   // ------------------------------------------------------------------ helpers
   const setOn = (s, v) => { s.el.classList.toggle('on', v); };
+  function syncHud() { const hide = base === 'pause' || base === 'end' || base === 'starting' || (base === 'game' && (overlays.length > 0 || cheatOpen)); document.documentElement.classList.toggle('fx-nohud', hide); tutorial.show(base === 'game' && !overlays.length && !cheatOpen); }
   function captureKeys(v) { if (ctx.input) ctx.input.captureKeys = v; }
   function worldMenu(v) {
     if (v === inMenuWorld) return; inMenuWorld = v;
@@ -106,25 +110,26 @@ export function create(ctx) {
   function activeScopeEl() { const top = overlays[overlays.length - 1]; return top ? screens[top].el : screens[base]?.el; }
   function setBase(name) {
     base = name; for (const n of ['main', 'pause', 'end']) { const s = n === 'end' ? end : screens[n]; if (s) setOn(s, n === name); }
-    document.documentElement.classList.toggle('fx-nohud', name === 'end'); captureKeys(name !== 'game'); ctx.events.emit('menu:state', { state: name });
+    syncHud(); captureKeys(name !== 'game'); ctx.events.emit('menu:state', { state: name });
   }
   function showOverlay(name, arg) {
     const below = activeScopeEl(); if (below) below.inert = true; lastFocus = document.activeElement;
-    overlays.push(name); setOn(screens[name], true); screens[name].el.inert = false;
+    overlays.push(name); setOn(screens[name], true); screens[name].el.inert = false; syncHud();
     if (name === 'settings') settings.open(arg || settings.active); if (name === 'help') help.refresh(); if (name === 'cheat') cheat.refresh();
     if (inMenuWorld) backdrop.setMood(name === 'settings' || name === 'help' || name === 'credits' ? 'side' : 'main');
-    ctx.events.emit('ui:open', { owner: 'menu', name }); focusIn(screens[name].el);
+    ctx.events.emit('ui:open', { owner: 'menu', name });
+    if (name === 'settings') requestAnimationFrame(() => screens.settings.el.querySelector('.fx-tab.on')?.focus({ preventScroll: true })); else focusIn(screens[name].el);
   }
   function openOverlay(name, arg) { if (overlays.includes(name)) return; showOverlay(name, arg); }
   function back() {
-    const name = overlays.pop(); if (!name) return;
+    const name = overlays.pop(); if (!name) return; syncHud();
     if (name === 'settings') settings.leave();
     setOn(screens[name], false); const below = activeScopeEl(); if (below) below.inert = false;
     ctx.events.emit('ui:close', { owner: 'menu', name }); ctx.events.emit('ui:click');
     if (!overlays.length && inMenuWorld) backdrop.setMood('main');
     const f = lastFocus; if (f && document.contains(f) && f !== document.body) requestAnimationFrame(() => f.focus({ preventScroll: true })); else focusIn(below);
   }
-  function clearOverlays() { while (overlays.length) { const n = overlays.pop(); setOn(screens[n], false); screens[n].el.inert = false; } for (const s of [main, pause]) s.el.inert = false; if (end) end.el.inert = false; }
+  function clearOverlays() { while (overlays.length) { const n = overlays.pop(); setOn(screens[n], false); screens[n].el.inert = false; } syncHud(); for (const s of [main, pause]) s.el.inert = false; if (end) end.el.inert = false; }
 
   // ------------------------------------------------------------------ main menu / boot
   async function showMain({ instant = false } = {}) {
@@ -156,7 +161,7 @@ export function create(ctx) {
     const pr = prefs(); const side = pr.side === 'random' ? (Math.random() < .5 ? 'ember' : 'tide') : pr.side;
     lastOpts = { practice }; const opts = { difficulty: pr.difficulty, playerTeam: side, bots: !practice, practice, mode: practice ? 'practice' : 'match', map: pr.map, name: get('playerName') };
     ctx.events.emit('ui:click'); ctx.events.emit('menu:play', opts);
-    base = 'starting'; wipe.querySelector('.msg span').textContent = practice ? 'Entering practice range' : 'Deploying to Crux Station'; wipe.classList.add('on');
+    base = 'starting'; syncHud(); wipe.querySelector('.msg span').textContent = practice ? 'Entering practice range' : 'Deploying to Crux Station'; wipe.classList.add('on');
     try { ctx.audio?.unlock?.(); ctx.input?.lock?.(); } catch {}
     await sleep(T(420));
     clearOverlays(); for (const s of [main, pause]) setOn(s, false); if (end) setOn(end, false);
@@ -167,7 +172,7 @@ export function create(ctx) {
       if (ctx.localActor) { ctx.localActor.name = get('playerName') || ctx.localActor.name; if (ctx.match?.__stub || !ctx.match?.startMatch) ctx.localActor.team = side; }
     } catch (e) { console.error('[menu] startMatch failed', e); ctx.errors.push('menu startMatch: ' + (e?.stack || e)); toast('Could not start match'); }
     setBase('game'); ctx.engine && (ctx.engine.paused = false);
-    await sleep(T(200)); wipe.classList.remove('on');
+    await sleep(T(fast ? 100 : 700)); wipe.classList.remove('on');
     ctx.audio?.music?.set?.('round');
     if (!get('tutorialDone') && !bypass) tutorial.start(0);
     await sleep(T(600));
@@ -175,7 +180,7 @@ export function create(ctx) {
   }
   function openPause() {
     if (base !== 'game') return;
-    pause.refresh(); clearOverlays(); setBase('pause'); ctx.engine && (ctx.engine.paused = true); try { ctx.match?.pause?.(); } catch {} tutorial.show(false);
+    pause.refresh(); clearOverlays(); setBase('pause'); try { ctx.input?.unlock?.(); } catch {} ctx.engine && (ctx.engine.paused = true); try { ctx.match?.pause?.(); } catch {} tutorial.show(false);
     ctx.events.emit('ui:open', { owner: 'menu', name: 'pause' }); ctx.events.emit('game:pause', { paused: true }); focusIn(pause.el);
   }
   function resume() {
@@ -251,8 +256,8 @@ export function create(ctx) {
   ctx.events.on('locker:close', () => { if (lockerOpen) { lockerOpen = false; document.documentElement.classList.toggle('fx-menu', inMenuWorld); if (base === 'main') { setOn(main, true); backdrop.setMood('main'); focusIn(main.el); } } });
   ctx.events.on('match:end', (d) => { if (base === 'game') { endDelay = 2.6; ctx._menuEndData = d; } });
   addEventListener('keydown', (e) => {
-    if (e.code === 'F1') { e.preventDefault(); if (base === 'game') { cheatOpen = !cheatOpen; cheat.refresh(); setOn(cheat, cheatOpen); } else if (base === 'main') { overlays.includes('cheat') ? back() : openOverlay('help'); } else if (overlays[overlays.length - 1] === 'cheat') back(); return; }
-    if (e.code === 'Escape' && base === 'game' && !extModal && !lockerOpen && !e.repeat) { if (cheatOpen) { cheatOpen = false; setOn(cheat, false); return; } openPause(); return; }
+    if (e.code === 'F1') { e.preventDefault(); if (base === 'game') { cheatOpen = !cheatOpen; cheat.refresh(); setOn(cheat, cheatOpen); syncHud(); } else if (base === 'main') { overlays.includes('cheat') ? back() : openOverlay('help'); } else if (overlays[overlays.length - 1] === 'cheat') back(); return; }
+    if (e.code === 'Escape' && base === 'game' && !extModal && !lockerOpen && !e.repeat) { if (cheatOpen) { cheatOpen = false; setOn(cheat, false); syncHud(); return; } openPause(); return; }
     if ((e.key === 'Enter') && base === 'main' && !overlays.length && !lockerOpen && (!document.activeElement || document.activeElement === document.body || !root.contains(document.activeElement))) { e.preventDefault(); play(); }
   });
   addEventListener('pointerdown', () => { try { ctx.audio?.unlock?.(); } catch {} }, { once: true });

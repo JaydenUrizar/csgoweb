@@ -1,6 +1,7 @@
 // 2D procedural item icons for locker cards / slots (canvas). Cached as data URLs per item.
 import { drawPattern, mix, hex } from '../preview/textures.js';
 import { RARITY } from '../catalog.js';
+import { teamBase, teamAccent, teamHelmet, teamBack } from '../loadout.js';
 
 const cache = new Map();
 const W = 240, H = 176;
@@ -201,8 +202,15 @@ const ICONS = {
 };
 
 /** Render item icon to a data URL (cached). */
-export function iconFor(item, scale = 1.5) {
-  const key = item.id + '|' + scale; let u = cache.get(key); if (u) return u;
+function tinted(item, team) {
+  if (item.cat === 'suit') return { ...item, base: teamBase(item.base, team), accent: teamAccent(item.accent) };
+  if (item.cat === 'helmet' && item.shape !== 'none') return { ...item, color: teamHelmet(item.color) };
+  if (item.cat === 'back' && item.model !== 'none') return { ...item, color: teamBack(item.color) };
+  return item;
+}
+export function iconFor(item, scale = 1.5, team = 'ember') {
+  const key = item.id + '|' + scale + '|' + (['suit', 'helmet', 'back'].includes(item.cat) ? team : '-'); let u = cache.get(key); if (u) return u;
+  item = tinted(item, team);
   const cv = document.createElement('canvas'); cv.width = W * scale; cv.height = H * scale; const c = cv.getContext('2d'); c.scale(scale, scale);
   bgFor(c, item.rarity);
   try { ICONS[item.cat]?.(c, item); } catch { /* icon failures must never break the UI */ }
@@ -210,4 +218,4 @@ export function iconFor(item, scale = 1.5) {
   const v = c.createLinearGradient(0, H * 0.7, 0, H); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.25)'); c.fillStyle = v; c.fillRect(0, 0, W, H);
   u = cv.toDataURL('image/png'); cache.set(key, u); return u;
 }
-export function slotIconFor(item) { return iconFor(item, 0.75); }
+export function slotIconFor(item, team) { return iconFor(item, 0.75, team); }

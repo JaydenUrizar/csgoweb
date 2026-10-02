@@ -64,3 +64,16 @@ export function straightCell(b, partName, top, { h = 11, w = 3.6, d = 4.2, tilt 
   segs.reverse(); b.gauge(partName, segs);
   return { P };
 }
+
+/** Panel seams, screws, ejection-port inset, selector lever on both flanks of a receiver (x half-width xh, z0..z1, y0..y1). Breaks long flat sides into readable parts. */
+export function panels(m, { xh = 2.3, z0, z1, y0, y1, seams = 3, hseam = 0.38, port = true, lever = true }) {
+  const L = z1 - z0, H = y1 - y0;
+  for (const sx of [-1, 1]) {
+    const x = sx * (xh + 0.04);
+    m.box('dark', [x, y0 + H * hseam, (z0 + z1) / 2], [0.2, 0.26, L * 0.95]);
+    for (let i = 1; i <= seams; i++) m.box('dark', [x, y0 + H * (hseam + (1 - hseam) / 2), z0 + L * (i / (seams + 1)) + (i % 2 ? 0.8 : -0.8)], [0.2, H * (1 - hseam) * 0.9, 0.26]);
+    if (port) { m.box('dark', [x + sx * 0.05, y0 + H * 0.74, z0 + L * 0.34], [0.25, H * 0.3, L * 0.2], { bevel: 0.05 }); m.box('trim', [x + sx * 0.12, y0 + H * 0.74, z0 + L * 0.27], [0.2, H * 0.26, 0.3]); }
+    for (let i = 0; i < 4; i++) m.cylX('trim', [x + sx * 0.05, y0 + H * (i % 2 ? 0.18 : 0.52), z0 + L * (0.12 + i * 0.26)], 0.32, 0.32, 0.3, 6);
+  }
+  if (lever) { m.box('trim', [-(xh + 0.5), y0 + H * 0.24, z0 + L * 0.7], [0.6, 0.45, 3.4], { bevel: 0.12, rot: [0, 0, 14] }); m.box('trim', [-(xh + 0.5), y0 + H * 0.12, z0 + L * 0.46], [0.5, 1.5, 0.9], { bevel: 0.15 }); }
+}

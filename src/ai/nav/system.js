@@ -2,9 +2,10 @@
 import * as THREE from 'three';
 import { MeshBVH } from 'three-mesh-bvh';
 import { NAV_DEFAULTS, LINK_JUMP } from './config.js';
-import { buildGraph } from './graph.js';
+import { buildGraphGen } from './graph.js';
+import { computeALT } from './alt.js';
 import { Searcher, loadChain, chainCopy, chainRestore, extractPath, scratch } from './search.js';
-import { buildRegions, MinHeap } from './regions.js';
+import { buildRegionsGen } from './regions.js';
 import { Tactics } from './tactics.js';
 import { mulberry32 } from '../../core/rng.js';
 
@@ -19,7 +20,7 @@ export class NavSystem {
     this.tactics = new Tactics(this);
     this.jobs = []; this.cache = new Map(); this.dangers = new Map(); this.dangerActive = new Map(); this.dangerClock = 0;
     this.buildCount = 0; this.pathStats = { queries: 0, us: 0, fails: 0, cacheHits: 0, expanded: 0 };
-    this.routeTimes = null; this.version = 0; this._mapSig = '';
+    this.routeTimes = null; this.version = 0; this._mapSig = ''; this.building = null; this.bg = null; this.progress = 0; this._buildSig = '';
   }
 
   // ---------------------------------------------------------------------------------------------------- build
@@ -28,23 +29,48 @@ export class NavSystem {
     const p = g.attributes?.position; const b = map.bounds;
     return `${g.uuid}:${p?.count}:${p?.version}:${b ? [b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z].map((v) => v.toFixed(2)).join(',') : ''}`;
   }
-  /** (Re)generate the navgrid from map.collider + map.bounds. Returns stats. */
-  build(options) {
-    const map = this.map; if (!map?.collider?.geometry || !map.bounds) { this.ready = false; return null; }
-    if (options) { this.options = { ...this.options, ...options }; }
-    this.cfg = { ...NAV_DEFAULTS, ...this.options };
+  /** Generator that builds a complete nav dataset for the current map and commits it at the end (old data stays live until then). */
+  *_buildGen(budgetMs) {
+    const map = this.map; const t0 = performance.now();
     const pts = [];
     for (const t of ['ember', 'tide']) for (const s of (map.spawns?.[t] || [])) { const p = s.pos || s; if (p) pts.push(p); }
     for (const k of Object.keys(map.sites || {})) { const c = map.sites[k]?.center; if (c) pts.push(c); }
-    const g = buildGraph(map.collider, map.bounds, this.options, { points: pts });
-    this.g = g; this.cfg = g.cfg; this.bvh = g.bvh;
-    const t = performance.now();
-    buildRegions(g, map.callouts, this.cfg);
-    g.stats.regionMs = performance.now() - t; g.stats.areas = g.areas.length;
-    this.sync = new Searcher(g); this.async = new Searcher(g);
-    this.jobs.length = 0; this.cache.clear(); this.dangers.clear(); this.dangerActive.clear(); this.tactics.holdCache.clear();
-    this.routeTimes = null; this.ready = g.N > 0; this.buildCount++; this.version++; this._mapSig = NavSystem.signature(map);
+    const sig = NavSystem.signature(map);
+    const gg = buildGraphGen(map.collider, map.bounds, this.options, { points: pts }, budgetMs); let r;
+    while (!(r = gg.next()).done) { this.progress = 0.7 * r.value; yield this.progress; }
+    const g = r.value; let t = performance.now();
+    const rg = buildRegionsGen(g, map.callouts, g.cfg, budgetMs); while (!(r = rg.next()).done) { this.progress = 0.72; yield this.progress; } g.stats.regionMs = performance.now() - t; g.stats.areas = g.areas.length; this.progress = 0.75; yield 0.75;
+    t = performance.now(); const sg = Tactics.buildSpotsGen(g, 1.6, () => performance.now() - t >= budgetMs); while (!(r = sg.next()).done) { yield 0.76; t = performance.now(); } g.spots = r.value; g.stats.spots = g.spots.n; g.stats.spotMs = performance.now() - t; yield 0.78;
+    t = performance.now(); const ag = computeALT(g);
+    while (!(r = ag.next()).done) { this.progress = 0.78 + 0.2 * r.value; yield this.progress; }
+    g.stats.altMs = performance.now() - t; g.stats.buildMs += g.stats.regionMs + g.stats.spotMs + g.stats.altMs; g.stats.buildWallMs = performance.now() - t0;
+    // commit
+    this.g = g; this.cfg = g.cfg; this.bvh = g.bvh; this.sync = new Searcher(g); this.async = new Searcher(g);
+    for (const j of this.jobs) j.state = 0;
+    this.cache.clear(); this.dangers.clear(); this.dangerActive.clear(); this.tactics.holdCache.clear(); this.routeTimes = null;
+    this.ready = g.N > 0; this.buildCount++; this.version++; this._mapSig = sig; this.progress = 1; this.building = null;
+    this.bg = this.ready ? this.tactics.precomputeProfiles(160) : null;
     return g.stats;
+  }
+  /** Synchronous (re)generation of the navgrid from map.collider + map.bounds. Returns stats. */
+  build(options) {
+    const map = this.map; if (!map?.collider?.geometry || !map.bounds) { this.ready = false; return null; }
+    if (options) this.options = { ...this.options, ...options };
+    this.cfg = { ...NAV_DEFAULTS, ...this.options }; this.building = null;
+    const it = this._buildGen(Infinity); let r; while (!(r = it.next()).done);
+    this.bg = null; return r.value;
+  }
+  /** Start a time-sliced rebuild (old data stays usable). Drive it with step(ms) or pump via nav.update. */
+  startBuild(options, budgetMs = 3) {
+    const map = this.map; if (!map?.collider?.geometry || !map.bounds) return false;
+    if (options) this.options = { ...this.options, ...options };
+    this.progress = 0; this.building = this._buildGen(budgetMs); this._buildSig = NavSystem.signature(map); return true;
+  }
+  /** Advance background work by one slice (a build slice, else profile precompute). Returns true while work remains. */
+  step() {
+    if (this.building) { const r = this.building.next(); if (r.done) this.building = null; return true; }
+    if (this.bg) { const r = this.bg.next(); if (r.done) this.bg = null; return !!this.bg; }
+    return false;
   }
   mapChanged() { return NavSystem.signature(this.map) !== this._mapSig; }
 

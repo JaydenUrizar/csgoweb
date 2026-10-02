@@ -16,11 +16,15 @@ export const PROFILES = {
   lance:   P({ rest: { p: [21, -21, -48], r: [1.5, 2.5, 0] }, kick: { z: 6, pitch: 9, yaw: 1.0, roll: 2.2, max: 1.4, k: 150, c: 13 }, flash: { size: 1.7, len: 2.4, spikes: 6, style: 'bolt' }, heat: 0.4, draw: 0.9, reload: 3.6, inspect: 4.2, weight: 1.5, cool: 0.18 }),
   scatter: P({ rest: { p: [21, -20, -47], r: [2, 2, 0] }, kick: { z: 5.4, pitch: 6, yaw: 0.9, roll: 2.4, max: 1.5, k: 170, c: 14 }, flash: { size: 1.7, len: 1.3, spikes: 12, style: 'wide' }, heat: 0.3, draw: 0.7, reload: 3.4, inspect: 3.8, weight: 1.3, cool: 0.2 }),
   storm:   P({ rest: { p: [22, -21, -49], r: [2, 2, 0] }, kick: { z: 1.4, pitch: 1.1, yaw: 0.6, roll: 0.7, max: 3.0, k: 240, c: 21 }, flash: { size: 1.25, len: 1.2, spikes: 8 }, heat: 0.04, draw: 0.9, reload: 4.2, inspect: 4.4, weight: 1.6, cool: 0.25 }),
-  haze:    P({ rest: { p: [20, -20, -38], r: [0, 0, 0] }, draw: 0.5, reload: 0, heat: 0, weight: 0.8 }),
-  strobe:  P({ rest: { p: [20, -20, -38], r: [0, 0, 0] }, draw: 0.5, reload: 0, heat: 0, weight: 0.8 }),
-  pulse:   P({ rest: { p: [20, -20, -38], r: [0, 0, 0] }, draw: 0.5, reload: 0, heat: 0, weight: 0.8 }),
+  haze:    P({ rest: { p: [13.5, -13, -34], r: [8, -4, 0] }, draw: 0.5, reload: 0, heat: 0, weight: 0.8 }),
+  strobe:  P({ rest: { p: [13.5, -13, -34], r: [8, -4, 0] }, draw: 0.5, reload: 0, heat: 0, weight: 0.8 }),
+  pulse:   P({ rest: { p: [13.5, -13, -34], r: [8, -4, 0] }, draw: 0.5, reload: 0, heat: 0, weight: 0.8 }),
   beacon:  P({ rest: { p: [16, -20, -40], r: [0, 0, 0] }, draw: 0.6, reload: 0, heat: 0, weight: 1.1 }),
   kit:     P({ rest: { p: [18, -19, -40], r: [0, 0, 0] }, draw: 0.6, reload: 0, heat: 0, weight: 0.9 }),
   vest:    P({ rest: { p: [16, -22, -38], r: [0, 0, 0] }, draw: 0.5, reload: 0, heat: 0 }),
 };
+// Long arms are posed like CS2: closer to the camera and yawed so the left side profile runs diagonally into the lower right.
+for (const id of ['zip', 'hum', 'arc', 'rail', 'halo', 'lance', 'scatter', 'storm']) {
+  const r = PROFILES[id].rest, zs = id === 'lance' ? 3 : id === 'halo' ? 4 : 6.5; r.p = [r.p[0] - 2.2, r.p[1] + 2.6, r.p[2] + zs]; r.r = [r.r[0] + 3, r.r[1] + 8, r.r[2] + 2];
+}
 export const profile = (id) => PROFILES[id] || PROFILES.pip;

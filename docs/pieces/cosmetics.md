@@ -10,3 +10,9 @@ Storage: localStorage `fluxtag.cosmetics.v1` (4 loadout slots x both sides, star
 Keys: Q/E tab, R random, T side, 1-4 slot, A/D rotate, Ctrl+S save, Esc close; drag/wheel on preview.
 ## Known gaps
 Stand-in preview is not the in-game body (visual parity depends on characters); card icons are 2D illustrations; trail/charm not rendered in-game by characters yet (attach points only); no audio hooks beyond ui:* events.
+
+## Round 2
+* Locker preview now uses the REAL in-game athlete (`src/cosmetics/preview/real.js`): a private preview actor is spawned via `ctx.characters.spawn`, its model re-parented into the locker's own scene (characters.group is moved there while open and restored on close), animated by `characters.update`, tag-out uses `characters.tagOut(actor,dir,{style})`, emotes are layered as post-animation bone offsets (`bone_emotes.js`). Falls back to the stand-in rig only if characters is a stub. Skins tab shows a big inspect tagger built from the skin (combat's world model ignores skins).
+* `resolve(loadout)` is team-aware: suit base is mapped into the team hue band (lightness/saturation keep each suit's tone), accent/helmet/back clamped like the in-game material, so spec == what is drawn. Suit/helmet/back cards are tinted to the active side.
+* Charms and trails now render in game (`ingame.js`): charm hangs from attach point `hip`; trails are pooled particles at `trailEmitter` (2 draws total).
+* Layout rebuilt for density (grid 2+ rows at 720p, 3 at 1080p), short tab names, compact footer, share code lossless (wear 0..1000).

@@ -4,6 +4,7 @@ import { resolve as resolveLoadout, defaultLoadout, normalize, cloneLoadout, ran
 import { createStore } from './store.js';
 import { createLocker } from './ui/locker.js';
 import { createStage } from './preview/stage.js';
+import { createIngame } from './ingame.js';
 import { rng as coreRng } from '../core/rng.js';
 
 export function create(ctx) {
@@ -67,6 +68,7 @@ export function create(ctx) {
   evs.on?.('halftime', () => { for (const a of ctx.actors ?? []) if (a.isPlayer) apply(a); });
 
   // ---------------------------------------------------------------- standalone preview renderer
+  const ingame = createIngame(ctx);
   const previews = new WeakMap();
   /** renderPreview(canvas, loadout, opts?) -> handle. Own mini renderer/scene. Draws once (settled) and keeps animating unless opts.live === false. */
   function renderPreview(canvas, loadout, opts = {}) {
@@ -74,7 +76,7 @@ export function create(ctx) {
     const l = normalize(loadout ?? getLoadout(ctx.localActor) ?? defaultLoadout('ember'), loadout?.team);
     const spec = resolveLoadout(l);
     if (!h) {
-      const st = createStage(canvas, { preserve: true, name: opts.name ?? ctx.localActor?.name ?? 'PLAYER' });
+      const st = createStage(canvas, { ctx, fallbackOnly: true, preserve: true, name: opts.name ?? ctx.localActor?.name ?? 'PLAYER' });
       const w = canvas.clientWidth || canvas.width || 400, hh = canvas.clientHeight || canvas.height || 500; st.resize(w, hh, opts.dpr ?? 1);
       st.setFocus(opts.focus ?? 'body'); if (opts.turntable === false) st.setTurntable(false);
       h = { stage: st, raf: 0, dead: false, update(lo, o = {}) { const nl = normalize(lo, lo?.team); st.setSpec(resolveLoadout(nl), nl.team, o.name ?? ctx.localActor?.name ?? 'PLAYER'); if (o.focus) st.setFocus(o.focus); if (o.emote) st.playEmote(o.emote); if (o.tagOut) st.playTagOut(resolveLoadout(nl).tagOutEffect, 0x9be7ff); st.render(); },
@@ -96,11 +98,12 @@ export function create(ctx) {
     encode: encodeLoadout, decode: decodeLoadout, applySet, wearOf,
     /** Returns the resolved CosmeticSpec for an actor (memoised, no per-frame allocation). */
     specFor: (actor) => resolveLoadout(getLoadout(actor)),
+    ingameStats: () => ingame.stats(),
     persistentStars: () => store.stars, award,
     renderPreview,
     openLocker: (o) => lockerApi().open(o), closeLocker: () => locker?.close(), toggleLocker() { const l = lockerApi(); l.isOpen() ? l.close() : l.open(); }, get lockerOpen() { return !!locker?.isOpen(); },
-    update(dt) { scanT -= dt; if (scanT <= 0) { scanT = 0.5; for (const a of ctx.actors ?? []) if (!a.cosmetics || a.cosmetics.team !== a.team) apply(a); } locker?.tick(dt); for (const h of [...(managed)]) if (h.manual) { h.stage.tick(dt); h.stage.render(); } },
-    dispose() { locker?.dispose(); },
+    update(dt) { try { ingame.update(dt); } catch (e) { ctx.errors?.push?.('cosmetics ingame: ' + (e?.stack || e)); } scanT -= dt; if (scanT <= 0) { scanT = 0.5; for (const a of ctx.actors ?? []) if (!a.cosmetics || a.cosmetics.team !== a.team) apply(a); } for (const h of [...(managed)]) if (h.manual) { h.stage.tick(dt); h.stage.render(); } },
+    dispose() { locker?.dispose(); ingame.dispose(); },
   };
   const managed = new Set();
   let scanT = 0;

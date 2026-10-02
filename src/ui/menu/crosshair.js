@@ -3,7 +3,7 @@ import { h } from './ui.js';
 
 // Mirrors src/ui/hud/fx.js drawCrosshair (styles classic|t|dot|circle; size*1.6 arm length; units = 720p px).
 export const XH_DEFAULT = { style: 'classic', size: 5, gap: 3, thickness: 1.6, color: '#6dff9a', opacity: 1, dot: false, dotSize: 2, outline: true, outlineThickness: 1, dynamic: true };
-export const XH_STYLES = [['classic', 'Classic'], ['t', 'T-Style'], ['dot', 'Dot'], ['circle', 'Ring']];
+export const XH_STYLES = [['classic', 'Classic'], ['t', 'T'], ['dot', 'Dot'], ['circle', 'Ring']];
 
 /** Draw a crosshair centred at (cx,cy). `s` = pixels per unit, `spread` = extra gap in units (dynamic). Matches the in-game HUD. */
 export function drawCrosshair(g, c, cx, cy, s = 1, spread = 0) {
@@ -80,11 +80,11 @@ export function createCrosshairDesigner(ctx, kit, toast = () => {}) {
 
   // preview
   const canvas = h('canvas'); const bgc = document.createElement('canvas'); bgc.width = 640; bgc.height = 480;
-  const state = { bg: 'light', mode: 'standing', zoom: 4, t: 0, fireT: 99 };
+  const state = { bg: 'light', mode: 'standing', zoom: 3, t: 0, fireT: 99 };
   const bgBtns = [['light', 'Sky'], ['dark', 'Dark'], ['sand', 'Sand'], ['busy', 'Busy']].map(([k, l]) => h('button', { class: 'fx-btn sm ghost', onClick: () => { state.bg = k; paintBgNow(); mark(); } }, l));
   const modeBtns = [['standing', 'Standing'], ['moving', 'Moving'], ['firing', 'Firing'], ['both', 'Sprint+Fire']].map(([k, l]) => h('button', { class: 'fx-btn sm ghost', onClick: () => { state.mode = k; mark(); } }, l));
-  const zoomBtns = [[2, '2×'], [4, '4×'], [6, '6×']].map(([k, l]) => h('button', { class: 'fx-btn sm ghost', onClick: () => { state.zoom = k; mark(); } }, l));
-  const mark = () => { bgBtns.forEach((b, i) => b.classList.toggle('pri', ['light', 'dark', 'sand', 'busy'][i] === state.bg)); modeBtns.forEach((b, i) => b.classList.toggle('pri', ['standing', 'moving', 'firing', 'both'][i] === state.mode)); zoomBtns.forEach((b, i) => b.classList.toggle('pri', [2, 4, 6][i] === state.zoom)); };
+  const zoomBtns = [[3, '3×'], [5, '5×']].map(([k, l]) => h('button', { class: 'fx-btn sm ghost', onClick: () => { state.zoom = k; mark(); } }, l));
+  const mark = () => { bgBtns.forEach((b, i) => b.classList.toggle('pri', ['light', 'dark', 'sand', 'busy'][i] === state.bg)); modeBtns.forEach((b, i) => b.classList.toggle('pri', ['standing', 'moving', 'firing', 'both'][i] === state.mode)); zoomBtns.forEach((b, i) => b.classList.toggle('pri', [3, 5][i] === state.zoom)); };
   const paintBgNow = () => paintBg(bgc.getContext('2d'), 640, 480, state.bg);
   paintBgNow(); mark();
   let raf = 0, running = false;

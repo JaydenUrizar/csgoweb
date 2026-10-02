@@ -270,13 +270,13 @@ function TUNE_GRACE() { return 20.5; }
   if (t.chk.violations.length) console.log(t.chk.violations.slice(0, 8));
 }
 { // pause, spectate, graceful stubs
-  const t = fresh(33), m = t.m; const spec = []; t.ctx.player = { spectate: (a) => spec.push(a) };
+  const t = fresh(33), m = t.m; const spec = []; const resp = []; t.ctx.player = { spectate: (a) => spec.push(a), respawn: (o) => resp.push(o) };
   m.pause(); const c0 = m.clock; tick(m, 2); row('Pause freezes the clock/timers', 'frozen', `${(m.clock - c0).toFixed(2)}s`, m.clock === c0 && m.phase === 'buy'); m.resume(); tick(m, 1);
   row('Resume continues', true, m.phase === 'buy' && m.phaseTime > 0.9, m.phaseTime > 0.9);
   toLive(t); const me = m.teams.ember[0]; tagOut(t, me, m.teams.tide[0]); tick(m, 0.1);
   row('Tagged-out player: ctx.player.spectate(alive teammate)', 'teammate', spec.at(-1)?.team, spec.length && spec.at(-1).team === 'ember' && spec.at(-1).alive && spec.at(-1) !== me);
   const first = spec.at(-1); tagOut(t, first, m.teams.tide[0]); tick(m, 0.1); row('Spectated player tagged out -> next alive', 'switch', spec.at(-1) !== first, spec.at(-1) !== first && spec.at(-1).alive);
-  m.endRound('tide', 'elimination'); m.afterRoundEnd(); row('New round clears spectate', null, spec.at(-1), spec.at(-1) === null);
+  m.endRound('tide', 'elimination'); m.afterRoundEnd(); row('New round: human respawned via ctx.player.respawn, spectate cleared', 'respawn+null', `${resp.length} respawns / ${m.spectating}`, resp.length >= 1 && resp.at(-1).pos && m.spectating === null);
   row('Works with every other piece stubbed (no ctx.combat/ai/characters)', 'no errors', t.ctx.errors.length, t.ctx.errors.length === 0);
 }
 

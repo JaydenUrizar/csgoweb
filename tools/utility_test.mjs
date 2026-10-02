@@ -5,13 +5,14 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 const args = process.argv.slice(2); const quick = args.includes('--quick');
 const out = args.includes('--out') ? args[args.indexOf('--out') + 1] : 'shots/utility'; fs.mkdirSync(out, { recursive: true });
-const g = await open({ params: 'test=1&seed=1&scene=utility-lab&labui=0', size: [1280, 720], wait: 180000 });
+const g = await open({ params: 'test=1&seed=1&scene=utility-lab&labui=0', size: [960, 540], wait: 180000 });
+const shot = async (f) => { await g.eval(() => window.__game.render()); await g.page.screenshot({ path: f, timeout: 180000 }); return f; };
 const results = []; const check = (name, ok, info) => { results.push({ name, ok: !!ok, info }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (info !== undefined ? '  ' + JSON.stringify(info) : '')); };
 // simple evaluator: run function source in page with (game,u,lab,a)
 const run = (fn, a) => g.eval(([src, a]) => { const game = window.__game, u = game.ctx.combat.utility, lab = game.ctx.utilityLab; return (new Function('game', 'u', 'lab', 'a', `return (${src})(game,u,lab,a)`))(game, u, lab, a); }, [fn.toString(), a]);
 const strip = async (name, frames, view) => { // frames: times (s) after the action
   const files = []; let cur = 0;
-  for (const t of frames) { await g.advance(Math.max(0.01, t - cur)); cur = t; const f = `${out}/${name}_${String(Math.round(t * 100)).padStart(4, '0')}.png`; await g.shot(f); files.push(f); }
+  for (const t of frames) { await g.advance(Math.max(0.01, t - cur)); cur = t; const f = `${out}/${name}_${String(Math.round(t * 100)).padStart(4, '0')}.png`; await shot(f); files.push(f); }
   execSync(`python3 tools/sheet.py grid ${out}/${name}_sheet.png ${files.join(' ')}`); return files;
 };
 const view = (name) => run((game, u, lab, n) => { const p = lab.points[n]; lab.lookAt(p.eye, p.target); }, name);
@@ -44,36 +45,51 @@ check('actors ready', await run((game, u, lab) => !!u && !u.__stub && lab.actors
 // ---------------------------------------------------------------- haze
 await reset();
 await run((game, u, lab) => { lab.place('A', 0, -17.5); lab.place('D', 0, -12.5); });
-await run((game, u, lab) => { lab.ceilings(true); u.debug.spawn('haze', { x: 0, y: 0.07, z: -8 }); });
+await run((game, u, lab) => { lab.ceilings(true); u.debug.spawn('haze', { x: 0, y: 0.07, z: -14 }); });
 await g.advance(2.2);
-{ const r = await run((game, u) => { const c = u.smokes[0]; const A = c.A; let leak = 0, zmin = 99, zmax = -99, xmin = 99, xmax = -99, n = 0; const N = 34; const P = c.gfx.P; for (let i = 0; i < c.count; i++) { const idx = A.filled[i]; const ii = idx % N, kk = (idx / (N * N)) | 0; const x = c.ox + (ii + 0.5) * 0.5, z = c.oz + (kk + 0.5) * 0.5; if (Math.abs(x) < 2.3) { zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); } if (Math.abs(x) > 2.4 && Math.abs(x) < 17 && z < 5.5 && z > -24 && !(z > -14.5 && z < -9.5)) leak++; xmin = Math.min(xmin, x); xmax = Math.max(xmax, x); n++; } return { cells: n, zspan: zmax - zmin, xmin, xmax, leak }; });
+{ const r = await run((game, u) => { const c = u.smokes[0]; const A = c.A; let leak = 0, zmin = 99, zmax = -99, xmin = 99, xmax = -99, n = 0; const N = Math.round(Math.cbrt(c.A.state.length)); const P = c.gfx.P; for (let i = 0; i < c.count; i++) { const idx = A.filled[i]; const ii = idx % N, kk = (idx / (N * N)) | 0; const x = c.ox + (ii + 0.5) * 0.5, z = c.oz + (kk + 0.5) * 0.5; if (Math.abs(x) < 2.3) { zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); } const yy = c.oy + (((idx / N) | 0) % N + 0.5) * 0.5; if (yy < 3.9 && Math.abs(x) > 2.4 && Math.abs(x) < 17 && z < 5.5 && z > -23.8 && !(z > -14.5 && z < -9.5)) leak++; xmin = Math.min(xmin, x); xmax = Math.max(xmax, x); n++; } return { cells: n, zspan: zmax - zmin, xmin, xmax, leak }; });
   check('haze flood-fill is confined by corridor walls (no cells beside the corridor except the side branch)', r.leak === 0, r);
-  check('haze fills further along a corridor than in the open (z span >= 8 m)', r.zspan >= 8, r); }
+  check('haze fills further along a corridor than in the open (z span >= 14 m, ~7 m each way)', r.zspan >= 14, r); }
 await view('corridorInside'); await run((game, u, lab) => lab.ceilings(false));
-check('blocksLine true through corridor smoke', await run((game, u, lab) => u.blocksLine({ x: 0, y: 1.6, z: 2 }, { x: 0, y: 1.6, z: -20 })));
+check('blocksLine true through corridor smoke', await run((game, u, lab) => u.blocksLine({ x: 0, y: 1.6, z: -7 }, { x: 0, y: 1.6, z: -22 })));
 check('blocksLine false for a clear line outside smoke', !(await run((game, u, lab) => u.blocksLine({ x: 0, y: 1.6, z: 14 }, { x: 5, y: 1.6, z: 24 }))));
 check('smoke does not leak through walls (line along the outside of the wall is clear)', !(await run((game, u, lab) => u.blocksLine({ x: 3.2, y: 1.6, z: -2 }, { x: 3.2, y: 1.6, z: -16 }))));
 await run((game, u, lab) => lab.view(0, 1.62, 3, 0, 0.0));
-await g.shot(`${out}/haze_occlusion_inside.png`);
+await shot(`${out}/haze_occlusion_inside.png`);
 await run((game, u, lab) => { u.debug.clear(); u.debug.spawn('haze', { x: 0, y: 0.07, z: -8 }); lab.view(0, 1.62, 5, 0, -0.01); });
-await g.advance(2.2); await g.shot(`${out}/haze_occlusion_actorA.png`);
+await g.advance(2.2); await shot(`${out}/haze_occlusion_actorA.png`);
 { const e = await run((game, u, lab) => { const A = lab.actors.A; const eye = lab.me.eyePos(); const head = A.eyePos(); return { od: u.opticalDepth(eye, head), blocked: u.blocksLine(eye, head) }; });
   check('actor behind smoke: visibility helper says blocked', e.blocked, e);
   const sph = await g.eval(() => { const c = window.__game.ctx; const cv = c.render.renderer.domElement; return 0; }); }
-// punch-through
-{ const before = await run((game, u, lab) => u.opticalDepth({ x: 0, y: 1.6, z: 3 }, { x: 0, y: 1.6, z: -20 }));
-  await run((game, u, lab) => { game.ctx.events.emit('weapon:fire', { actor: lab.me, origin: { x: 0, y: 1.6, z: 3 }, dir: { x: 0, y: 0, z: -1 }, hitscan: true }); });
-  await g.advance(0.1);
-  const after = await run((game, u, lab) => u.opticalDepth({ x: 0, y: 1.6, z: 3 }, { x: 0, y: 1.6, z: -20 }));
-  const later = await (async () => { await g.advance(3); return run((game, u) => u.opticalDepth({ x: 0, y: 1.6, z: 3 }, { x: 0, y: 1.6, z: -20 })); })();
-  check('bullet punch-through carves a wake that then refills', after < before * 0.6 && later > after * 1.5, { before, after, later }); }
+// punch-through: the tunnel must be visible on screen AND reported by blocksLine (single source of truth: the wake field)
+{ await reset();
+  await run((game, u, lab) => { lab.place('A', -8, -12); lab.place('D', -12, -12); u.debug.spawn('haze', { x: 0, y: 0.07, z: 14 }); lab.place('B', 1.5, 9); lab.view(-0.5, 1.62, 21, 0, 0); lab.lookAt({ x: -0.5, y: 1.62, z: 21 }, { x: 1.5, y: 1.2, z: 9 }); });
+  await g.advance(3);
+  const setB = (v) => run((game, u, lab, v) => { game.ctx.characters?.setVisible?.(lab.actors.B, v); lab.actors.B.model && (lab.actors.B.model.visible = v); }, v);
+  const pt = await run((game) => { const c = game.ctx.render.camera, W = game.ctx.render.renderer.domElement; c.updateMatrixWorld(true); const v = c.position.clone().set(1.5, 1.1, 9).project(c); return { x: Math.round((v.x * 0.5 + 0.5) * W.width), y: Math.round((-v.y * 0.5 + 0.5) * W.height) }; });
+  const cap = async (name, vis) => { await setB(vis); await g.advance(0.02); const f = `${out}/punch_${name}.png`; await shot(f); return f; };
+  const odBefore = await run((game, u, lab) => u.opticalDepth(lab.me.eyePos(), lab.me.eyePos().set(1.5, 1.1, 9)));
+  const f1 = await cap('before_B', true), f2 = await cap('before_noB', false);
+  await setB(true);
+  await run((game, u, lab) => { const eye = lab.me.eyePos(); const T = eye.clone().set(1.5, 1.1, 9); const d = T.clone().sub(eye).normalize(); for (let i = 0; i < 5; i++) game.ctx.events.emit('weapon:fire', { actor: lab.me, origin: eye.clone(), dir: d.clone(), hitscan: true }); });
+  await g.advance(0.15);
+  const odAfter = await run((game, u, lab) => { const T = lab.me.eyePos().set(1.5, 1.1, 9); return u.opticalDepth(lab.me.eyePos(), T); });
+  const f3 = await cap('after_B', true), f4 = await cap('after_noB', false);
+  const diff = (a, b) => parseFloat(execSync(`python3 -c "from PIL import Image,ImageChops;import sys;a=Image.open('${a}').convert('L');b=Image.open('${b}').convert('L');x,y=${pt.x},${pt.y};box=(max(0,x-16),max(0,y-16),x+16,y+16);import numpy as np;print(float(np.abs(np.asarray(a.crop(box),dtype=float)-np.asarray(b.crop(box),dtype=float)).mean()))"`).toString());
+  const dBefore = diff(f1, f2), dAfter = diff(f3, f4);
+  check('punch: before shots the target behind smoke is invisible on screen and blocksLine says blocked', dBefore < 7 && odBefore >= 0.85, { dBefore, odBefore, pt });
+  check('punch: after shots the tunnel is open ON SCREEN (target visible) and the LOS query agrees (opticalDepth < 0.85)', dAfter > 12 && odAfter < 0.85, { dAfter, odAfter });
+  await g.advance(0.9); const od2 = await run((game, u, lab) => u.opticalDepth(lab.me.eyePos(), lab.me.eyePos().set(1.5, 1.1, 9)));
+  await g.advance(2.5); const od3 = await run((game, u, lab) => u.opticalDepth(lab.me.eyePos(), lab.me.eyePos().set(1.5, 1.1, 9)));
+  check('punch: wake closes again over ~1-2 s', od2 > odAfter && od3 >= 0.85, { odAfter, od2, od3 });
+  await setB(true); }
 // dissipation + strips (open yard)
 await reset();
 await run((game, u, lab) => { lab.view(0, 1.62, 22, 0, 0.1); u.debug.spawn('haze', { x: 0, y: 0.07, z: 12 }); });
 await strip('haze_open_front', quick ? [0.2, 0.6, 1.5] : [0.1, 0.25, 0.5, 0.9, 1.6, 4], null);
 { const life = await run((game, u) => ({ n: u.smokes.length })); check('haze alive at 4 s', life.n === 1, life); }
-await run((game, u, lab) => lab.view(-8, 1.62, 22, -0.5, 0.1)); await g.advance(9); await g.shot(`${out}/haze_open_side_t13.png`);
-await g.advance(3.0); await g.shot(`${out}/haze_open_side_t16.png`); await g.advance(1.2); await g.shot(`${out}/haze_open_side_t17.png`);
+await run((game, u, lab) => lab.view(-8, 1.62, 22, -0.5, 0.1)); await g.advance(9); await shot(`${out}/haze_open_side_t13.png`);
+await g.advance(3.0); await shot(`${out}/haze_open_side_t16.png`); await g.advance(1.2); await shot(`${out}/haze_open_side_t17.png`);
 await g.advance(4.5);
 check('haze gone after ~18 s', (await run((game, u) => u.smokes.length)) === 0);
 // corridor fill strips from inside + top-down
@@ -84,7 +100,7 @@ await reset(); await run((game, u, lab) => { lab.ceilings(true); lab.view(0, 1.6
 await strip('haze_corridor_view', quick ? [0.3, 1.5] : [0.15, 0.4, 0.8, 1.5, 3], null);
 // stand inside the smoke
 await run((game, u, lab) => lab.view(0, 1.62, -10, 0, 0));
-await g.advance(0.3); await g.shot(`${out}/haze_inside.png`);
+await g.advance(0.3); await shot(`${out}/haze_inside.png`);
 check('murk overlay when camera is inside smoke', (await run((game, u) => u.shared.overlayAmount)) > 0.5);
 // ---------------------------------------------------------------- strobe
 await reset();
@@ -128,6 +144,16 @@ await run((game, u, lab) => { lab.view(0, 1.62, 16, 0, 0.12); u.infinite = true;
 await strip('throw_haze', quick ? [0.3, 1.2, 2.5] : [0.15, 0.4, 0.8, 1.4, 2.0, 3.5], null);
 await g.advance(1.5);
 check('thrown haze popped (fuse/rest)', (await run((game, u) => u.smokes.length)) === 1);
+// ---------------------------------------------------------------- cleanup + preview
+await reset();
+{ const r = await run((game, u, lab) => { u.debug.spawn('strobe', { x: 90, y: 5, z: 90 }, { x: 0, y: 0, z: 0 }); return u.debug.state().grenades.length; });
+  await g.advance(6);
+  const n = await run((game, u) => u.debug.state().grenades.length);
+  check('grenade that leaves the world is despawned (kill plane)', r === 1 && n === 0, { before: r, after: n }); }
+{ await run((game, u, lab) => { lab.view(0, 1.62, 16, 0, 0.3); u.preview.show(lab.me, 'haze', 'strong'); });
+  await g.advance(0.05); const f = await shot(`${out}/preview_arc.png`);
+  const v = await run((game, u) => ({ pts: u.preview.show(game.ctx.localActor, 'haze', 'strong').length }));
+  check('throw-arc preview draws a dotted arc + landing ring', v.pts > 20, v); await run((game, u) => u.preview.hide()); }
 // ---------------------------------------------------------------- perf + errors
 const info = await run((game) => game.ctx.render.info?.());
 const errs = (await g.errors()).filter((e) => !/ERR_CERT/.test(e));

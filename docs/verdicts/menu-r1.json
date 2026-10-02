@@ -1,0 +1,28 @@
+{"piece":"menu","round":1,
+"blind":[
+ {"pair":1,"picked":"ours","truth":"ours","why":"Main menu 1280x720 vs real CS2 main menu (agent showcase). Ours has far stronger hierarchy: one obvious PLAY CTA, match setup visible, numbered list, keyboard hints; lit athlete line-up with reflective floor + ring reads as a premium backdrop. CS2's single hero model is better staged (DOF, one subject, not cropped by panels); ours shows 6+ identical clones in the same aim pose, half hidden behind the setup card."},
+ {"pair":2,"picked":"ours","truth":"ours","why":"Settings/Video vs CS2 Video tab. Ours: preset cards with descriptions, live 'Rendering at 1280x720', footer key hints, autosave note. CS2 is cleaner and lets the game show through, but ours explains more and looks finished."},
+ {"pair":3,"picked":"ref","truth":"ref","why":"Settings opened from the in-game pause vs CS2 Advanced Video opened in-match. Ours is wrecked by the HUD drawing on top of the modal: radar covers the SETTINGS title and Controls/Video tabs, ROUND 1 banner + beacon toast sit over Callsign, BUY TIME prompt sits on the Readout, money/health/ammo/weapon icons/crosshair over the footer and toggles. CS2 puts the menu above everything."}],
+"winner_overall":"ref","score":6.6,
+"biggest_gap":"Every in-match overlay (pause, settings-from-pause, F1 cheat-sheet, tutorial card) renders BELOW the HUD. Repro: normal URL -> Play -> Esc (or pointer unlock) -> Settings; or press F1 in game. The radar, scorebar, round banner/killfeed toasts, BUY TIME prompt, money/HP/ammo, weapon rail and the crosshair all draw over the panel (shots/critic-menu/pair3.png, f11_pause_settings_1280.png, g_cheat_1280.png, t_pause_live.png crosshair over the SETTINGS button). CS2 hides/dims the HUD and puts the Esc menu on the top layer. Fix: when base is pause or any overlay is open in game, add html.fx-menu-like class that hides HUD/crosshair/toasts (or raise #ui .fx above the HUD stacking context) and dim the world.",
+"other_gaps":[
+ "First-run tutorial card is placed exactly where the round-start banner ('ROUND 1 / ATTACK - ARM THE BEACON'), the beacon-pickup toast and (at 1920x1080) the '1 vs 0 / ROUND 0/15' scorebar live; texts overprint and are unreadable (f06 in flowsheet.png, g_tutorial-1_1920.png). Hold the tutorial until the banner clears or dock it elsewhere (CS2 trains via side text, never over the round banner).",
+ "Keyboard trap: opening Settings from pause by mouse autofocuses the Callsign text input; Esc then does NOT close settings and Resume becomes unreachable without the mouse; letter keys type into the name (f11, flow3 log: ov stays ['settings'] after Esc). Autofocus the tab list, and let Esc blur+close from inputs.",
+ "Menu->match transition is a plain cross-fade: for ~1-2 s the HUD, radar, round banner and world are double-exposed through the main menu (f05 in flowsheet.png). CS2 cuts to a loading/black state. Use the wipe to fully cover before the HUD appears.",
+ "Placebo settings shipped to players: Motion Blur, Raw Input, Screen Shake and the Announcer volume are stored but (per launch notes and audio code: applyVolumes ignores voiceVolume) have no consumer. Hide or wire them; CS2 never shows dead options.",
+ "1280x720 layout sloppiness: crosshair tab 'T-STYLE' wraps to 2 lines, zoom chip '6x' orphaned on its own row, share-code row clipped under the footer; main-menu tip line wraps into a 2nd line touching the screen bottom and crowding the nav hints; CREDITS sits 15 px above BUILD 0.1.0.",
+ "Pause screen itself is thin: HUD fully visible and undimmed around it, no map/score context beyond one line, no quick sensitivity/volume; CS2's Esc gives the full menu over a blurred game.",
+ "Boot: earliest frame is a CSS splash in a fallback system font (DejaVu oblique) because brand fonts come from Google Fonts CDN (fails offline/behind proxies); self-host Barlow so the splash matches the menu logo."],
+"bugs":[
+ "HUD + crosshair draw above pause/settings/F1 cheat-sheet overlays (z-order).",
+ "Tutorial card overlaps round banner / toasts / scorebar (1280 and 1920).",
+ "Settings-from-pause autofocuses Callsign input; Esc cannot close settings (keyboard trap).",
+ "Pause opened by a keyboard Esc while pointer lock is still held does not exitPointerLock(); mouse clicks on pause buttons are swallowed by the canvas (Playwright: click on Settings at its centre leaves base=pause, no overlay).",
+ "Motion blur / raw input / screen shake / voice volume controls have no effect."],
+"strengths":[
+ "Main menu is genuinely attractive: bold logo, clear numbered list, strong orange PLAY CTA, match-setup card, live 3D backdrop with reflective floor, rim light and team-coloured athletes.",
+ "Settings correctness verified: sensitivity is exact CS scale (100 counts = 2.200 deg at 1.0, 4.400 at 2.0; cm/360 readout 52.0 cm @800dpi correct); FOV is horizontal (90 -> 58.7 v, 110 -> 77.6 v at 16:9); rebinding applies live (K moves, W unbound) with a 'K moved from Move forward' conflict toast; crosshair colour/size/gap apply instantly to the HUD; master volume drives the mixer gain to 0.",
+ "Pause freezes match clock and engine; Esc toggles pause<->game; keyboard arrow navigation works on main and pause; F1 cheat-sheet is excellent content.",
+ "End-of-match recap is clean and CS2-like (two team tables, MVP, round history, Play again).",
+ "No console errors from the menu (only the sandbox's Google-Fonts cert failure)."],
+"pass":false}

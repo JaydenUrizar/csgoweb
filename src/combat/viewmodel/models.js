@@ -29,7 +29,7 @@ export function getWorldModel(id, skin) {
   const skey = id + '|' + JSON.stringify(skin || null);
   let ms = worldMats.get(skey); if (!ms) { ms = new MatSet(rec.meta.skin).apply(skin); worldMats.set(skey, ms); }
   const g = new THREE.Group(); g.name = 'world-' + id;
-  for (const { key, geo } of rec.geos) { const mesh = new THREE.Mesh(geo, ms[key] || ms.body); mesh.matrixAutoUpdate = false; mesh.updateMatrix(); if (key === 'glass') mesh.renderOrder = 2; g.add(mesh); }
+  for (const { key, geo } of rec.geos) { const mesh = new THREE.Mesh(geo, key === 'g' ? ms.glass : ms.opaque); mesh.matrixAutoUpdate = false; mesh.updateMatrix(); if (key === 'g') mesh.renderOrder = 2; g.add(mesh); }
   const h = rec.meta.hands || {};
   g.userData = { id, cls: rec.meta.cls, length: (rec.meta.len || 60) * 0.01, muzzle: rec.anchors.muzzle.clone(), gripR: h.r ? new THREE.Vector3(...h.r.p).multiplyScalar(0.01) : new THREE.Vector3(), gripL: h.l ? new THREE.Vector3(...h.l.p).multiplyScalar(0.01) : null, matSet: ms, hold: rec.meta.hold || rec.meta.cls };
   return g;

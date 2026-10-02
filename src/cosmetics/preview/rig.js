@@ -74,6 +74,15 @@ export function buildTagger(kind, skin, mats) {
   return g;
 }
 
+export function makeSkinnedTagger(kind, sk) {
+  const tex = skinTexture(sk.pattern, sk.primary, sk.accent, sk.wear);
+  const mats = {
+    body: new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 0.3 + sk.wear * 0.55, metalness: 0.5 - sk.wear * 0.3, flatShading: true }),
+    dark: stdMat(mix(sk.primary, 0x0a0b10, 0.8), { rough: 0.4 + sk.wear * 0.3, metal: 0.55 }),
+    glow: glowMat(sk.glow, 1.3), accent: stdMat(sk.accent, { rough: 0.35 + sk.wear * 0.4, metal: 0.4 }),
+  };
+  return buildTagger(kind, sk, mats);
+}
 // ------------------------------------------------------------------------------------------ rig
 export function createRig() {
   refreshCachedSet();
@@ -208,7 +217,7 @@ export function createRig() {
     const mats = {
       body: new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 0.32 + sk.wear * 0.55, metalness: 0.45 - sk.wear * 0.25, flatShading: true }),
       dark: stdMat(mix(sk.primary, 0x0a0b10, 0.8), { rough: 0.4 + sk.wear * 0.3, metal: 0.55 }),
-      glow: glowMat(sk.glow, 2.4), accent: stdMat(sk.accent, { rough: 0.35 + sk.wear * 0.4, metal: 0.4 }),
+      glow: glowMat(sk.glow, 1.3), accent: stdMat(sk.accent, { rough: 0.35 + sk.wear * 0.4, metal: 0.4 }),
     };
     const kd = TAGGER_KINDS.find((k) => k.id === rig.tagger.kind) ?? TAGGER_KINDS[2];
     rig.tagger.fore = kd.fore; const g = buildTagger(kd.id, sk, mats); gunG.add(g); rig.tagger.group = g; rig.tagger.def = kd;
@@ -401,7 +410,8 @@ export function createRig() {
     const tint = rig.spec?.suit?.accent ?? 0xbfefff; crystal.color.setHex(mix(0xbfefff, tint, 0.25)); crystal.emissive.setHex(mix(0x1f9fc8, tint, 0.3));
     root.traverse((o) => { if (o.isMesh && o !== nameSprite) { if (on) { if (!o.userData.mat0) o.userData.mat0 = o.material; o.material = crystal; } else if (o.userData.mat0) { o.material = o.userData.mat0; o.userData.mat0 = null; } } });
   };
-  rig.setVisible = (v) => { body.visible = v; nameSprite.visible = v; };
+  rig.setVisible = (v) => { body.visible = v; nameSprite.visible = v && showName; };
+  let showName = false; rig.setNameVisible = (v) => { showName = v; nameSprite.visible = v && body.visible; };
 
   // ---------------------------------------------------------------- per-frame
   const A = rig.animated; const tgt = rig.tgt, cur = rig.cur;

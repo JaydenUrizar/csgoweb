@@ -79,3 +79,43 @@ export function createSparks(cap = 384) {
     },
   };
 }
+
+// ---- dust: soft instanced puffs (normal blending) used for the Pulse ground burst ------------------------------------------------
+import { cloudTexture } from './noise.js';
+const DU_VERT = /* glsl */`
+attribute vec4 iP;    // pos xyz, radius
+attribute vec4 iQ;    // life01(1->0), seed, alpha, -
+varying vec2 vUv; varying vec4 vQ;
+void main(){ vUv = position.xy * 2.0; vQ = iQ; vec4 c = viewMatrix * vec4(iP.xyz, 1.0); if (c.z > -0.15 || iQ.x <= 0.0) { gl_Position = vec4(2.,2.,2.,1.); return; }
+  gl_Position = projectionMatrix * vec4(c.xyz + vec3(vUv * iP.w, 0.0), 1.0); }`;
+const DU_FRAG = /* glsl */`
+uniform sampler2D uTex; uniform vec3 uCol; uniform float uTime;
+varying vec2 vUv; varying vec4 vQ;
+void main(){ float r = length(vUv); if (r > 1.0) discard;
+  vec4 t = texture2D(uTex, vUv * 0.5 + vec2(fract(vQ.y * 7.3), fract(vQ.y * 3.1)) + uTime * 0.02);
+  float a = smoothstep(0.0, 0.8, (1.0 - r) * 1.3 + (t.r - 0.5) * 1.1) * vQ.z * smoothstep(0.0, 0.25, vQ.x);
+  if (a < 0.01) discard;
+  float shade = 0.75 + 0.35 * (t.g - 0.5) + 0.2 * (1.0 - r);
+  gl_FragColor = vec4(uCol * shade, a);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+export function createDust(cap = 96) {
+  const geo = new THREE.InstancedBufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0]), 3)); geo.setIndex([0, 1, 2, 0, 2, 3]);
+  const iP = new THREE.InstancedBufferAttribute(new Float32Array(cap * 4), 4), iQ = new THREE.InstancedBufferAttribute(new Float32Array(cap * 4), 4); iP.setUsage(THREE.DynamicDrawUsage); iQ.setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute('iP', iP); geo.setAttribute('iQ', iQ); geo.instanceCount = cap;
+  const mat = new THREE.ShaderMaterial({ vertexShader: DU_VERT, fragmentShader: DU_FRAG, transparent: true, depthWrite: false,
+    uniforms: { uTex: { value: cloudTexture(128) }, uCol: { value: new THREE.Color(0.7, 0.62, 0.5) }, uTime: { value: 0 } } });
+  const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; mesh.renderOrder = 60;
+  const vel = new Float32Array(cap * 3), life = new Float32Array(cap), maxL = new Float32Array(cap), r0 = new Float32Array(cap), r1 = new Float32Array(cap), a0 = new Float32Array(cap); let head = 0, t = 0;
+  return { mesh, mat,
+    emit(x, y, z, vx, vy, vz, lifeS, rad0, rad1, alpha, seed) { const i = head; head = (head + 1) % cap; const p = iP.array, q = iQ.array; p[i * 4] = x; p[i * 4 + 1] = y; p[i * 4 + 2] = z; p[i * 4 + 3] = rad0; q[i * 4] = 1; q[i * 4 + 1] = seed; q[i * 4 + 2] = alpha; vel[i * 3] = vx; vel[i * 3 + 1] = vy; vel[i * 3 + 2] = vz; life[i] = maxL[i] = lifeS; r0[i] = rad0; r1[i] = rad1; a0[i] = alpha; },
+    update(dt) { t += dt; mat.uniforms.uTime.value = t; const p = iP.array, q = iQ.array; let any = false;
+      for (let i = 0; i < cap; i++) { if (life[i] <= 0) continue; life[i] -= dt; any = true; if (life[i] <= 0) { q[i * 4] = 0; continue; }
+        const k = Math.exp(-2.6 * dt); vel[i * 3] *= k; vel[i * 3 + 2] *= k; vel[i * 3 + 1] *= Math.exp(-1.5 * dt);
+        p[i * 4] += vel[i * 3] * dt; p[i * 4 + 1] += vel[i * 3 + 1] * dt; p[i * 4 + 2] += vel[i * 3 + 2] * dt;
+        const u = 1 - life[i] / maxL[i]; p[i * 4 + 3] = r0[i] + (r1[i] - r0[i]) * (1 - Math.pow(1 - u, 2)); q[i * 4] = life[i] / maxL[i]; q[i * 4 + 2] = a0[i] * (1 - u * 0.6); }
+      iP.needsUpdate = iQ.needsUpdate = true; mesh.visible = any; },
+  };
+}

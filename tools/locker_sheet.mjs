@@ -3,7 +3,7 @@
 import { open } from './lib.mjs';
 import fs from 'node:fs';
 const a = process.argv.slice(2); const opt = (k, d) => { const i = a.indexOf('--' + k); return i >= 0 ? a[i + 1] : d; };
-const out = opt('out', 'shots/cosmetics/sheet'); const [w, h] = opt('size', '1600x900').split('x').map(Number); const nRand = +opt('randoms', 6);
+const out = opt('out', 'shots/cosmetics/sheet'); const [w, h] = opt("size", "1600x900").split('x').map(Number); const nRand = +opt('randoms', 6);
 fs.mkdirSync(out, { recursive: true });
 const g = await open({ params: 'test=1&seed=1&scene=locker', size: [w, h] });
 const call = (code, arg) => g.page.evaluate(([c, ar]) => { const L = window.__game.ctx.cosmetics.debug.locker; return (new Function('L', 'a', c))(L, ar); }, [code, arg]);

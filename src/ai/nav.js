@@ -15,14 +15,18 @@ export function create(ctx) {
   const P = (p) => (p && p.pos && p.x === undefined ? p.pos : p);          // accept actors or vectors
   const T = sys.tactics;
 
-  function ensure(force) {
+  /** Build (sync) when never built or forced; otherwise start a time-sliced background rebuild when the map changed. */
+  function ensure(force, async) {
     sys.map = override || ctx.map;
     if (!sys.map?.collider?.geometry || !sys.map.bounds) return false;
     const sig = NavSystem.signature(sys.map);
     if (!force && sys.ready && !dirty && sig === sys._mapSig) return true;
     if (!force && sig === failedSig) return false;
-    try { sys.build(); dirty = false; failedSig = ''; dbg.on && dbg.refresh(); ctx.events?.emit('nav:ready', { nodes: sys.g.N }); }
-    catch (e) { failedSig = sig; console.error('[nav] build failed', e); ctx.errors?.push('nav build: ' + (e?.stack || e)); sys.ready = false; return false; }
+    if (sys.building && !force && sig === sys._buildSig) return sys.ready;      // already rebuilding for this map
+    try {
+      if (async && sys.ready) { sys.startBuild(); dirty = false; return true; }
+      sys.build(); dirty = false; failedSig = ''; dbg.on && dbg.refresh(); ctx.events?.emit('nav:ready', { nodes: sys.g.N });
+    } catch (e) { failedSig = sig; console.error('[nav] build failed', e); ctx.errors?.push('nav build: ' + (e?.stack || e)); sys.ready = false; sys.building = null; return false; }
     return sys.ready;
   }
   for (const ev of MAP_EVENTS) ctx.events?.on?.(ev, () => { dirty = true; });
@@ -43,7 +47,10 @@ export function create(ctx) {
     get config() { return sys.cfg; },
     get graph() { return sys.g; },
     /** Regenerate the navgrid now (optionally with new options, e.g. {cell:0.6}). */
-    rebuild(options) { if (options) sys.options = { ...sys.options, ...options }; return ensure(true) ? sys.g.stats : null; },
+    rebuild(options, { async = false } = {}) { if (options) sys.options = { ...sys.options, ...options }; if (async && sys.ready) { sys.startBuild(); return true; } return ensure(true) ? sys.g.stats : null; },
+    /** 0..1 progress of a background rebuild (1 when idle). */
+    get progress() { return sys.building ? sys.progress : 1; },
+    get building() { return !!sys.building; },
     /** Use a custom map-like object {collider,bounds,spawns,sites,callouts} instead of ctx.map (debug/tests); null restores. */
     useMap(m) { override = m || null; return ensure(true); },
     // ---- paths
@@ -81,10 +88,10 @@ export function create(ctx) {
     danger,
     // ---- loop
     fixedUpdate(dt) {
-      if ((tick++ & 31) === 0) { dirty = dirty || (sys.ready && sys.mapChanged()); if (!sys.ready || dirty) ensure(); }
+      if ((tick++ & 31) === 0) { dirty = dirty || (sys.ready && sys.mapChanged()); if (!sys.ready || dirty) ensure(false, true); }
       if (sys.ready) { sys.pump(sys.cfg.sliceExpansions >> 2); sys.decayDanger(dt); }
     },
-    update() {},
+    update() { if (sys.building || sys.bg) { sys.step(); if (sys.building) dbg.on && dbg.progress?.(sys.progress); } },
   };
   const dbg = createDebug(ctx, api, sys);
   api.debug = dbg;
@@ -94,7 +101,8 @@ export function create(ctx) {
   ctx.debugScenes = ctx.debugScenes || {};
   ctx.debugScenes['nav-debug'] = async () => {
     ensure(); if (ctx.params.get('map') === 'test') dbg.useTestMap();
-    dbg.draw(true); dbg.camera(ctx.params.get('view') || 'iso'); if (ctx.params.get('edges')) dbg.edges(true);
+    const P = ctx.params, lay = {}; if (P.get('links')) lay.links = true; if (P.get('edges')) lay.edges = true; if (P.get('labels') === '0') lay.labels = false; if (P.get('cover') === '0') lay.cover = false; if (P.get('paths') === '0') lay.paths = false;
+    dbg.layers(lay); dbg.camera(P.get('view') || 'top'); if (P.get('backdrop') !== '0') dbg.backdrop(true); dbg.draw(true); if (P.get('hud') !== '1') dbg.hideUI();
   };
   ensure();
   return api;

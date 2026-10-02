@@ -16,3 +16,12 @@ Tuning: `ctx.nav.config` (src/ai/nav/config.js).
 
 ## Known gaps
 No dynamic obstacles/doors; no ladders; hold-angle quality heuristics are simple; area labels sprites in the overlay not verified; A* ~0.3-0.5 ms for long routes (cache/slicing hide it, hierarchical search would cut it further).
+
+
+## Round 2 changes
+- **Perf**: ALT landmark heuristic (8 landmarks, `nav/alt.js`) + weighted A*: random 65 m routes ~0.3 ms avg / <1 ms p95 on Crux. Cover/hold now use a precomputed set of ~1000 wall-hugging *spots* (Poisson over wall-adjacent nodes) with background-filled 32-ray sight profiles: `coverPoints` ~0.3 ms, `holdSpots` ~0.6-0.9 ms, `holdAngles` ~0.2 ms (wall clock under heavy CPU contention; worst ~3-5 ms). `holdSpots` exposure is 0..1 and falls back to spots *facing* the threat bearing (visible:false) when it is out of sight.
+- **Async build**: first build at boot is synchronous (~0.7 s); later map changes rebuild in a time-sliced generator (`ctx.nav.rebuild(opts,{async:true})`, `nav.progress`, `nav.building`), old data stays usable until the swap; slices ~3-30 ms. Profiles precompute in the background after each build.
+- **Links**: jump links now reach 1.6 m (mantle: jump 1.05 + lip, flag 1 like jumps). Jump/drop costs raised so hop-over of planters is only taken when the walk-around is >~10 m (hop-over paths 9% -> 3%, remaining are Hub walls).
+- **Coverage/robustness**: sloped-edge midpoint headroom check removes the (26,1.5,-32) seam crossings; down-scan up to 96 surfaces per column; margin 0.07; 1.6% of standable spots lack a node within 1 m (0.1% on the stress map).
+- **Overlay**: `?scene=nav-debug` (default `view=top`; `&view=iso`, `&links=1`, `&edges=1`, `&labels=0`, `&cover=0`, `&paths=0`, `&backdrop=0`, `&hud=1`) hides HUD/roofs/skyline, renders the exact collision mesh in grey, area-coloured dots with white borders, fat sample-path lines, large area labels, cover cones. `debug.layers({...})`, `debug.coverage()`, `debug.tacticsBench()`, `debug.backdrop(bool)`, `debug.hideUI()`.
+- `tools/nav_validate.mjs` additionally prints tactics timings, node coverage of standable spots and hop-over path count.

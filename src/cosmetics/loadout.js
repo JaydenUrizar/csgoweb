@@ -28,32 +28,38 @@ export const loadoutKey = (l) => `${l.team}|${SLOT_CATS.map((c) => l[c]).join('|
 export function sameLoadout(a, b) { return loadoutKey(a) === loadoutKey(b); }
 export function wearOf(v) { let best = WEARS[0]; for (const w of WEARS) if (v >= w.value - 0.001) best = w; return best; }
 
-// ---- team readability guard -------------------------------------------------------------------------------
+// ---- team adaptation: spec colours are made team-appropriate here (the in-game material applies the same bands) ------
 function hsl(c) {
   const r = ((c >> 16) & 255) / 255, g = ((c >> 8) & 255) / 255, b = (c & 255) / 255;
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
   const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
-  return [hue(c), s, l];
+  return [hue(c) < 0 ? 0 : hue(c) / 360, s, l];
 }
-function fromHsl(h, s, l) {
-  if (h < 0) h = 0;
+export function fromHsl(h, s, l) {
+  h = ((h % 1) + 1) % 1 * 360;
   const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
   const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
   return (Math.round(f(0) * 255) << 16) | (Math.round(f(8) * 255) << 8) | Math.round(f(4) * 255);
 }
-const hueDist = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
-/** If the suit body colour is a saturated hue of the ENEMY team, mute it so silhouettes stay team-readable. */
-export function teamGuardColor(color, team) {
-  const [h, s, l] = hsl(color);
-  if (h < 0 || s < 0.42 || l < 0.12 || l > 0.9) return color;
-  if (hueDist(h, TEAM_HUE[other(team)]) > 30) return color;
-  return fromHsl(h, s * 0.34, l * 0.82);
+const TEAM_H = { ember: hsl(0xff7a2f)[0], tide: hsl(0x2fd0ff)[0] };
+const wrapH = (d) => d - Math.round(d);
+const cl = (v, a, b) => Math.min(b, Math.max(a, v));
+/** Suit body: team hue band (+-0.03), authored lightness/saturation remapped into the playable range so suits keep their own tone. */
+export function teamBase(color, team) {
+  const [h, s, l] = hsl(color); const th = TEAM_H[team] ?? TEAM_H.ember;
+  const grey = s < 0.08;
+  const nl = 0.34 + 0.18 * cl((l - 0.06) / 0.62, 0, 1), ns = 0.6 + 0.3 * cl(s, 0, 1);
+  return fromHsl(th + (grey ? 0 : cl(wrapH(h - th), -0.03, 0.03)), ns, nl);
 }
+export function teamAccent(color) { const [h, s, l] = hsl(color); return fromHsl(h, Math.min(s, 0.55), Math.max(l, 0.72)); }
+export const teamHelmet = (color) => { const [h, s, l] = hsl(color); return fromHsl(h, Math.min(s, 0.6), Math.max(l, 0.55)); };
+export const teamBack = (color) => { const [h, s, l] = hsl(color); return fromHsl(h, Math.min(s, 0.7), cl(l, 0.3, 0.55)); };
+export const teamGuardColor = (c, team) => teamBase(c, team);
 
 // ---- resolve -> CosmeticSpec (docs/ARCHITECTURE.md) ------------------------------------------------------
 const specCache = new Map();
-export function resolve(loadout, { guard = true } = {}) {
-  const l = normalize(loadout);
+export function resolve(loadout, opt) {
+  const guard = opt?.guard !== false; const l = normalize(loadout, typeof opt === 'string' ? opt : undefined);
   const key = loadoutKey(l) + (guard ? 'g' : '');
   let spec = specCache.get(key);
   if (spec) return spec;
@@ -63,10 +69,10 @@ export function resolve(loadout, { guard = true } = {}) {
   const patColor = pat.pattern === 'auto' || pat.color == null ? suit.accent : pat.color;
   const rarityRank = Math.max(...SLOT_CATS.map((c) => it[c].rarityInfo.rank));
   spec = {
-    suit: { base: guard ? teamGuardColor(suit.base, l.team) : suit.base, accent: suit.accent, pattern: patKind, patternColor: patColor, material: suit.material },
-    helmet: { shape: it.helmet.shape, color: it.helmet.color, accent: it.helmet.accent },
+    suit: { base: guard ? teamBase(suit.base, l.team) : suit.base, accent: guard ? teamAccent(suit.accent) : suit.accent, pattern: patKind, patternColor: patColor, material: suit.material },
+    helmet: { shape: it.helmet.shape, color: guard ? teamHelmet(it.helmet.color) : it.helmet.color, accent: it.helmet.accent },
     visor: { shape: it.visor.shape, color: it.visor.color, glow: it.visor.glow },
-    back: { model: it.back.model, color: it.back.color },
+    back: { model: it.back.model, color: guard ? teamBack(it.back.color) : it.back.color },
     trail: { type: it.trail.type, color: it.trail.color, color2: it.trail.color2 },
     tagOutEffect: it.tagOut.effect,
     taggerSkin: { pattern: it.skin.pattern, primary: it.skin.primary, accent: it.skin.accent, glow: it.skin.glow, wear: l.skinWear },
@@ -122,20 +128,20 @@ export function encodeLoadout(l) {
   const n = normalize(l);
   let body = n.team === 'tide' ? 't' : 'e';
   for (const c of SLOT_CATS) body += enc2(BY_ID[n[c]].n);
-  body += B36[Math.round(n.skinWear * 35)];
+  body += enc2(Math.round(n.skinWear * 1000));
   const all = (body + checksum(body)).toUpperCase();
   return 'FLUX-' + all.match(/.{1,4}/g).join('-');
 }
 export function decodeLoadout(code) {
   if (typeof code !== 'string') return null;
   let s = code.trim().toLowerCase().replace(/^flux/, '').replace(/[^0-9a-z]/g, '');
-  if (s.length !== 1 + SLOT_CATS.length * 2 + 1 + 2) return null;
+  if (s.length !== 1 + SLOT_CATS.length * 2 + 2 + 2) return null;
   const body = s.slice(0, -2);
   if (checksum(body) !== s.slice(-2)) return null;
   const team = body[0] === 't' ? 'tide' : body[0] === 'e' ? 'ember' : null; if (!team) return null;
   const l = { team };
   SLOT_CATS.forEach((c, i) => { const idx = dec2(body.slice(1 + i * 2, 3 + i * 2)); const it = BY_CAT[c][idx]; if (it) l[c] = it.id; });
-  const w = B36.indexOf(body[body.length - 1]); l.skinWear = w >= 0 ? w / 35 : 0.03;
+  const w = dec2(body.slice(-2)); l.skinWear = w >= 0 && w <= 1000 ? w / 1000 : 0.03;
   return normalize(l, team);
 }
 export function setCompletion(l, setId) {
