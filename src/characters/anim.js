@@ -50,7 +50,7 @@ function keys(arr, s) {               // arr = [[t, ...values]] smooth interpola
 }
 const _kv = [0, 0, 0, 0, 0, 0, 0, 0];
 const MELEE_K = [[0, 0, 0, 0, 0, 0, 0], [0.3, 0.06, 0.4, 0.18, -1.35, 0.3, 0.55], [0.52, -0.16, 0.0, -0.32, -0.15, 0.1, -0.7], [0.66, -0.1, -0.02, -0.28, -0.05, 0.05, -0.4], [1, 0, 0, 0, 0, 0, 0]];
-const THROW_K = [[0, 0.06, 0.34, 0.4, 0.75, 0, 0], [0.28, -0.06, 0.05, -0.28, -0.55, 0, 0], [0.55, -0.12, -0.2, -0.12, -0.9, 0, 0], [1, 0, 0, 0, 0, 0, 0]];
+const THROW_K = [[0, 0.1, 0.42, 0.5, 1.0, 0, 0], [0.28, -0.06, 0.05, -0.28, -0.55, 0, 0], [0.55, -0.12, -0.2, -0.12, -0.9, 0, 0], [1, 0, 0, 0, 0, 0, 0]];
 
 export function plantModeOf(ctx, a, m) {
   if (m.dbg && m.dbg.plant != null) return m.dbg.plant;
@@ -153,7 +153,7 @@ export function animate(ctx, m, dt, alpha) {
   let C = clamp(0.8 + 0.28 * sN, 1.2, 2.6) * (1 - 0.28 * cr);
   const hmax = 0.44 - 0.16 * cr;
   let duty = lerp(0.62, 0.36, sstep((sN - 2.0) / 3.2)) + 0.05 * cr; duty = Math.min(duty, 2 * hmax / C);
-  const h = duty * C * 0.5, liftAmp = lerp(0.075, 0.21, run) * (1 - 0.45 * cr);
+  const h = duty * C * 0.5, liftAmp = lerp(0.1, 0.22, run) * (1 - 0.12 * cr) + 0.025 * cr;
   if (gaitOn) { m.phase += sN * dt / C; if (m.phase > 1e3) m.phase -= 1e3; }
   if (m.phasePending) { const pc = m.phasePending * (1 - Math.exp(-dt * 14)); m.phase += pc; m.phasePending -= pc; if (Math.abs(m.phasePending) < 1e-4) m.phasePending = 0; }
   const ph = m.phase;
@@ -223,9 +223,9 @@ export function animate(ctx, m, dt, alpha) {
   const spine = bones[B.spine], chest = bones[B.chest], neck = bones[B.neck], head = bones[B.head];
   _e.set(-0.5 * pPitch + pit * 0.24 + 0.008 * br * breath + 0.12 * plantW, (twist - pYaw) * 0.38, -0.5 * pRoll, 'YXZ'); spine.quaternion.setFromEuler(_e);
   chest.position.y = 0.2 + 0.0035 * br * breath;
-  _e.set(pit * 0.34 + sp.fp[0] + sp.recoilChest[0], (twist - pYaw) * 0.62 + sp.fy[0] + 0.04 * sPh * gw * run, -0.35 * pRoll + sp.fr[0], 'YXZ'); chest.quaternion.setFromEuler(_e);
+  _e.set(pit * 0.34 + sp.fp[0] + sp.recoilChest[0] - 0.14 * (m.reloadW || 0), (twist - pYaw) * 0.62 + sp.fy[0] + 0.04 * sPh * gw * run, -0.35 * pRoll + sp.fr[0], 'YXZ'); chest.quaternion.setFromEuler(_e);
   _e.set(pit * 0.2 + sp.hp[0], 0, sp.hr[0], 'YXZ'); neck.quaternion.setFromEuler(_e);
-  _e.set(pit * 0.2 - 0.25 * plantW * 0, 0, 0, 'YXZ'); head.quaternion.setFromEuler(_e);
+  _e.set(pit * 0.2 - 0.3 * (m.reloadW || 0) - 0.12 * (m.aimW ?? 1) * 0, 0.08 * (m.reloadW || 0), 0.06 * (m.aimW ?? 1), 'YXZ'); head.quaternion.setFromEuler(_e);
   m.root.position.set(rp.x, gy, rp.z); m.root.rotation.y = hy;
   m.root.updateMatrixWorld(true);
   _pQ.setFromRotationMatrix(pel.matrixWorld); _pPos.setFromMatrixPosition(pel.matrixWorld); _pQi.copy(_pQ).invert();
@@ -303,11 +303,15 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
       const A = way[i], Bn = way[i + 1], t = sstep((s - A[0]) / Math.max(1e-6, Bn[0] - A[0]));
       LX = lerp(A[1], Bn[1], t); LY = lerp(A[2], Bn[2], t); LZ = lerp(A[3], Bn[3], t);
     }
-    const bump = sstep(s / 0.14) * (1 - sstep((s - 0.82) / 0.16));
-    rx += 0.32 * bump; rz -= 0.34 * bump; py += 0.035 * bump; px -= 0.02 * bump;
-    if (s > 0.64 && s < 0.78) py -= 0.02 * Math.sin((s - 0.64) / 0.14 * PI);   // slap
-    if (s >= 1) { m.reload = null; }
+    const bump = sstep(s / 0.12) * (1 - sstep((s - 0.84) / 0.14));
+    const big = cls === 'pistol' ? 0.7 : 1;
+    rx += 0.62 * bump * big; rz -= 0.7 * bump * big; py += 0.07 * bump; px -= 0.06 * bump; pz += 0.05 * bump;
+    if (s > 0.64 && s < 0.8) { const k = Math.sin((s - 0.64) / 0.16 * PI); py -= 0.045 * k; rx -= 0.18 * k; }   // slam the mag home
+    if (s > 0.32 && s < 0.5) { px += 0.03 * Math.sin((s - 0.32) / 0.18 * PI); }
+    m.reloadW = bump; m.mag.visible = s > 0.3 && s < 0.7 && (cls !== 'shotgun');
+    if (s >= 1) { m.reload = null; m.mag.visible = false; m.reloadW = 0; }
   }
+  if (!m.reload) { m.reloadW = (m.reloadW || 0) * 0.85; if (m.mag.visible) m.mag.visible = false; }
   // ---- melee / throw
   if (m.meleeT >= 0) {
     m.meleeT += dt; const s = m.meleeT / 0.42;
@@ -352,7 +356,7 @@ function updateUpper(ctx, m, dt, pit, run, cr, plantW, pm, airW, sPh, ph, gw) {
     // slide the foregrip toward the grip if out of reach
     _p2.copy(_lv).applyQuaternion(_qPL).add(_pl);
     _wr.set(-SEG.shoulderX, 0.22, 0).sub(_p2); const dist = _wr.length();
-    if (dist > 0.66 && lz < -0.1) { _lv.z += Math.min(0.22, (dist - 0.66) * 0.9); _p2.copy(_lv).applyQuaternion(_qPL).add(_pl); }
+    if (dist > 0.7 && lz < -0.1) { _lv.z += Math.min(0.26, (dist - 0.7) * 0.9); _p2.copy(_lv).applyQuaternion(_qPL).add(_pl); }
     _qb.copy(_qPL).multiply(RX90); _qc.setFromAxisAngle(Y, roll); _qb.multiply(_qc);
     _wr.set(0, HAND_LEN, 0).applyQuaternion(_qb).add(_p2);
     solveArm(m, -1, _wr, _qb, run, cr);
@@ -363,7 +367,7 @@ const _hq = new THREE.Quaternion();
 function solveArm(m, sg, wrist, handQ, run, cr) {
   const B_ = m.bones, uA = B_[sg < 0 ? B.uArmL : B.uArmR], fA = B_[sg < 0 ? B.fArmL : B.fArmR], hA = B_[sg < 0 ? B.handL : B.handR];
   _J.set(sg * SEG.shoulderX, 0.22, 0);
-  _pole.set(sg * 0.6, -0.8, 0.25);
+  _pole.set(sg * 0.45, -1.0, sg > 0 ? 0.1 : 0.3);
   ik2(_J, wrist, SEG.arm1, SEG.arm2, _pole, _qU, _qL);
   uA.quaternion.copy(_qU); fA.quaternion.copy(_qL);
   _hq.copy(_qU).multiply(_qL).invert().multiply(handQ); hA.quaternion.copy(_hq);
@@ -373,7 +377,7 @@ function relaxedArm(m, sg, s, run, gw, cr) {
   const B_ = m.bones, uA = B_[sg < 0 ? B.uArmL : B.uArmR], fA = B_[sg < 0 ? B.fArmL : B.fArmR], hA = B_[sg < 0 ? B.handL : B.handR];
   const amp = (0.12 + 0.2 * run) * gw, sw = s * amp * -sg;
   _J.set(sg * SEG.shoulderX, 0.22, 0);
-  _wr.set(sg * (0.3 + 0.03 * cr), -0.36 + 0.07 * Math.abs(sw) / 0.3 + 0.06 * cr + 0.04 * run * gw, -0.03 + sw - 0.08 * cr - 0.08 * run * gw);
+  _wr.set(sg * (0.3 + 0.03 * cr), -0.42 + 0.07 * Math.abs(sw) / 0.3 + 0.06 * cr + 0.04 * run * gw, -0.03 + sw - 0.08 * cr - 0.08 * run * gw);
   _pole.set(sg * 0.5, -0.5, 0.9);
   ik2(_J, _wr, SEG.arm1, SEG.arm2, _pole, _qU, _qL);
   uA.quaternion.copy(_qU); fA.quaternion.copy(_qL);

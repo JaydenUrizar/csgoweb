@@ -5,9 +5,9 @@ import { meshTerrain } from './terrain.js';
 import { Dress } from './props.js';
 import { dressWorld } from './dress.js';
 
-export function buildWorld() {
+export function buildWorld(chunk) {
   const layout = buildLayout();
-  const VB = new VisBuilder(), VBroof = new VisBuilder(), CB = new ColBuilder();
+  const VB = new VisBuilder(chunk), VBroof = new VisBuilder(), CB = new ColBuilder();
   const terrain = meshTerrain(layout.grid, VB, CB);
   const D = new Dress(VB, VBroof, CB, layout.grid);
   D.terrainWalls = terrain.walls;

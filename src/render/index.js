@@ -4,6 +4,7 @@ import { createSky } from './sky.js';
 import { createPost } from './post.js';
 import { bakeVertexAO, bakeVertexAOAsync } from './ao.js';
 import { registerScenes } from './scenes.js';
+import { createSkyOcc } from './skyocc.js';
 import { LAYER } from '../core/config.js';
 
 // Rendering, lighting & post-FX. Owner: render piece. Contract: docs/ARCHITECTURE.md + docs/pieces/render.md.
@@ -32,20 +33,21 @@ export function create(ctx) {
   const viewCamera = new THREE.PerspectiveCamera(68, 1, 0.01, 10);
 
   // ---- sky / environment / fog / lights ------------------------------------------------------------------------------------------
+  const skyOcc = createSkyOcc(); THREE.Material.prototype.onBeforeCompile = skyOcc.hook;   // global ambient-occlusion hook for every lit material
   const sky = createSky(renderer);
   scene.add(sky.dome); scene.add(sky.clouds);
   scene.fog = new THREE.FogExp2(0xcfe0ee, sky.params.fogDensity);
 
   const sun = new THREE.DirectionalLight(0xffe7c2, 3.6); sun.castShadow = true; scene.add(sun); scene.add(sun.target);
-  const fill = new THREE.DirectionalLight(0xa8c8ff, 0.55); scene.add(fill); scene.add(fill.target);       // cool sky fill from the shaded side
-  const hemi = new THREE.HemisphereLight(0xbcd8ff, 0xc9a374, 0.18); scene.add(hemi);                        // sky / warm bounce
+  const fill = new THREE.DirectionalLight(0xffd9a8, 0.0);        // cool sky fill from the shaded side
+  const hemi = new THREE.HemisphereLight(0xd2d4d8, 0xb08d62, 0.10); scene.add(hemi);                        // sky / warm bounce
   const sunDir = sky.sunDir;
 
   // viewmodel lighting (rotated into camera space every frame so the gun is lit like the world)
   const vKey = new THREE.DirectionalLight(0xfff0d6, 2.6), vRim = new THREE.DirectionalLight(0x9cc8ff, 0.9), vHemi = new THREE.HemisphereLight(0xdfeaff, 0x8a7358, 0.55);
   viewScene.add(vKey, vKey.target, vRim, vRim.target, vHemi);
 
-  const materials = createMaterials(renderer);
+  const materials = createMaterials(renderer, skyOcc.hook);
   const post = createPost(renderer);
 
   // ---- state ----------------------------------------------------------------------------------------------------------------------
@@ -57,8 +59,8 @@ export function create(ctx) {
     blur: { value: 0, hold: 0 }, tint: { color: new THREE.Color(1, 0, 0), amount: 0, hold: 0 },
     damage: { dir: 0, amount: 0 }, white: { hold: 0, level: 0 },
     shake: { trauma: 0, decay: 6, t: 0 },
-    exposure: 0.85, bloom: 0.16, ao: 0.85, vignette: 0.2, grain: 1, ca: 1, contrast: 1.13, saturation: 1.16,
-    toggles: { bloom: true, ssao: true, grain: true, vignette: true, shadows: true, fxaa: true, shafts: true },
+    exposure: 0.85, bloom: 0.12, ao: 0.85, vignette: 0.2, grain: 1, ca: 1, contrast: 1.14, saturation: 1.06,
+    toggles: { skyocc: true, bloom: true, ssao: true, grain: true, vignette: true, shadows: true, fxaa: true, shafts: true },
   };
   const stats = { sceneCalls: 0, sceneTris: 0, calls: 0, tris: 0, sunVis: 0, sunUV: new THREE.Vector2(0.5, 0.5), shaftI: 0.22 };
   const infoObj = { calls: 0, triangles: 0, points: 0, lines: 0, geometries: 0, textures: 0, postCalls: 0, quality, scale: 1, fps: 60, width: 0, height: 0, shadowMap: 0 };
@@ -70,12 +72,11 @@ export function create(ctx) {
     const p = sky.params; sky.apply();
     sun.color.copy(sky.sunColor); sun.intensity = p.sunIntensity;
     // fill from the opposite side, cool
-    fill.color.set(p.skyMid).lerp(_c.set(0xffffff), 0.25);
-    hemi.color.set(p.skyMid).lerp(_c.set(0xffffff), 0.35); hemi.groundColor.set(p.ground);
+    hemi.color.set(p.envTop).lerp(_c.set(0xffffff), 0.2); hemi.groundColor.set(p.envGround);
     scene.fog.color.copy(sky.fogColor); scene.fog.density = p.fogDensity;
     vKey.color.copy(sky.sunColor).lerp(_c.set(0xffffff), 0.3);
     const env = sky.buildEnvironment(); scene.environment = env; viewScene.environment = env;
-    scene.environmentIntensity = 0.95; viewScene.environmentIntensity = 0.75;
+    scene.environmentIntensity = 0.36; viewScene.environmentIntensity = 0.75;
   }
   function setSky(o = {}) { Object.assign(sky.params, o); applySky(); }
 
@@ -127,7 +128,6 @@ export function create(ctx) {
     sun.target.position.copy(_ctr); sun.position.copy(_ctr).addScaledVector(sunDir, 100);
     sun.target.updateMatrixWorld(); sun.updateMatrixWorld();
     // fill light from the shaded side, no shadows
-    fill.position.set(-sunDir.x, 0.35, -sunDir.z).multiplyScalar(30).add(_ctr); fill.target.position.copy(_ctr);
   }
 
   // ---- shake ---------------------------------------------------------------------------------------------------------------------
@@ -158,6 +158,10 @@ export function create(ctx) {
     if (f.white.hold > 0) f.white.hold -= dt; else f.white.level = Math.max(0, f.white.level - dt / 2.4);
     f.shake.trauma = Math.max(0, f.shake.trauma - f.shake.decay * dt * 0.25 - dt * 0.05); f.shake.t += dt;
     sky.update(camera, dt);
+    if (!skyOcc.state.done) {
+      if (!skyOcc.state.job && ctx.map?.raycast && ctx.map.bounds && ctx.map.heightAt) skyOcc.begin(ctx.map);
+      skyOcc.state.job?.run(ctx.manualStepping ? 1e9 : 5);
+    }
   }
 
   const api = {
@@ -221,7 +225,8 @@ export function create(ctx) {
       screens() { return { flash: fx.flash.amount, blur: fx.blur.value, tint: fx.tint.amount, damage: fx.damage.amount, whiteout: fx.white.level, shake: fx.shake.trauma }; },
       setExposure(x) { fx.exposure = x; },
       setSunAngle(el, az) { setSky({ sunElevation: el, sunAzimuth: az }); },
-      toggle(name, on) { if (name in fx.toggles) fx.toggles[name] = !!on; },
+      toggle(name, on) { if (name in fx.toggles) fx.toggles[name] = !!on; if (name === 'skyocc') skyOcc.U.uSkyOccOn.value = on && skyOcc.state.done ? 1 : 0; },
+      skyOcc,
       stats() { return { ...stats, ...api.info(), dynScale: dyn.scale }; },
       setDynamic(on) { dyn.enabled = !!on; },
     },

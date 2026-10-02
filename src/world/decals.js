@@ -82,11 +82,41 @@ function drawPlaque(c, w, h, spec) {
   let size = h * 0.56; c.font = `900 ${size}px "Arial Narrow","Barlow Condensed",Arial,sans-serif`; while (c.measureText(spec.text).width > w * 0.84 && size > 8) { size -= 2; c.font = `900 ${size}px "Arial Narrow","Barlow Condensed",Arial,sans-serif`; }
   c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff4d8'; c.fillText(spec.text, w / 2, h / 2 + h * 0.03);
 }
-const DRAW = { ftext: drawFloorText, letter: drawLetter, emblem: drawEmblem, pad: drawPad, window: drawWindow, shutter: drawWindow, grille: drawWindow, mural: drawMural, plaque: drawPlaque };
 
-export function buildDecals(D, VB, spawns, sites) {
+function drawDoor(c, w, h, spec) {
+  c.clearRect(0, 0, w, h); const cols = ['#7a4f30', '#2a7f86', '#5d7a42', '#a64b32', '#3b5f8a', '#c79a3a'][spec.seed % 6];
+  const bx = w * 0.1, bw = w * 0.8, top = h * 0.04, arch = bw / 2;
+  const path = () => { c.beginPath(); c.moveTo(bx, h); c.lineTo(bx, top + arch); c.arc(bx + bw / 2, top + arch, bw / 2, Math.PI, 0); c.lineTo(bx + bw, h); c.closePath(); };
+  path(); c.lineWidth = w * 0.1; c.strokeStyle = '#efe0b8'; c.stroke(); path(); c.fillStyle = cols; c.fill();
+  c.save(); path(); c.clip(); c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1.5; for (let x = bx; x < bx + bw; x += bw / 5) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); }
+  c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(bx, h * 0.38, bw, 3); c.fillRect(bx, h * 0.72, bw, 3); c.fillStyle = 'rgba(20,30,40,0.85)'; c.beginPath(); c.arc(bx + bw / 2, top + arch * 0.95, arch * 0.45, 0, 7); c.fill(); c.restore();
+  c.fillStyle = '#d9b84a'; c.beginPath(); c.arc(bx + bw * 0.8, h * 0.58, 3, 0, 7); c.fill();
+  c.fillStyle = '#d8c79a'; c.fillRect(bx - w * 0.06, h - h * 0.035, bw + w * 0.12, h * 0.035);
+}
+function drawShopWin(c, w, h, spec) {
+  c.clearRect(0, 0, w, h); c.fillStyle = '#efe0b8'; c.fillRect(0, 0, w, h); const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#2c3a46'); g.addColorStop(1, '#4a5a64'); c.fillStyle = g; c.fillRect(w * 0.08, h * 0.08, w * 0.84, h * 0.84);
+  c.fillStyle = 'rgba(255,214,150,0.35)'; c.fillRect(w * 0.08, h * 0.5, w * 0.84, h * 0.42); c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(w / 2 - 1.5, h * 0.08, 3, h * 0.84);
+  const cols = ['#e86a2a', '#e8c12a', '#7bbf4a', '#d9433a']; for (let i = 0; i < 6; i++) { c.fillStyle = cols[(i + spec.seed) % 4]; c.fillRect(w * (0.14 + i * 0.13), h * 0.72, w * 0.09, h * 0.12); }
+}
+function drawShopSign(c, w, h, spec) {
+  c.clearRect(0, 0, w, h); const col = '#' + (spec.color || 0x2a9d9f).toString(16).padStart(6, '0');
+  c.fillStyle = col; c.beginPath(); c.roundRect(1, 1, w - 2, h - 2, 6); c.fill(); c.strokeStyle = 'rgba(255,244,216,0.85)'; c.lineWidth = 2; c.beginPath(); c.roundRect(5, 5, w - 10, h - 10, 4); c.stroke();
+  let size = h * 0.56; c.font = `900 ${size}px "Arial Narrow","Barlow Condensed",Arial,sans-serif`; while (c.measureText(spec.text).width > w * 0.86 && size > 8) { size -= 2; c.font = `900 ${size}px "Arial Narrow","Barlow Condensed",Arial,sans-serif`; }
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff4d8'; c.fillText(spec.text || '', w / 2, h / 2 + h * 0.04);
+}
+function drawVent(c, w, h) { c.clearRect(0, 0, w, h); c.fillStyle = '#d8c79a'; c.fillRect(0, 0, w, h); c.fillStyle = '#1d2227'; c.fillRect(w * 0.1, h * 0.1, w * 0.8, h * 0.8); c.fillStyle = '#6b6f76'; for (let y = h * 0.16; y < h * 0.86; y += h * 0.14) c.fillRect(w * 0.1, y, w * 0.8, h * 0.07); }
+function drawBDoor(c, w, h, spec) {
+  c.clearRect(0, 0, w, h); const sh = ['#2a9d9f', '#c4673d', '#6b8e4e', '#3b6f8f', '#8a5a36', '#d9a441'][spec.seed % 6];
+  c.fillStyle = '#efe0b8'; c.fillRect(w * 0.18, 0, w * 0.64, h); c.fillStyle = '#18202a'; c.fillRect(w * 0.24, h * 0.04, w * 0.52, h * 0.94); c.fillStyle = 'rgba(120,170,200,0.22)'; c.fillRect(w * 0.24, h * 0.04, w * 0.2, h * 0.94); c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(w / 2 - 1.5, h * 0.04, 3, h * 0.94); c.fillRect(w * 0.24, h * 0.45, w * 0.52, 3);
+  c.fillStyle = sh; c.fillRect(0, h * 0.04, w * 0.2, h * 0.94); c.fillRect(w * 0.8, h * 0.04, w * 0.2, h * 0.94); c.fillStyle = 'rgba(0,0,0,0.3)'; for (let y = h * 0.06; y < h; y += 5) { c.fillRect(0, y, w * 0.2, 1.4); c.fillRect(w * 0.8, y, w * 0.2, 1.4); }
+}
+function drawNiche(c, w, h) { c.clearRect(0, 0, w, h); const bx = w * 0.15, bw = w * 0.7; const path = () => { c.beginPath(); c.moveTo(bx, h); c.lineTo(bx, bw / 2 + 4); c.arc(bx + bw / 2, bw / 2 + 4, bw / 2, Math.PI, 0); c.lineTo(bx + bw, h); c.closePath(); }; path(); c.lineWidth = w * 0.09; c.strokeStyle = 'rgba(70,52,34,0.8)'; c.stroke(); path(); const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(40,28,18,0.75)'); g.addColorStop(1, 'rgba(70,52,34,0.5)'); c.fillStyle = g; c.fill(); }
+function drawClock(c, w, h) { c.clearRect(0, 0, w, h); const cx = w / 2, cy = h / 2, r = w * 0.44; c.fillStyle = '#efe0b8'; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); c.lineWidth = w * 0.05; c.strokeStyle = '#2a9d9f'; c.stroke(); c.fillStyle = '#fff8e4'; c.beginPath(); c.arc(cx, cy, r * 0.86, 0, 7); c.fill(); c.strokeStyle = '#30343a'; c.lineWidth = w * 0.025; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; c.beginPath(); c.moveTo(cx + Math.cos(a) * r * 0.7, cy + Math.sin(a) * r * 0.7); c.lineTo(cx + Math.cos(a) * r * 0.82, cy + Math.sin(a) * r * 0.82); c.stroke(); } c.lineWidth = w * 0.04; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + r * 0.1, cy - r * 0.55); c.stroke(); c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + r * 0.45, cy + r * 0.1); c.stroke(); }
+const DRAW = { ftext: drawFloorText, letter: drawLetter, emblem: drawEmblem, pad: drawPad, window: drawWindow, shutter: drawWindow, grille: drawWindow, mural: drawMural, plaque: drawPlaque, door: drawDoor, shopwin: drawShopWin, shopsign: drawShopSign, vent: drawVent, bdoor: drawBDoor, niche: drawNiche, clock: drawClock };
+
+export function buildDecals(D, VB, spawns, sites, VBsky) {
   const reqs = []; // {key, spec, ppm, w, h(m), place:{...}}
-  const add = (spec, wm, hm, place, ppm = 60) => reqs.push({ spec, wm, hm, place, ppm, key: JSON.stringify([spec, +wm.toFixed(2), +hm.toFixed(2)]) });
+  const add = (spec, wm, hm, place, ppm = 60) => { if (place.wall) { wm = Math.max(0.25, Math.round(wm * 4) / 4); hm = Math.round(hm * 10) / 10; } reqs.push({ spec, wm, hm, place, ppm, key: JSON.stringify([spec, +wm.toFixed(2), +hm.toFixed(2)]) }); };
   const FT_H = 0.9;
   for (const [text, x, z, rot, w, color] of FLOOR_TEXT) add({ t: 'ftext', text, color }, w, FT_H * (w > 6 ? 1.0 : 0.85), { floor: true, x, z, rot }, 64);
   add({ t: 'letter', text: 'A', color: 0xff7a2f }, 3.6, 3.6, { floor: true, x: 34.5, z: -28.5, rot: 0, lift: 0.07 }, 64);
@@ -100,8 +130,10 @@ export function buildDecals(D, VB, spawns, sites) {
   for (const [text, x, y, z, nx, nz, w] of WALL_TEXT) add({ t: 'plaque', text }, w, w * 0.2, { wall: true, c: [x, y, z], n: [nx, nz] }, 70);
   for (const d of D.decals) {
     if (d.type !== 'wall') continue;
-    if (d.kind === 'window' || d.kind === 'shutter' || d.kind === 'grille') add({ t: d.kind, kind: d.kind, seed: d.seed % 6 }, d.w + 0.8, d.h, { wall: true, c: d.c, n: d.n }, 64);
-    else add({ t: 'mural', kind: d.kind, color: d.color, seed: d.seed % 5 }, Math.round(d.w * 2) / 2, d.h, { wall: true, c: d.c, n: d.n }, 56);
+    const place = { wall: true, c: d.c, n: d.n, sky: !!d.sky };
+    if (d.kind === 'window' || d.kind === 'shutter' || d.kind === 'grille') add({ t: d.kind, kind: d.kind, seed: d.seed % 6 }, d.w + 0.8, d.h, place, 64);
+    else if (['chevrons', 'triangles', 'stripes', 'sun'].includes(d.kind)) add({ t: 'mural', kind: d.kind, color: d.color, seed: d.seed % 5 }, Math.round(d.w * 2) / 2, d.h, place, 56);
+    else add({ t: d.kind, kind: d.kind, seed: (d.seed || 0) % 6, text: d.text, color: d.color }, d.w, d.h, place, d.kind === 'shopsign' ? 72 : 64);
   }
   // pack
   const AS = 2048; const cells = new Map(); let order = [];
@@ -109,7 +141,7 @@ export function buildDecals(D, VB, spawns, sites) {
   const pack = (scale) => { let x = 0, y = 0, rowH = 0; const sorted = order.map((k) => cells.get(k)).sort((a, b) => b.py - a.py); for (const c of sorted) { const w = Math.ceil(c.px * scale) + 2, h = Math.ceil(c.py * scale) + 2; if (x + w > AS) { x = 0; y += rowH; rowH = 0; } if (y + h > AS) return false; c.x = x + 1; c.y = y + 1; c.w = w - 2; c.h = h - 2; x += w; rowH = Math.max(rowH, h); } return true; };
   let sc = 1; while (!pack(sc) && sc > 0.3) sc *= 0.9;
   const canvas = document.createElement('canvas'); canvas.width = canvas.height = AS; const c2 = canvas.getContext('2d');
-  for (const c of cells.values()) { const off = document.createElement('canvas'); off.width = c.w; off.height = c.h; const oc = off.getContext('2d'); DRAW[c.r.spec.t === 'window' || c.r.spec.t === 'shutter' || c.r.spec.t === 'grille' ? 'window' : c.r.spec.t](oc, c.w, c.h, { ...c.r.spec, text: c.r.spec.text, color: c.r.spec.color }); c2.drawImage(off, c.x, c.y); }
+  for (const c of cells.values()) { const off = document.createElement('canvas'); off.width = c.w; off.height = c.h; const oc = off.getContext('2d'); DRAW[['window', 'shutter', 'grille'].includes(c.r.spec.t) ? 'window' : c.r.spec.t](oc, c.w, c.h, { ...c.r.spec, text: c.r.spec.text, color: c.r.spec.color }); c2.drawImage(off, c.x, c.y); }
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 8; texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping; texture.needsUpdate = true;
   // geometry
   const white = [1, 1, 1, 1];
@@ -122,9 +154,9 @@ export function buildDecals(D, VB, spawns, sites) {
       const corner = (sr, su) => { const x = p.x + rx * hw * sr + ux * hh * su, z = p.z + rz * hw * sr + uz * hh * su; return [x, heightAt(D.g, x, z) + 0.035 + (p.lift || 0), z]; };
       VB.quad('signs', corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1), white, { uv, chunkAt: [p.x, p.z] });
     } else {
-      const [nx, nz] = p.n; const rx = nz, rz = -nx, hw = r.wm / 2, hh = r.hm / 2; const o = 0.03;
+      const [nx, nz] = p.n; const rx = nz, rz = -nx, hw = r.wm / 2, hh = r.hm / 2; const o = 0.065;
       const corner = (sr, su) => [p.c[0] + rx * hw * sr + nx * o, p.c[1] + hh * su, p.c[2] + rz * hw * sr + nz * o];
-      VB.quad('signs', corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1), white, { uv, chunkAt: [p.c[0], p.c[2]] });
+      (p.sky && VBsky ? VBsky : VB).quad('signs', corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1), white, { uv, chunkAt: [p.c[0], p.c[2]] });
     }
   }
   return { texture, canvas, count: reqs.length, cells: cells.size, scale: sc };

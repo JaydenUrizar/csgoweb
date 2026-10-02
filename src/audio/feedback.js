@@ -27,8 +27,8 @@ export function registerFeedback() {
       noise(V, { a: 0.0002, d: 0.02, g: 0.35, hp: 5500 });
     }
   };
-  reg('hit.tick', (V) => tick(V, false), { cat: 'hit', spatial: false, send: 0, prio: 8, voices: 4 });
-  reg('hit.crown', (V) => tick(V, true), { cat: 'hit', spatial: false, send: 0, prio: 9, voices: 4 });
+  reg('hit.tick', (V) => tick(V, false), { cat: 'hit', spatial: false, send: 0, prio: 8, voices: 4, gain: 2.4 });
+  reg('hit.crown', (V) => tick(V, true), { cat: 'hit', spatial: false, send: 0, prio: 9, voices: 4, gain: 2.0 });
   reg('hit.kill', (V) => {           // tag-out confirm: rising bell + sparkle
     const crown = !!V.o.crown, b = crown ? 2349 : 1760;
     ring(V, { f: b, ratios: [1, 2.76, 5.4], decays: [1, 0.55, 0.3], gains: [1, 0.4, 0.2], d: 0.6, g: 0.3 });
@@ -36,7 +36,7 @@ export function registerFeedback() {
     osc(V, { f0: 140, f1: 55, pt: 0.05, d: 0.28, g: 0.55, sat: 0.2 }); click(V, { g: 0.35, hp: 2500 });
     for (let i = 0; i < 7; i++) tinkle(V, 0.05 + i * 0.045 + V.r() * 0.03, 0.06);
     noise(V, { a: 0.0003, d: 0.05, g: 0.3, hp: 4500 });
-  }, { cat: 'hit', spatial: false, send: 0.08, prio: 10, voices: 3 });
+  }, { cat: 'hit', spatial: false, send: 0.08, prio: 10, voices: 3, gain: 1.5 });
 
   // ---------- damage taken (own ears) ----------
   reg('dmg.taken', (V) => {
@@ -76,7 +76,7 @@ export function registerFeedback() {
   }, { cat: 'tag', spatial: true, ref: 1.5, roll: 1.5, maxDist: 8, send: 0.05, voices: 3, prio: 4 });
 
   // ---------- UI ----------
-  const ui = (name, fn, o = {}) => reg(name, fn, { cat: 'ui', bus: 'ui', spatial: false, send: 0, voices: 4, ...o });
+  const ui = (name, fn, o = {}) => reg(name, fn, { cat: 'ui', bus: 'ui', spatial: false, send: 0, voices: 4, gain: 0.5, ...o });
   ui('ui.click', (V) => { click(V, { g: 0.14, hp: 3500 }); osc(V, { f0: 1250, f1: 820, pt: 0.03, d: 0.055, g: 0.28 }); osc(V, { f0: 2500, f1: 1640, pt: 0.03, d: 0.03, g: 0.05 }); });
   ui('ui.hover', (V) => { osc(V, { f0: 2400, d: 0.035, a: 0.002, g: 0.06 }); click(V, { g: 0.03, hp: 4500 }); });
   ui('ui.back', (V) => { click(V, { g: 0.12, hp: 3000 }); osc(V, { f0: 900, f1: 540, pt: 0.05, d: 0.07, g: 0.24 }); });

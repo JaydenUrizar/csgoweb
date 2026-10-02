@@ -17,7 +17,7 @@ import { registerScenes } from './scenes.js';
 const SURF_MAP = { stone: 'stone', sand: 'sand', tile: 'stone', brick: 'stone', water: 'water', metal: 'metal', wood: 'wood', grass: 'grass' };
 
 export function create(ctx) {
-  const W = buildWorld();
+  const W = buildWorld(+ctx.params.get('chunk') || undefined);
   const { layout, D } = W; const grid = layout.grid;
   const group = new THREE.Group(); group.name = 'crux-station';
   ctx.render.scene.add(group);
@@ -37,8 +37,8 @@ export function create(ctx) {
     }
   }
   const spawnsData = { ember: SPAWNS.ember.map((s) => ({ pos: new THREE.Vector3(s.x, heightAt(grid, s.x, s.z), s.z), yaw: s.yaw })), tide: SPAWNS.tide.map((s) => ({ pos: new THREE.Vector3(s.x, heightAt(grid, s.x, s.z), s.z), yaw: s.yaw })) };
-  const atlas = buildDecals(D, W.VB, SPAWNS, SITES);
-  const VBsky = new VisBuilder(); buildSkyline(VBsky);
+  const VBsky = new VisBuilder(); buildSkyline(VBsky, D);
+  const atlas = buildDecals(D, W.VB, SPAWNS, SITES, VBsky);
 
   const aniso = Math.min(8, ctx.render.renderer?.capabilities?.getMaxAnisotropy?.() || 4);
   const T = makeTextures(aniso);
@@ -98,12 +98,22 @@ export function create(ctx) {
     { type: 'site', id: 'A', center: sites.A.center, radius: sites.A.radius }, { type: 'site', id: 'B', center: sites.B.center, radius: sites.B.radius },
     { type: 'buyzone', team: 'ember', box: new THREE.Box3(v3(-16, -1, 38), v3(16, 6, 50)) }, { type: 'buyzone', team: 'tide', box: new THREE.Box3(v3(-16, -1, -50), v3(16, 6, -38)) },
   ];
-  const calloutAt = (p) => { let best = null, bd = 1e9; for (const c of callouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z) / c.radius; if (d < 1.0 && d < bd && Math.abs(p.y - c.pos.y) < 4.2) { bd = d; best = c; } } return best; };
+  const ZONE_CALLOUT = { es: 'Ember Spawn', tunapp: 'Tunnel Approach', outerlong: 'Outer Long', midapp: 'Mid Lane', doors: 'Mid Doors', hub: 'Hub', short: 'Short', terrace: 'Terrace', palace: 'Palace', long: 'Long', pit: 'Pit', longramp: 'Long Ramp', a: 'A Site', aplat: 'Ledge', adoor: 'A Door', ts: 'Tide Spawn', tidemid: 'Tide Mid', winroom: 'Window Room', eastroom: 'East Room', bconn: 'B Connector', bdoor: 'B Door', bplaza: 'B Site', bbalc: 'Balcony', btunmouth: 'Tunnel Mouth' };
+  const zoneAt = (x, z) => { const i = Math.floor(x - X0), j = Math.floor(z - Z0); if (i < 0 || j < 0 || i >= NX || j >= NZ) return null; const k = idx(i, j); return grid.open[k] ? grid.zoneNames[grid.zone[k]] : null; };
+  const tunnelCallouts = callouts.filter((c) => /Tunnel|Bend|Corner/.test(c.name));
+  const calloutAt = (p) => {
+    const z = zoneAt(p.x, p.z);
+    let best = null, bd = 1e9; for (const c of callouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z) / c.radius; if (d < 1.0 && d < bd && Math.abs(p.y - c.pos.y) < 4.2) { bd = d; best = c; } }
+    if (best) return best;
+    if (z === 'btun') { let b2 = null, d2 = 1e9; for (const c of tunnelCallouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z); if (d < d2) { d2 = d; b2 = c; } } return b2; }
+    const nm = ZONE_CALLOUT[z]; return nm ? callouts.find((c) => c.name === nm) || null : null;
+  };
+  const calloutAtOld = (p) => { let best = null, bd = 1e9; for (const c of callouts) { const d = Math.hypot(p.x - c.pos.x, p.z - c.pos.z) / c.radius; if (d < 1.0 && d < bd && Math.abs(p.y - c.pos.y) < 4.2) { bd = d; best = c; } } return best; };
 
   const api = {
     name: 'crux-station', group, collider: col.collider, bvh: col.bvh,
     raycast: col.raycast, raycastThrough: col.raycastThrough, visible: col.visible,
-    spawns: spawnsData, sites, callouts, calloutAt, triggers, thinWalls, thinWallAt, objectsAtSites, lightProbes, lamps: D.lamps.map((l) => ({ pos: v3(...l.pos), color: l.color, intensity: l.intensity })),
+    spawns: spawnsData, sites, callouts, calloutAt, zoneAt, triggers, thinWalls, thinWallAt, objectsAtSites, lightProbes, lamps: D.lamps.map((l) => ({ pos: v3(...l.pos), color: l.color, intensity: l.intensity })),
     nodes: { list: nodes, byId: nodeById, paths, ofType: (t) => nodes.filter((n) => n.type === t) },
     radar,
     bounds: new THREE.Box3(v3(-50, -6, -52), v3(50, 40, 52)),

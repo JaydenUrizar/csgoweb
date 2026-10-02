@@ -20,6 +20,9 @@ Files: `taggers.js` (12 defs, spray patterns, constants) · `ballistics.js` (ina
 * Events emitted: `weapon:fire {actor,tagger,origin,dir,hitscan,hit:[{point,normal,surface,actor?}]}` (vfx/audio consume it), `weapon:reload {stage:'start'|'in'|'commit'|'end'|'cancel'}`, `weapon:switch`, `weapon:scope {scoped,level}`, `weapon:empty`, `weapon:pickup|drop {pos}`, `impact {point,normal,surface}` (world hits only), `tag:hit`, `tag:out` (+`headshot`), `buy`, `credits`. Combat does not call `ctx.audio`/`ctx.vfx` for these (they bind the events); it only calls `vfx.impact` for penetration entry/exit.
 * Combat updates `actor.stats` damage/tags/outs/crowns/assists; kill reward = `taggers[id].killReward` (match pays). Damage only in phases warmup/live/armed/roundEnd (or no match); firing blocked in freeze/halftime/matchEnd.
 
+## Round 2 changes
+Inaccuracy tables now CS2-real (AK stand 0.40 deg, run 10.4 deg; Pip/USP rangeMod 0.99), fire-accumulation noise cut so the AK pattern stays readable, Negev tightens when sustained (`tighten`), AK recovery 0.43 s. Speed fraction uses `ctx.player.runSpeed x weapon speed` (move applies `speedMult`). Semi-auto/burst held through draw fires once ready; `weapon:scope` also on AWP re-scope; viewmodel/utility updates try/caught (error reported once in ctx.errors); mouse wheel cycles weapons; damage refused outside warmup/live/armed (roundEnd, halftime, matchEnd -> no tag events); firing blocked when `match.frozen/paused`.
+
 ## Tuning
 All in `taggers.js` (`inacc(...)` tables, `pattern`, `recover`, `penPower/penDmg`, `cycle/rpm`); `VIEW_TRACK`; materials in `ballistics.js`.
 

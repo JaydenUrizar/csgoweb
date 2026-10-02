@@ -1,5 +1,5 @@
 // Top-centre strip: team alive pips (avatar tiles), round timer / beacon fuse, score, round text.
-import { clamp, h, txt, flag, style, tf, fmtTime, hashStr, teamName } from './core.js';
+import { clamp, h, txt, flag, style, tf, fmtTime, hashStr, teamName, hexRgb } from './core.js';
 import { icon } from './icons.js';
 
 export const css = `
@@ -7,8 +7,9 @@ export const css = `
 .top .side{display:flex;gap:4px;align-items:flex-start}
 .top .side.l{margin-right:5px}.top .side.r{margin-left:5px}
 .pip{position:relative;width:34px;height:36px;flex:none}
-.pip .av{position:absolute;left:0;top:0;width:34px;height:34px;border-radius:3px;overflow:hidden;box-shadow:0 0 0 2px var(--tc,#888),0 1px 0 2px rgba(0,0,0,.4);transition:filter .25s,opacity .25s}
+.pip .av{position:absolute;left:0;top:0;width:34px;height:34px;border-radius:3px;overflow:hidden;box-shadow:0 0 0 2.5px var(--tc,#888),0 1px 0 2.5px rgba(0,0,0,.4);transition:filter .25s,opacity .25s}
 .pip .av svg{display:block;width:100%;height:100%}
+.pip:before{content:'';position:absolute;left:0;right:0;top:-5px;height:3px;border-radius:2px;background:var(--tc,#888);opacity:.95}
 .pip .hp{position:absolute;left:1px;right:1px;bottom:0;height:3px;background:rgba(0,0,0,.55);overflow:hidden;border-radius:1px}
 .pip .hp b{position:absolute;inset:0;background:#fff;transform-origin:0 0;will-change:transform}
 .pip.me .av{box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(0,0,0,.35)}
@@ -46,9 +47,11 @@ const EMBL = [
   (c) => `<path d="M20 5l4.6 10.4L36 17l-8.4 7.6L30 36l-10-6-10 6 2.4-11.4L4 17l11.4-1.6z" fill="${c}"/>`,
   (c) => `<circle cx="14" cy="15" r="6.5" fill="${c}"/><circle cx="26" cy="15" r="6.5" fill="${c}" opacity=".75"/><circle cx="20" cy="26" r="6.5" fill="${c}" opacity=".9"/>`,
 ];
-export function emblem(name) {
+const mixc = (hex, to, t) => { const a = hexRgb(hex), b = hexRgb(to); return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`; };
+export function emblem(name, team) {
   const hs = hashStr(name), hue = hs % 360, k = (hs >>> 9) % EMBL.length;
-  const c1 = `hsl(${hue} 70% 62%)`, c2 = `hsl(${(hue + 40) % 360} 65% 32%)`, sym = `hsl(${(hue + 180) % 360} 85% 82%)`;
+  let c1 = `hsl(${hue} 70% 62%)`, c2 = `hsl(${(hue + 40) % 360} 65% 32%)`, sym = `hsl(${(hue + 180) % 360} 85% 82%)`;
+  if (team) { c1 = mixc(team, '#0b0f18', 0.12); c2 = mixc(team, '#0b0f18', 0.62); sym = `hsl(${hue} 55% 92%)`; }
   const id = 'e' + (hs & 0xfffff).toString(36);
   return `<svg viewBox="0 0 40 40"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="40" height="40" fill="url(#${id})"/>${EMBL[k](sym)}</svg>`;
 }
@@ -80,8 +83,8 @@ export function create(H) {
     for (let i = 0; i < arr.length; i++) {
       const p = arr[i], a = list[i];
       if (!a) { p.el.style.visibility = 'hidden'; continue; } p.el.style.visibility = '';
-      if (p.name !== a.name) { p.name = a.name; p.av.innerHTML = emblem(a.name); }
-      const col = H.pal[team]; if (p.col !== col) { p.col = col; p.el.style.setProperty('--tc', col); }
+      const col = H.pal[team];
+      if (p.name !== a.name + col) { p.name = a.name + col; p.av.innerHTML = emblem(a.name, col); } if (p.col !== col) { p.col = col; p.el.style.setProperty('--tc', col); }
       const alive = a.alive !== false && !a.tagged;
       p.fDead(!alive); p.fMe(a === H.local); p.fCar(alive && a.hasBeacon && isAlly);
       p.setHp(`scaleX(${isAlly ? clamp((a.hp ?? 100) / 100, 0, 1).toFixed(2) : 1})`);
@@ -103,8 +106,7 @@ export function create(H) {
       let label = '', t = m.timeLeft ?? 0, tstr;
       switch (ph) {
         case 'warmup': label = 'Warmup'; break;
-        case 'buy': label = 'Buy time'; break;
-        case 'freeze': label = 'Freeze'; break;
+        case 'buy': case 'freeze': label = 'Buy time'; if (m.buyTimeLeft != null) t = m.buyTimeLeft; break;
         case 'live': label = 'Round ' + (m.round ?? 1); break;
         case 'armed': label = 'Beacon armed'; break;
         case 'roundEnd': label = 'Round over'; break;
@@ -125,7 +127,7 @@ export function create(H) {
         setBar(`scaleX(${fuse.toFixed(3)})`); barF.parentNode.style.display = ''; mid.style.setProperty('--barc', '#ff7a4a');
       } else {
         setGlow('0');
-        const total = ph === 'buy' ? 12 : ph === 'freeze' ? 6 : ph === 'live' ? 105 : 0;
+        const total = ph === 'buy' || ph === 'freeze' ? 18 : ph === 'live' ? 105 : 0;
         if (total) { setBar(`scaleX(${clamp(t / total, 0, 1).toFixed(3)})`); mid.style.setProperty('--barc', ph === 'live' ? 'rgba(255,255,255,.7)' : H.pal[mine]); barF.parentNode.style.display = ''; } else barF.parentNode.style.display = 'none';
       }
       // sub row

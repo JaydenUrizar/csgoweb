@@ -193,7 +193,7 @@ export function createTagOutFx(ctx, parent) {
       spawn(KINDS.glint, pt.x, pt.y, pt.z, r2.x * sp, 0.4 + P() * 2.2, r2.z * sp, 0.035 + P() * 0.03, 0.035 + P() * 0.03, 0.035 + P() * 0.03, c[0] * m, c[1] * m, c[2] * m, 0.5 + P() * 0.9, { g: -0.5, drag: 1.5, bounce: 0, spin: 0, fade: 0.4 });
     }
     // core flash
-    spawn(KINDS.glint, center.x, center.y, center.z, 0, 0, 0, 1.1, 1.1, 1.1, pal[0][0] * 3 + 1, pal[0][1] * 3 + 1, pal[0][2] * 3 + 1, 0.16, { g: 0, drag: 0, spin: 0, fade: 0.16 });
+    spawn(KINDS.glint, center.x, center.y, center.z, 0, 0, 0, 0.7, 0.7, 0.7, pal[0][0] * 1.6 + 0.4, pal[0][1] * 1.6 + 0.4, pal[0][2] * 1.6 + 0.4, 0.14, { g: 0, drag: 0, spin: 0, fade: 0.16 });
   }
   function clear() { for (let k = 0; k < NK; k++) { S[k].n = 0; meshes[k].count = 0; meshes[k].visible = false; } pend.length = 0; }
   function count() { let n = 0; for (let k = 0; k < NK; k++) n += S[k].n; return n; }

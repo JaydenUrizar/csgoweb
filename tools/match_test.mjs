@@ -120,7 +120,7 @@ const playSquad = (m, sq) => playRound(m, sideOfSquad(m, sq));
   // plant in progress at time expiry completes
   t = fresh(11); m = t.m; toLive(t); const c = m.beacon.carrier; const ctr = siteC(m); tick(m, MATCH.roundTime - 1.5);
   c.pos.set(ctr.x, ctr.y, ctr.z); tick(m, 3.5, () => m.interact(c, true));
-  row('Arming in progress at time expiry is allowed to finish', 'armed', m.phase, m.phase === 'armed');
+  row('0:00 ends the round even mid-arm (no late plant) -> TIDE time', 'tide/time', `${m.phase}/${evOf(t, 'round:end')[0]?.reason}`, m.phase === 'roundEnd' && evOf(t, 'round:end')[0]?.reason === 'time' && m.beacon.state !== 'armed');
   t = fresh(12); m = t.m; toLive(t); const c2 = m.beacon.carrier; c2.pos.set(siteC(m).x, 0, siteC(m).z); tick(m, MATCH.roundTime - 1.5); tick(m, 1.0, () => m.interact(c2, true)); tick(m, 1.0, () => m.interact(c2, false));
   row('Arming abandoned at expiry -> TIDE time win', 'tide/time', `${evOf(t, 'round:end')[0]?.winner}/${evOf(t, 'round:end')[0]?.reason}`, evOf(t, 'round:end')[0]?.reason === 'time');
   // carrier drop & pickup
@@ -140,12 +140,12 @@ const playSquad = (m, sq) => playRound(m, sideOfSquad(m, sq));
   // ember loses repeatedly (start of match, no halftime within 6 rounds)
   for (let i = 0; i < 5; i++) { playRound(m, 'tide'); ladder.push(evOf(t, 'round:end').at(-1).econ.award.ember.amount); }
   m.enterLive(); m.endRound('tide', 'elimination'); ladder.push(evOf(t, 'round:end').at(-1).econ.award.ember.amount); m.afterRoundEnd();   // round 6 (halftime comes after 7)
-  row('Loss bonus ladder (1st..6th consecutive loss)', '1400,1900,2400,2900,3400,3400', ladder.join(','), ladder.join(',') === '1400,1900,2400,2900,3400,3400');
+  row('Loss bonus ladder: pistol-round loser 1900 (CS2), then +500 to cap', '1900,2400,2900,3400,3400,3400', ladder.join(','), ladder.join(',') === '1900,2400,2900,3400,3400,3400');
   row('lossStreak saturates at 4', 4, m.lossStreak.ember, m.lossStreak.ember === 4);
   m.enterLive(); m.endRound('ember', 'elimination');   // round 7: win after 6 losses: level 4 -> 3
   row('A win lowers loss level by one (CS2), no full reset', 3, m.lossStreak.ember, m.lossStreak.ember === 3);
   { const t2 = fresh(24), m2 = t2.m; const L = []; for (const w of ['tide', 'tide', 'tide', 'ember', 'tide']) { m2.enterFreeze?.(); m2.enterLive(); m2.endRound(w, 'elimination'); L.push(evOf(t2, 'round:end').at(-1).econ.award.ember.amount); m2.afterRoundEnd(); }
-    row('Loss, loss, loss, WIN, loss -> 1400,1900,2400,(win),2400', '1400,1900,2400,3250,2400', L.join(','), L.join(',') === '1400,1900,2400,3250,2400'); }
+    row('Loss,loss,loss,WIN,loss -> 1900,2400,2900,(3250),2900', '1900,2400,2900,3250,2900', L.join(','), L.join(',') === '1900,2400,2900,3250,2900'); }
   row('Winner gets flat win bonus', ECON.win, evOf(t, 'round:end').at(-1).econ.award.ember.amount, evOf(t, 'round:end').at(-1).econ.award.ember.amount === 3250);
   row('Credits never exceed cap', `<=${ECON.cap}`, Math.max(...m.teams.ember.concat(m.teams.tide).map((a) => a.credits)), m.teams.ember.concat(m.teams.tide).every((a) => a.credits <= ECON.cap && a.credits >= 0));
   // cap
@@ -201,7 +201,7 @@ const playSquad = (m, sq) => playRound(m, sideOfSquad(m, sq));
   const keeper = m.teams.ember[1]; const loser = m.teams.ember[2];
 }
 function ember(m, i) { return m.teams.ember[i]; }
-function TUNE_GRACE() { return 10.5; }
+function TUNE_GRACE() { return 20.5; }
 { // persistence of loadout
   const t = fresh(23), m = t.m; const s = m.teams.ember[1], d = m.teams.ember[2];
   s.credits = d.credits = 6000; m.buy(s, 'arc'); m.buy(s, 'vest'); m.buy(d, 'arc'); m.buy(d, 'vest');
@@ -243,7 +243,7 @@ function TUNE_GRACE() { return 10.5; }
   row('team:change emitted for all 10', 10, 'n/a', true);
   const hts = evOf(t, 'halftime'); row('halftime event {kind:half,swapped}', 'half/true', `${hts[0].kind}/${hts[0].swapped}`, hts[0].kind === 'half' && hts[0].swapped);
   const ht0 = m.clock; until(m, () => m.phase !== 'halftime'); row('Halftime card length', '8s', (m.clock - ht0).toFixed(2), near(m.clock - ht0, 8, 0.03));
-  row('Round 8: economy reset to 800, loadouts wiped, loss streaks 0', '800', [...new Set(m.teams.tide.concat(m.teams.ember).map((a) => a.credits))].join(','), m.teams.tide.concat(m.teams.ember).every((a) => a.credits === 800 && !m.owned(a).primary && a.armor === 0) && m.lossStreak.ember === 0 && m.lossStreak.tide === 0 && m.pistolRound);
+  row('Round 8: economy reset to 800, loadouts wiped, loss streaks 0', '800', [...new Set(m.teams.tide.concat(m.teams.ember).map((a) => a.credits))].join(','), m.teams.tide.concat(m.teams.ember).every((a) => a.credits === 800 && !m.owned(a).primary && a.armor === 0) && m.lossStreak.ember === ECON.startLevel && m.lossStreak.tide === ECON.startLevel && m.pistolRound);
   row('Round counter continues (8)', 8, m.round, m.round === 8);
 }
 { // win at 8 without OT, 8-0 and 8-6
@@ -279,6 +279,48 @@ function TUNE_GRACE() { return 10.5; }
   m.endRound('tide', 'elimination'); m.afterRoundEnd(); row('New round clears spectate', null, spec.at(-1), spec.at(-1) === null);
   row('Works with every other piece stubbed (no ctx.combat/ai/characters)', 'no errors', t.ctx.errors.length, t.ctx.errors.length === 0);
 }
+
+// ---------------------------------------------------------------- 5b. round-2 rules
+{ // survivors on time-out, plant consolation, exit frags, stale inventory
+  let t = fresh(40), m = t.m; toLive(t); const before = m.teams.ember.map((a) => a.credits); tick(m, MATCH.roundTime + 0.1);
+  row('Time-out: surviving Ember get NO loss bonus (CS2)', 'all +0', m.teams.ember.map((a, i) => a.credits - before[i]).join(','), m.teams.ember.every((a, i) => a.credits === before[i]) && evOf(t, 'round:end')[0].econ.survivorsNoBonus === 5);
+  t = fresh(41); m = t.m; toLive(t); const dead = m.teams.ember.filter((a) => !a.hasBeacon).slice(0, 2); for (const d of dead) tagOut(t, d, m.teams.tide[0]); const c0 = m.teams.ember.map((a) => a.credits);
+  tick(m, MATCH.roundTime + 0.1); const e = evOf(t, 'round:end')[0];
+  row('Time-out: tagged-out Ember still get the loss bonus', '+1900', m.teams.ember.filter((a) => !a.alive).map((a) => a.credits - c0[m.teams.ember.indexOf(a)]).join(','), dead.every((d) => d.credits - c0[m.teams.ember.indexOf(d)] === 1900 && !d.alive));
+  t = fresh(42); m = t.m; toLive(t); plantNow(t); tick(m, 2); const c1 = m.teams.ember.map((a) => a.credits); wipe(t, 'ember', m.teams.tide[0]); const d = m.teams.tide[1]; d.pos.set(m.beacon.pos.x + 1, 0, m.beacon.pos.z); d.vel.set(0, 0, 0); until(m, () => m.phase === 'roundEnd', 10, () => m.interact(d, true));
+  row('Round lost after planting: +800 consolation on top of loss bonus (+300 plant paid earlier)', '1900+800=2700', m.teams.ember.map((a, i) => a.credits - c1[i]).join(','), m.teams.ember.every((a, i) => a.credits - c1[i] === 2700));
+  // exit frag
+  t = fresh(43); m = t.m; const surv = m.teams.tide[0], killer = m.teams.ember[1]; surv.credits = 5000; m.buy(surv, 'rail'); m.buy(surv, 'vest'); toLive(t);
+  t.ctx.combat = { __x: 1, inventory: () => null, resetLoadout() {}, give() {}, remove() {} }; // live-looking combat (not stub)
+  tick(m, MATCH.roundTime + 0.1); const kc = killer.credits; row('Round over by time, survivor holds Rail', 'roundEnd', m.phase, m.phase === 'roundEnd' && surv.alive);
+  tagOut(t, surv, killer, 'zip'); tick(m, 0.1);
+  row('Exit frag pays the reward (zip 600) and counts the tag', '+600 / 1 tag', `${killer.credits - kc} / ${killer.match.round.tags}`, killer.credits - kc === 600 && killer.match.round.tags === 1);
+  row('Exit-fragged survivor is not a survivor', false, surv.match.survived, surv.match.survived === false);
+  m.afterRoundEnd(); row('...and loses the gear next round', 'null/0', `${m.owned(surv).primary}/${surv.armor}`, m.owned(surv).primary === null && surv.armor === 0);
+  t.ctx.combat = null;
+  // stale inventory sync from combat
+  t = fresh(44); m = t.m; const x = m.teams.tide[0]; x.credits = 5000; m.buy(x, 'rail'); toLive(t);
+  t.ctx.combat = { inventory: () => null, resetLoadout() {}, give() {}, remove() {} }; x.inventory = { slots: { 2: { id: 'pip' }, 3: { id: 'tap' } }, utility: ['haze'] };
+  m.endRound('ember', 'elimination'); m.afterRoundEnd();
+  row('Round reset re-syncs ledger from ctx.combat inventory (primary was dropped)', 'null / haze', `${m.owned(x).primary} / ${m.owned(x).utility}`, m.owned(x).primary === null && m.owned(x).utility.join() === 'haze');
+  t.ctx.combat = null;
+  // halftime: no stale carrier, fresh credits on the card
+  t = fresh(45); m = t.m; for (let i = 0; i < 6; i++) playRound(m, i % 2 ? 'ember' : 'tide'); m.enterFreeze(); m.enterLive(); const carrier = m.beacon.carrier; m.endRound('tide', 'elimination'); m.afterRoundEnd();
+  row('Halftime: no one holds the Beacon (carrier cleared on swap)', 'none', `${m.teams.ember.concat(m.teams.tide).filter((a) => a.hasBeacon).length}`, m.phase === 'halftime' && !carrier.hasBeacon && m.beacon.carrier === null);
+  row('Halftime card already shows reset credits (800)', 800, m.teams.tide[0].credits, m.teams.tide.concat(m.teams.ember).every((a) => a.credits === 800));
+  // announcements
+  t = fresh(46); m = t.m; for (let i = 0; i < 6; i++) playSquad(m, 'A'); const ids = () => evOf(t, 'announce').map((a) => a.id);
+  row('Last round of the half announced (round 7)', 'last_round_of_half', ids().includes('last_round_of_half'), ids().includes('last_round_of_half'));
+  while (m.phase !== 'matchEnd' && m.round < 8) playSquad(m, 'A'); until(m, () => m.phase === 'buy', 20); playSquad(m, 'A'); // 8th... scores 8 -> end
+  t = fresh(47); m = t.m; for (let i = 0; i < 7; i++) playSquad(m, 'A'); if (m.phase === 'halftime') m.newRound();
+  row('Match point announced when a squad is 1 win away', 'match_point', ids2(t).includes('match_point'), ids2(t).includes('match_point'));
+  t = fresh(48); m = t.m; toLive(t); const survivor = m.teams.tide[0]; for (const v of m.teams.tide.slice(1)) tagOut(t, v, m.teams.ember[0]); tick(m, 0.1);
+  row('1vX clutch announced once', 'clutch', evOf(t, 'announce').filter((a) => a.id === 'clutch').length, evOf(t, 'announce').filter((a) => a.id === 'clutch').length === 1);
+  { const t2 = fresh(49), m2 = t2.m; toLive(t2); const c = m2.beacon.carrier; const bp = []; t2.ctx.events.on('beacon:beep', (e) => bp.push(e)); const s0 = m2.clock; plantNow(t2); tick(m2, 0.05);
+    row('First beep fires the moment the beacon arms', 'n=1 at arm', `${bp[0]?.n} (${bp.length} beeps)`, bp.length >= 1 && bp[0].n === 1 && bp[0].fuseLeft === MATCH.beaconFuse); }
+  { const t2 = fresh(50), m2 = t2.m; toLive(t2); tagOut(t2, m2.beacon.carrier, m2.teams.tide[0]); tick(m2, 0.1); const id = evOf(t2, 'announce').map((a) => a.id); row('beacon_dropped announce (Ember team only)', 'beacon_dropped', id.includes('beacon_dropped'), id.includes('beacon_dropped')); }
+}
+function ids2(t) { return evOf(t, 'announce').map((a) => a.id); }
 
 // ---------------------------------------------------------------- 6. random full matches
 const seedResults = [];

@@ -3,15 +3,15 @@ import { clamp, easeOut, h, txt, fmtMoney, fakePing, teamName } from './core.js'
 import { icon } from './icons.js';
 
 export const css = `
-.sbd{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(4,6,12,.18),rgba(4,6,12,.55));opacity:0;pointer-events:none;will-change:opacity}
+.sbd{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(4,6,12,.55),rgba(4,6,12,.8));opacity:0;pointer-events:none;will-change:opacity}
 .sb{position:absolute;left:50%;top:15%;width:780px;transform:translateX(-50%);opacity:0;pointer-events:none;color:#fff;will-change:opacity,transform}
-.sb .hdr{display:flex;align-items:center;justify-content:center;gap:16px;height:52px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,rgba(24,30,44,.94),rgba(14,18,28,.94));box-shadow:0 0 0 1px rgba(255,255,255,.1) inset}
+.sb .hdr{display:flex;align-items:center;justify-content:center;gap:16px;height:52px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,rgba(26,32,46,.99),rgba(14,18,28,.99));box-shadow:0 0 0 1px rgba(255,255,255,.1) inset}
 .sb .hdr .tn{font:700 26px/28px var(--font);letter-spacing:.14em;text-transform:uppercase;min-width:150px}
 .sb .hdr .tn.l{text-align:right}.sb .hdr .tn.r{text-align:left}
 .sb .hdr .sc{font:700 38px/38px var(--font);font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
 .sb .hdr .smid{text-align:center;white-space:nowrap;min-width:230px;color:rgba(255,255,255,.62);font:600 13px/15px var(--font);letter-spacing:.16em;text-transform:uppercase}
 .sb .hdr .smid b{display:block;color:#fff;font-size:15px}
-.sb .team{margin-top:5px;background:linear-gradient(180deg,rgba(16,20,30,.9),rgba(10,13,21,.9));box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
+.sb .team{margin-top:5px;background:linear-gradient(180deg,rgba(16,20,30,.985),rgba(10,13,21,.985));box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
 .sb .th,.sb .rw{display:grid;grid-template-columns:34px 1fr 78px 52px 52px 62px 62px 60px;align-items:center;column-gap:4px;padding:0 12px 0 8px}
 .sb .th{height:24px;font:600 12px/14px var(--font);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.5);border-bottom:2px solid var(--tc);background:rgba(var(--tcr),.10)}
 .sb .th .n,.sb .rw .n,.sb .th .nm{text-align:left}
@@ -31,7 +31,7 @@ export const css = `
 .sb .rw .sc2{font-weight:700;text-align:center}
 .sb .rw .pg{text-align:center;color:rgba(255,255,255,.5);font-size:14px}
 .sb .rw.x .nm:after{content:"";}
-.sb .hist{margin-top:6px;display:flex;justify-content:center;gap:3px;padding:6px 10px;background:rgba(10,13,21,.85);box-shadow:0 0 0 1px rgba(255,255,255,.08) inset;border-radius:0 0 4px 4px}
+.sb .hist{margin-top:6px;display:flex;justify-content:center;gap:3px;padding:6px 10px;background:rgba(10,13,21,.985);box-shadow:0 0 0 1px rgba(255,255,255,.08) inset;border-radius:0 0 4px 4px}
 .sb .hist i{width:24px;height:14px;border-radius:2px;background:rgba(255,255,255,.08);font:700 10px/14px var(--font);text-align:center;color:rgba(0,0,0,.65);font-style:normal}
 .sb .hist i.hs{margin-left:8px}
 `;
@@ -67,7 +67,7 @@ export function create(H) {
     const seen = new Set();
     sorted.forEach((a, i) => {
       seen.add(a.id); const r = rowFor(team, a); r.el.style.order = i;
-      if (r.name !== a.name) { r.name = a.name; r.av.innerHTML = emblemFn.f ? emblemFn.f(a.name) : ''; }
+      if (r.name !== a.name + col) { r.name = a.name + col; r.av.innerHTML = emblemFn.f ? emblemFn.f(a.name, col) : ''; }
       r.nt(a.name + (a === H.local ? '' : ''));
       r.bot.style.display = a.isBot ? '' : 'none';
       const sx = stOf(a); const mk = mvp === a ? '1' : String(sx.mvps || 0);
@@ -88,7 +88,7 @@ export function create(H) {
       S.a = want ? Math.min(1, S.a + dt * 10) : Math.max(0, S.a - dt * 12);
       const vis = S.a > 0.001; dim.style.display = root.style.display = vis ? '' : 'none';
       if (!vis) return;
-      const e = easeOut(S.a); dim.style.opacity = e.toFixed(3); root.style.opacity = e.toFixed(3); root.style.transform = `translateX(-50%) translateY(${((1 - e) * -10).toFixed(1)}px)`;
+      H.overlayA = Math.max(H.overlayA || 0, S.a); const e = easeOut(S.a); dim.style.opacity = e.toFixed(3); root.style.opacity = e.toFixed(3); root.style.transform = `translateX(-50%) translateY(${((1 - e) * -10).toFixed(1)}px)`;
       S.t -= dt; if (S.t > 0) return; S.t = 0.2;
       const mine = H.playerTeam, foe = mine === 'ember' ? 'tide' : 'ember';
       const list = (t) => { const x = m?.teams?.[t]; return x && x.length ? x : (R.actors || []).filter((a) => a.team === t); };

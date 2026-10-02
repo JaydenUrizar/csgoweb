@@ -97,9 +97,9 @@ export function create(H) {
     const pop = age < 0.07 ? 1.35 - 0.35 * (age / 0.07) : 1;
     const a = p < 0.5 ? 1 : 1 - (p - 0.5) / 0.5;
     const crown = m.kind === 'crown', out = m.kind === 'out';
-    let r0 = (crown ? 7 : 5.5) * dq * pop + (out ? easeOut(Math.min(1, p * 1.6)) * 4 * dq : 0);
-    let len = (crown ? 8.5 : 6.5) * dq * (out ? 1.45 : 1) * pop;
-    const w = Math.max(1.5, (crown ? 2.6 : 2.0) * dq * (out ? 1.35 : 1));
+    let r0 = (crown ? 8 : 6.5) * dq * pop + (out ? easeOut(Math.min(1, p * 1.6)) * 4 * dq : 0);
+    let len = (crown ? 10.5 : 8.5) * dq * (out ? 1.45 : 1) * pop;
+    const w = Math.max(2, (crown ? 3.0 : 2.4) * dq * (out ? 1.35 : 1));
     const col = out ? [255, 84, 64] : crown ? [255, 112, 76] : [255, 255, 255];
     c2.lineCap = 'butt';
     for (let pass = 0; pass < 2; pass++) {
@@ -138,16 +138,20 @@ export function create(H) {
     if (m.a?.alive !== false && m.a?.pos && view?.pos) { dx = m.a.pos.x - view.pos.x; dz = m.a.pos.z - view.pos.z; }
     const y = view?.yaw || 0, fx = -Math.sin(y), fz = -Math.cos(y), rx = Math.cos(y), rz = -Math.sin(y);
     const ang = Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz) - Math.PI / 2;
-    const dq = dpr * q, rad = 112 * dq + (1 - a0) * 10 * dq;
-    const half = (0.3 + clamp(m.dmg / 100, 0, 1) * 0.22);
+    const dq = dpr * q, rad = 128 * dq + (1 - a0) * 12 * dq;
+    const half = (0.34 + clamp(m.dmg / 100, 0, 1) * 0.26);
     const al = a0 * clamp(fade, 0, 1);
     c2.lineCap = 'round';
-    c2.lineWidth = 9 * dq; c2.strokeStyle = `rgba(0,0,0,${0.28 * al})`;
+    c2.lineWidth = 17 * dq; c2.strokeStyle = `rgba(0,0,0,${0.35 * al})`;
     c2.beginPath(); c2.arc(cx, cy, rad, ang - half - 0.02, ang + half + 0.02); c2.stroke();
-    c2.lineWidth = 5.5 * dq; c2.strokeStyle = `rgba(255,74,60,${0.95 * al})`;
+    c2.lineWidth = 12 * dq; c2.strokeStyle = `rgba(255,62,48,${0.95 * al})`;
     c2.beginPath(); c2.arc(cx, cy, rad, ang - half, ang + half); c2.stroke();
-    c2.lineWidth = 1.6 * dq; c2.strokeStyle = `rgba(255,200,180,${0.85 * al})`;
-    c2.beginPath(); c2.arc(cx, cy, rad, ang - half + 0.03, ang + half - 0.03); c2.stroke();
+    c2.lineWidth = 3 * dq; c2.strokeStyle = `rgba(255,214,196,${0.9 * al})`;
+    c2.beginPath(); c2.arc(cx, cy, rad, ang - half + 0.05, ang + half - 0.05); c2.stroke();
+    // arrowhead pointing at the attacker
+    const ax = cx + Math.cos(ang) * (rad + 14 * dq), ay = cy + Math.sin(ang) * (rad + 14 * dq), t1 = ang + Math.PI;
+    c2.fillStyle = `rgba(255,86,70,${al})`; c2.strokeStyle = `rgba(0,0,0,${0.5 * al})`; c2.lineWidth = 1.5 * dq; c2.beginPath();
+    c2.moveTo(ax, ay); c2.lineTo(ax + Math.cos(t1 - 0.6) * 11 * dq, ay + Math.sin(t1 - 0.6) * 11 * dq); c2.lineTo(ax + Math.cos(t1 + 0.6) * 11 * dq, ay + Math.sin(t1 + 0.6) * 11 * dq); c2.closePath(); c2.stroke(); c2.fill();
     return true;
   }
 

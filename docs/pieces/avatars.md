@@ -13,3 +13,6 @@ Models auto-spawn for every actor in ctx.actors; the view actor (localActor / `s
 gait: C/duty/h in anim.js (animate), HOLD poses & RELOAD waypoints in weapons.js, capsules CAPS in hitboxes.js, tag-out timing T_FREEZE/T_SHATTER in sequence.js, recipes in tagout.js burst().
 ## Known gaps
 No terrain-adaptive foot IK; hands are boxy gloves (no fingers); nameplate/trail/charm only attach points (trail/charm not rendered); held weapon does not take the freeze look; reload/throw/plant timings are guesses until combat/match expose exact stages; hitTest uses capsules not boxes.
+
+## Round 2 changes
+Team lock in material.js (suit hue clamped to team band +-0.03, sat/value clamped; accent/helmet/visor pulled toward neutral/team; extra team bands: waist, shoulders, neck, calf, helmet back); bounded back/helmet envelope; chest capsule lowered (head wins ties, crown from 1.5 m); held guns normalised to class length and baked to <=3 draws, no shadow; shouldered holds, longer arms; bigger reload (tilt, mag prop, lean/look-down); crouch-walk foot lift 11 cm; held gun freezes to ice; tag-out now emits `character:shattered` (see docs/requests/vfx-from-avatars-2.md). ~4.8 draw calls/actor incl. shadows.

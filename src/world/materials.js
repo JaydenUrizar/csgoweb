@@ -7,8 +7,8 @@ export function makeMaterials(ctx, T, atlas) {
   const rm = ctx.render?.materials;
   const own = ctx.params?.get('ownmat');
   const flat = (o = {}) => {
-    if (!own && rm?.flat) { try { const m = rm.flat(0xffffff, { vertexColors: true, ...o }); if (m && m.isMaterial) { const c = m.clone(); c.vertexColors = true; return c; } } catch (e) { /* fall through */ } }
-    return new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.93, metalness: 0, flatShading: true, vertexColors: true, ...o });
+    if (!own && rm?.flat) { try { const m = rm.flat(0xffffff, { vertexColors: true, ...o }); if (m && m.isMaterial) { const c = m.clone(); c.vertexColors = true; c.flatShading = false; return c; } } catch (e) { /* fall through */ } }
+    return new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.93, metalness: 0, flatShading: false, vertexColors: true, ...o });
   };
   const M = {};
   for (const k of TEXTURED) {

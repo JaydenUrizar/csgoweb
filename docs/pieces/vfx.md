@@ -13,3 +13,7 @@ Events handled: weapon:fire (dedupes vs explicit combat calls), tag:hit, tag:out
 
 ## Known gaps
 Soft-particle depth path implemented but needs `ctx.render.depthTexture` (call `particles.setSoftDepth`); heat shimmer is a faint warm haze (no refraction); tracer-cam framing in lab is wide; no per-tagger tuning pass vs CS2 yet.
+
+## Round 2
+Tracers rebuilt: >=5px quad (~2-3px hot core), HDR x3.2, saturated tagger colour with white core, longer streaks (len 5-20 m), foreshortened (incoming) tracers widen to a blob, min lifetime 0.11 s. Impacts: tagger-coloured streak spray, bigger flash/ring, dark bullet-hole decal (24 s, fades last 30%). Tag-hit: coloured light-mist + streaks (`bodySpark`). Shatter handler (`character:shatter(ed)`) is flash+light+sparkles only; floor rings capped 1.5 m. Shaders pre-warmed on boot:done. vfx.update CPU: idle 0.005 ms, stress max 2.5 ms (lab 'fight' x2 + shards).
+Inspect: `node tools/vfx_sheet.mjs tracer-volley impact-tile --times 0.017,0.05,0.1`.

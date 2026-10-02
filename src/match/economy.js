@@ -10,6 +10,8 @@ export const ECON = {
   lossMax: 3400,
   lossLevelMax: 4,           // streak counter saturates at 4 (1400,1900,2400,2900,3400)
   winStreakRule: 'decrement',// CS2: a round win lowers the loss level by one (not a full reset)
+  startLevel: 1,             // loss level at the start of each half: pistol-round loser gets 1900 (CS2)
+  plantLoss: 800,            // CS2 'bomb planted' consolation: each Ember when the round is lost after arming
   plant: 300,                // whole arming team, on beacon armed
   disarm: 300,               // the disarming player
   teamTag: -300,             // tagging a teammate out

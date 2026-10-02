@@ -132,12 +132,17 @@ export function create(ctx) {
   function bodySpark(x, y, z, normal, o) {
     const L = lod(x, y, z); if (L <= 0.2) return;
     basis(normal?.x ?? 0, normal?.y ?? 1, normal?.z ?? 0);
-    const c = lin(o.color ?? 0xbfefff), n = P.n(5 * L);
-    E.reset(); E.pos(x, y, z); E.life = 0.1; E.s0 = 0.14; E.s1 = 0.3; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd() * 3; E.col(1.8 + c[0] * 2, 1.8 + c[1] * 2, 1.8 + c[2] * 2, 1, c[0], c[1], c[2], 0); P.emit(now, E);
+    const c = lin(o.color ?? 0xbfefff), n = P.n(9 * L), k = distToCam(x, y, z) > 20 ? 1.5 : 1;
+    E.reset(); E.pos(x, y, z); E.life = 0.12; E.s0 = 0.22 * k; E.s1 = 0.5 * k; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd() * 3; E.col(1.8 + c[0] * 2.4, 1.8 + c[1] * 2.4, 1.8 + c[2] * 2.4, 1, c[0] * 1.5, c[1] * 1.5, c[2] * 1.5, 0); P.emit(now, E);
+    for (let i = 0; i < P.n(4 * L); i++) {                               // soft coloured light-mist (the stylised 'I hit' cue)
+      cone(1.0); const sp = 0.6 + rnd() * 1.4;
+      E.reset(); E.pos(x, y, z); E.vel(_v.x * sp, _v.y * sp + 0.2, _v.z * sp); E.life = 0.4 + rnd() * 0.25; E.drag = 3; E.s0 = 0.12 * k; E.s1 = (0.55 + rnd() * 0.3) * k; E.shape = S.PUFF; E.add = 0.7; E.fadeIn = 0.05; E.seed = rnd(); E.rot = rnd() * 6;
+      E.col(c[0] * 1.6 + 0.2, c[1] * 1.6 + 0.2, c[2] * 1.6 + 0.2, 0.55, c[0], c[1], c[2], 0); P.emit(now, E);
+    }
     for (let i = 0; i < n; i++) {
-      cone(0.9); const sp = 1.5 + rnd() * 3;
-      E.reset(); E.pos(x, y, z); E.vel(_v.x * sp, _v.y * sp + 0.4, _v.z * sp); E.life = 0.22 + rnd() * 0.2; E.g = -5; E.drag = 1.1; E.s0 = 0.03; E.s1 = 0.008; E.stretch = 0.035; E.shape = S.STREAK; E.add = 1; E.fadeIn = 0;
-      E.col(1.6 + c[0] * 2, 1.6 + c[1] * 2, 1.6 + c[2] * 2, 1, c[0], c[1], c[2], 0); P.emit(now, E);
+      cone(0.95); const sp = 2 + rnd() * 4;
+      E.reset(); E.pos(x, y, z); E.vel(_v.x * sp, _v.y * sp + 0.4, _v.z * sp); E.life = 0.22 + rnd() * 0.22; E.g = -5; E.drag = 1.1; E.s0 = 0.04 * k; E.s1 = 0.01; E.stretch = 0.045; E.shape = S.STREAK; E.add = 1; E.fadeIn = 0;
+      E.col(1.8 + c[0] * 2.5, 1.8 + c[1] * 2.5, 1.8 + c[2] * 2.5, 1, c[0] * 1.5, c[1] * 1.5, c[2] * 1.5, 0); P.emit(now, E);
     }
   }
 
@@ -147,7 +152,7 @@ export function create(ctx) {
     const x = point.x, y = point.y, z = point.z;
     if (!o.force && dupImpact(x, y, z)) return;
     const L = lod(x, y, z); if (L <= 0) return;
-    if (surface === 'body' || surface === 'actor') { bodySpark(x, y, z, normal, o); return; }
+    if (surface === 'body' || surface === 'actor') { if (o.color != null) bodySpark(x, y, z, normal, o); return; }       // tag:hit draws the coloured burst
     const key = SURFACE_ALIAS[surface] || 'stone', S0 = SURFACES[key], sc = (o.scale ?? 1), t = now;
     basis(normal?.x ?? 0, normal?.y ?? 1, normal?.z ?? 0);
     const nx = _n.x, ny = _n.y, nz = _n.z;
@@ -156,17 +161,22 @@ export function create(ctx) {
     // light energy ring decal (or ripple)
     if (key === 'glass') decals.add(t, x, y, z, nx, ny, nz, 0.7, 0.1 * sc, 0.65 * sc, DECAL.RIPPLE, rnd(), tint[0] * 1.2 + 0.5, tint[1] * 1.2 + 0.7, tint[2] * 1.2 + 0.8, 1);
     else if (key === 'water') rings.add(t, x, y + 0.01, z, 0, 1, 0, 0.9, 0.08 * sc, 0.75 * sc, DECAL.WATER, rnd(), 0.9, 1, 1, 0.9);
-    else decals.add(t, x, y, z, nx, ny, nz, 14, 0.2 * sc, 0.2 * sc, DECAL.IMPACT, rnd(), 1 + tint[0] * 1.5, 1 + tint[1] * 1.5, 1 + tint[2] * 1.5, key === 'metal' ? 0.9 : 0.75, dust[0] * 0.18, dust[1] * 0.17, dust[2] * 0.16, key === 'metal' ? 0.85 : 0.62);
+    else decals.add(t, x, y, z, nx, ny, nz, 24, 0.4 * sc, 0.4 * sc, DECAL.IMPACT, rnd(), 0.8 + tint[0] * 2.2, 0.8 + tint[1] * 2.2, 0.8 + tint[2] * 2.2, 1.0, dust[0] * 0.14, dust[1] * 0.13, dust[2] * 0.12, 0.95);
     // hot flash
-    E.reset(); E.pos(x + nx * 0.03, y + ny * 0.03, z + nz * 0.03); E.life = 0.09; E.s0 = 0.24 * sc; E.s1 = 0.36 * sc; E.shape = S.STAR; E.add = 1; E.fadeIn = 0.0; E.rot = rnd() * 3;
+    E.reset(); E.pos(x + nx * 0.03, y + ny * 0.03, z + nz * 0.03); E.life = 0.09; E.s0 = 0.34 * sc; E.s1 = 0.5 * sc; E.shape = S.STAR; E.add = 1; E.fadeIn = 0.0; E.rot = rnd() * 3;
     E.col(2.6 * (0.6 + tint[0] * 0.4), 2.3 * (0.6 + tint[1] * 0.4), 2.1 * (0.6 + tint[2] * 0.4), 0.9, 1, 0.8, 0.6, 0); P.emit(t, E);
+    { const ns = P.n(7 * L);                                        // tagger-coloured light streaks (readable on light walls)
+      for (let i = 0; i < ns; i++) {
+        cone(0.97); const sp = 3 + rnd() * 5;
+        E.reset(); E.pos(x + nx * 0.03, y + ny * 0.03, z + nz * 0.03); E.vel(_v.x * sp, _v.y * sp, _v.z * sp); E.life = 0.14 + rnd() * 0.12; E.g = -3; E.drag = 1.2; E.s0 = 0.03 * sc; E.s1 = 0.012; E.stretch = 0.045; E.shape = S.STREAK; E.add = 1; E.fadeIn = 0; E.floor = floor;
+        E.col(1.6 + tint[0] * 3, 1.6 + tint[1] * 3, 1.6 + tint[2] * 3, 1, tint[0] * 2, tint[1] * 2, tint[2] * 2, 0); P.emit(t, E); } }
     // dust puffs
     const np = P.n(S0.puffN * L * (o.density ?? 1));
     for (let i = 0; i < np; i++) {
       cone(0.95); const sp = (0.55 + rnd() * 1.2) * S0.kick;
       E.reset(); E.pos(x + nx * 0.04, y + ny * 0.04, z + nz * 0.04); E.vel(_v.x * sp, _v.y * sp + 0.12, _v.z * sp);
-      E.life = 0.55 + rnd() * 0.5; E.g = 0.28; E.drag = 3.1; E.s0 = 0.08 * sc; E.s1 = S0.puff * (0.75 + rnd() * 0.5) * sc; E.shape = S.PUFF; E.add = 0; E.fadeIn = 0.1; E.seed = rnd(); E.rot = rnd() * 6; E.spin = (rnd() - 0.5) * 0.9;
-      const l = 1.0 + (rnd() - 0.5) * 0.14; E.col(dust[0] * l, dust[1] * l, dust[2] * l, S0.dustA, dust[0] * l * 0.9, dust[1] * l * 0.9, dust[2] * l * 0.9, 0); P.emit(t, E);
+      E.life = 0.55 + rnd() * 0.5; E.g = 0.28; E.drag = 3.1; E.s0 = 0.08 * sc; E.s1 = S0.puff * (0.75 + rnd() * 0.5) * sc; E.shape = S.PUFF; E.add = 0; E.fadeIn = 0.1; E.seed = rnd(); E.rot = rnd() * 6; E.spin = (rnd() - 0.5) * 0.9; E.s1 *= 1.25;
+      const l = 1.0 + (rnd() - 0.5) * 0.14; E.col(dust[0] * l, dust[1] * l, dust[2] * l, Math.min(0.9, S0.dustA * 1.5), dust[0] * l * 0.9, dust[1] * l * 0.9, dust[2] * l * 0.9, 0); P.emit(t, E);
     }
     // chips (solid) + flecks (bright)
     const nc = P.n(S0.chipN * L * (o.density ?? 1));
@@ -174,7 +184,7 @@ export function create(ctx) {
       cone(0.8); const sp = 2.2 + rnd() * 4.6;
       E.reset(); E.pos(x + nx * 0.02, y + ny * 0.02, z + nz * 0.02); E.vel(_v.x * sp, _v.y * sp, _v.z * sp); E.life = 0.36 + rnd() * 0.3; E.g = -13; E.drag = 0.35; E.s0 = E.s1 = (0.026 + rnd() * 0.03) * sc;
       E.shape = S.CHIP; E.add = 0; E.fadeIn = 0; E.fadeOut = 0.7; E.rot = rnd() * 6; E.spin = (rnd() - 0.5) * 30; E.seed = rnd(); E.floor = floor;
-      const l = 0.75 + rnd() * 0.5; E.col(chip[0] * l, chip[1] * l, chip[2] * l, 1, chip[0] * l, chip[1] * l, chip[2] * l, 1); P.emit(t, E);
+      const l = 0.45 + rnd() * 0.45; E.col(chip[0] * l, chip[1] * l, chip[2] * l, 1, chip[0] * l, chip[1] * l, chip[2] * l, 1); P.emit(t, E);
     }
     if (key !== 'glass' && key !== 'water') {
       const nf = P.n(3 * L);
@@ -245,9 +255,9 @@ export function create(ctx) {
     const look = o.look || TAGGER_TRACER.default;
     const sid = typeof style === 'number' ? style : (STYLE_ID[style] ?? 0);
     const c = lin(color), w = o.white ?? look.white ?? 0.35, cm = mixLin(c, [1, 1, 1], w);
-    const inten = o.intensity ?? look.intensity ?? 1.6, len = Math.min(o.len ?? look.len ?? 3, dist + 0.5), width = o.width ?? look.width ?? 0.02;
+    const inten = Math.max(1.2, (o.intensity ?? look.intensity ?? 1.6)), len = Math.min(o.len ?? look.len ?? 3, dist + 0.5), width = o.width ?? look.width ?? 0.02;
     const spd0 = o.speed ?? look.speed ?? 480, spd = Math.min(spd0, (dist + len) / 0.11);   // always visible for >= ~6 frames
-    tracers.add(now, from.x, from.y, from.z, to.x, to.y, to.z, spd, cm[0], cm[1], cm[2], inten, width * 1.5, len, sid, rnd());
+    tracers.add(now, from.x, from.y, from.z, to.x, to.y, to.z, spd, cm[0], cm[1], cm[2], inten, width, len, sid, rnd());
     if ((sid === 2 || sid === 3 || o.sparkle) && dist > 1) {          // glitter trail left behind by fancy styles
       const n = Math.min(P.n(dist * 0.45), 28), sp = (o.speed ?? look.speed ?? 480);
       for (let i = 0; i < n; i++) {
@@ -267,7 +277,7 @@ export function create(ctx) {
     const v = ctx.characters?.muzzleWorldPos?.(actor, out);
     if (v && v.isVector3 && Number.isFinite(v.x)) { if (v !== out) out.copy(v); return out; }
     actor.eyePos(out); actor.forward(_md); _mr.set(Math.cos(actor.yaw), 0, -Math.sin(actor.yaw));
-    return out.addScaledVector(_md, 0.75).addScaledVector(_mr, 0.2).addScaledVector(UP, -0.18);
+    return out.addScaledVector(_md, 0.62).addScaledVector(_mr, 0.2).addScaledVector(UP, -0.36);
   }
   /**
    * Muzzle flash. target: actor (third person) | 'view' | viewmodel-ish true. tagger id or def. o: {power, color, dir}
@@ -355,10 +365,9 @@ export function create(ctx) {
     const dir = o.dir; let dx = dir ? dir.x : 0, dz = dir ? dir.z : 0; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
     const gy = shards.groundAt ? shards.groundAt(x, y, z, y - H * 0.55) : y - H * 0.55;
     // shared: flash + rings + sparkles + light
-    E.reset(); E.pos(x, y, z); E.life = 0.22; E.s0 = 0.5; E.s1 = 1.9 * sc; E.shape = S.GLOW; E.add = 1; E.fadeIn = 0; E.col(1.2 + c[0] * 2.2, 1.2 + c[1] * 2.2, 1.2 + c[2] * 2.2, 0.9, c[0], c[1], c[2], 0); P.emit(now, E);
+    E.reset(); E.pos(x, y, z); E.life = 0.2; E.s0 = 0.4; E.s1 = 1.1 * sc; E.shape = S.GLOW; E.add = 1; E.fadeIn = 0; E.col(0.8 + c[0], 0.8 + c[1], 0.8 + c[2], 0.6, c[0], c[1], c[2], 0); P.emit(now, E);
     E.reset(); E.pos(x, y, z); E.life = 0.14; E.s0 = 0.7; E.s1 = 1.3 * sc; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.col(3.2, 3.2, 3.2, 1, light[0] * 2, light[1] * 2, light[2] * 2, 0); P.emit(now, E);
-    rings.add(now, x, gy + 0.03, z, 0, 1, 0, 0.75, 0.3, 2.6 * sc, DECAL.PULSE, rnd(), c[0] * 1.6 + 0.3, c[1] * 1.6 + 0.3, c[2] * 1.6 + 0.3, 0.9);
-    rings.add(now + 0.08, x, gy + 0.03, z, 0, 1, 0, 0.9, 0.3, 4.0 * sc, DECAL.PULSE, rnd(), c[0] * 1.1, c[1] * 1.1, c[2] * 1.1, 0.5);
+    rings.add(now, x, gy + 0.03, z, 0, 1, 0, 0.75, 0.3, 1.5, DECAL.PULSE, rnd(), c[0] * 0.8 + 0.3, c[1] * 0.8 + 0.3, c[2] * 0.8 + 0.3, 0.6);
     lightPulse(x, y + 0.3, z, c[0] * 1.2 + 0.2, c[1] * 1.2 + 0.2, c[2] * 1.2 + 0.2, 22, 10, 0.32);
     sparkleBurst(x, y, z, c[0], c[1], c[2], 28, 1);
     const nS = (n) => Math.max(4, Math.round(n * shards.scale * Math.max(0.5, L)));
@@ -555,7 +564,9 @@ export function create(ctx) {
   on('tag:hit', (e) => {
     const p = e.point || e.victim?.pos; if (!p) return;
     const crown = e.hitgroup === 'crown' || e.hitgroup === 'head';
-    hitPing(p, { crown, color: e.color });
+    const tcol = ctx.combat?.taggers?.[typeof e.tagger === 'string' ? e.tagger : e.tagger?.id]?.color ?? (e.attacker && TEAM_COL[e.attacker.team]);
+    hitPing(p, { crown, color: crown ? 0xffe066 : (e.color ?? tcol ?? 0xffffff) });
+    bodySpark(p.x, p.y, p.z, e.dir ? _hn.set(-e.dir.x, -e.dir.y, -e.dir.z) : null, { color: e.color ?? tcol });
     if (isLocal(e.attacker)) screen.run('hit', { amount: crown ? 0.07 : 0.03 });
     if (isLocal(e.victim)) ctx.render?.shake?.(0.12 + (e.damage || 10) / 300);
   });
@@ -568,16 +579,13 @@ export function create(ctx) {
     let dir = e.dir; if (!dir && e.attacker) dir = _hn.set(v.pos.x - e.attacker.pos.x, 0, v.pos.z - e.attacker.pos.z);
     burstShards(_hp, TEAM_COL[v.team] ?? 0xffffff, style || 'shatter', { dir });
   });
-  on('character:shatter', (e) => {                                       // avatars owns the shards; we add flash, floor rings, light, sparkles
-    const p = e?.point; if (!p) return; const c = lin(e.color ?? 0xffffff), x = p.x, y = p.y, z = p.z, sc = 1;
-    const gy = shards.groundAt ? shards.groundAt(x, y, z, y - 1) : y - 1;
-    E.reset(); E.pos(x, y, z); E.life = 0.22; E.s0 = 0.5; E.s1 = 1.9 * sc; E.shape = S.GLOW; E.add = 1; E.fadeIn = 0; E.col(1.2 + c[0] * 2.2, 1.2 + c[1] * 2.2, 1.2 + c[2] * 2.2, 0.9, c[0], c[1], c[2], 0); P.emit(now, E);
-    E.reset(); E.pos(x, y, z); E.life = 0.14; E.s0 = 0.7; E.s1 = 1.3; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.col(3.2, 3.2, 3.2, 1, 1.5, 1.5, 1.5, 0); P.emit(now, E);
-    rings.add(now, x, gy + 0.03, z, 0, 1, 0, 0.75, 0.3, 2.6, DECAL.PULSE, rnd(), c[0] * 1.6 + 0.3, c[1] * 1.6 + 0.3, c[2] * 1.6 + 0.3, 0.9);
-    rings.add(now + 0.08, x, gy + 0.03, z, 0, 1, 0, 0.9, 0.3, 4.0, DECAL.PULSE, rnd(), c[0] * 1.1, c[1] * 1.1, c[2] * 1.1, 0.5);
-    lightPulse(x, y + 0.3, z, c[0] * 1.2 + 0.2, c[1] * 1.2 + 0.2, c[2] * 1.2 + 0.2, 22, 10, 0.32);
-    sparkleBurst(x, y, z, c[0], c[1], c[2], 28, 1);
-  });
+  const onShatter = (e) => {                                                // avatars owns shards; we add a small flash + light + sparkles only (no floor rings)
+    const p = e?.point; if (!p) return; const c = lin(e.color ?? 0xffffff);
+    E.reset(); E.pos(p.x, p.y, p.z); E.life = 0.16; E.s0 = 0.4; E.s1 = 1.0; E.shape = S.STAR; E.add = 1; E.fadeIn = 0; E.rot = rnd(); E.col(1.6 + c[0], 1.6 + c[1], 1.6 + c[2], 0.9, c[0], c[1], c[2], 0); P.emit(now, E);
+    lightPulse(p.x, p.y + 0.3, p.z, c[0] + 0.2, c[1] + 0.2, c[2] + 0.2, 12, 8, 0.28);
+    sparkleBurst(p.x, p.y, p.z, c[0], c[1], c[2], 14, 0.8);
+  };
+  on('character:shatter', onShatter); on('character:shattered', onShatter);
   on('footstep', (e) => { if (!e.pos || e.crouch || e.walk) return; if ((e.speed ?? 6) < 3.8) return; footstepDust(e.pos, e.surface, e.speed); });
   on('land', (e) => { const a = e.actor; if (a) landPuff(a.pos, e.speed ?? 6, surfaceAt(a.pos)); });
   on('jump', (e) => { const a = e.actor; if (a && a.pos) footstepDust(a.pos, surfaceAt(a.pos), 8); });
@@ -612,6 +620,19 @@ export function create(ctx) {
   scene.onBeforeRender = function (...a) { flushAll(); return prevSceneHook?.apply(this, a); };
   if (viewScene) viewScene.onBeforeRender = function (...a) { PV?.flush(); return prevViewHook?.apply(this, a); };
 
+  // Compile every vfx program up-front so the first shot / tag-out does not hitch on shader compilation.
+  function prewarm() {
+    try {
+      const saved = [];
+      for (const K of shards.kinds) { saved.push([K.mesh, K.mesh.visible, K.mesh.count]); K.mesh.visible = true; K.mesh.count = 1; }
+      for (const pl of [decals.pool, rings.pool, tracers.pool]) { saved.push([pl.mesh, pl.mesh.visible, 0]); pl.mesh.visible = true; }
+      saved.push([beacon.group, beacon.group.visible, 0]); beacon.group.visible = true; saved.push([ambient.mesh, ambient.mesh.visible, 0]); ambient.mesh.visible = true;
+      R.renderer?.compile?.(scene, R.camera);
+      if (viewScene && R.viewCamera) R.renderer?.compile?.(viewScene, R.viewCamera);
+      for (const [o, v, c] of saved) { o.visible = v; if (o.isInstancedMesh) o.count = c; }
+    } catch (e) { /* optional */ }
+  }
+  on('boot:done', prewarm);
   let lastQ = null;
   function update(dt) {
     dtLast = dt; now += dt; time.value = now;

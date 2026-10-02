@@ -103,7 +103,7 @@ export function create(ctx) {
   const annLast = {};
   function announce(id, o = {}) {
     const a = resolveAnnounce(id); if (!a || !mixer) return null;
-    const now = performance.now(); if (annLast[a] && now - annLast[a] < 2500) return null; annLast[a] = now;   // several pieces announce the same event
+    const now = performance.now(); if (!o.force && annLast[a] && now - annLast[a] < 2500) return null; annLast[a] = now;   // several pieces announce the same event
     mixer.duck('music', 0.35, 0.03, 1.2, 0.8);
     return mixer.play('announce.' + a, { fp: true, ...o });
   }
@@ -126,6 +126,9 @@ export function create(ctx) {
       setIntensity(x) { wantIntensity = x; music?.setIntensity(x); },
       get playing() { return music?.playing ?? 'off'; },
     },
+    /** Menu: short sample on one bus ('master'|'sfx'|'music'|'voice'). */
+    test(bus = 'sfx') { unlock(); const o = { fp: true }; if (bus === 'voice') return announce('roundStart', { force: true }); if (bus === 'music') return play('ui.notify', { ...o, bus: 'music', gain: 6 }); return play(bus === 'master' ? 'ui.round.win' : 'tagger.rail.fire', o); },
+    setVolume(bus, v) { const k = { master: 'volume', sfx: 'sfxVolume', music: 'musicVolume' }[bus]; if (bus === 'voice') mixer?.setVolumes({ voice: v }); else if (k) ctx.settings?.set?.(k, v); },
     drone(kind = 'arm') { return mixer ? makeDrone(ac, mixer.bus.sfx.in, kind) : null; },
     isLocal, world,
     /** Listener follows this camera (default ctx.render.camera). */

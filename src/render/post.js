@@ -161,7 +161,8 @@ void main(){
   float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
   col = mix(vec3(l), col, uSat);
   col = (col - 0.46) * uContrast + 0.46;
-  col += mix(uShadowTint, uHighTint, smoothstep(0.1, 0.9, l)) * 0.05;
+  col = mix(col, vec3(l), (1.0 - smoothstep(0.0, 0.55, l)) * 0.4);
+  col += mix(uShadowTint, uHighTint, smoothstep(0.1, 0.9, l)) * 0.07;
   // vignette
   col *= 1.0 - uVig * smoothstep(0.18, 0.85, r2 * 1.7);
   // damage: directional red edge pulse
@@ -192,7 +193,7 @@ export function createPost(renderer) {
 
   const ssaoMat = mk(SSAO_FS, { tDepth: T(), uProjInv: T(new THREE.Matrix4()), uProj11: T(1), uAsp: T(1), uRadius: T(1.1), uIntensity: T(1.5), uBias: T(0.3), uTexel: V2(), uSamples: T(12) });
   const blurMat = mk(BLUR_FS, { tAO: T(), tDepth: T(), uDir: V2(), uNear: T(0.05), uFar: T(400) });
-  const preMat = mk(PRE_FS, { tWorld: T(), tVM: T(), uTexel: V2(), uThr: T(1.7), uKnee: T(0.7), uClamp: T(40) });
+  const preMat = mk(PRE_FS, { tWorld: T(), tVM: T(), uTexel: V2(), uThr: T(2.0), uKnee: T(0.6), uClamp: T(40) });
   const downMat = mk(DOWN_FS, { tSrc: T(), uTexel: V2() });
   const upMat = mk(UP_FS, { tSrc: T(), uTexel: V2(), uWeight: T(1) }, { blending: THREE.AdditiveBlending, transparent: true });
   const shaftMat = mk(SHAFT_FS, { tWorld: T(), tDepth: T(), uSunUV: V2(), uAsp: T(1) });

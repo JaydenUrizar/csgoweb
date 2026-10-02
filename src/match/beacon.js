@@ -53,6 +53,7 @@ export function installBeacon(env) {
     B.carrier = a; B.state = 'carried'; a.hasBeacon = true; B.pos.copy(a.pos);
     safe('combat.give', () => C()?.give?.(a, 'beacon'));
     emit('beacon:pickup', { actor: a, site: B.site, initial });
+    if (!initial) announce('beacon_picked_up', { actor: a, teams: ['ember'] });
   }
   function assignCarrier() {
     const pool = M.teams.ember.filter((a) => a.alive);
@@ -80,6 +81,7 @@ export function installBeacon(env) {
     B.state = 'dropped'; B.carrier = null; c.hasBeacon = false; B.pos.copy(c.pos); snap(B.pos);
     if (why === 'manual') { B.noPickup = { actor: c, until: M.clock + 1.2 }; safe('combat.remove', () => C()?.remove?.(c, 'beacon')); }
     emit('beacon:drop', { actor: c, site: null, pos: B.pos, why });
+    announce('beacon_dropped', { actor: c, teams: ['ember'] });
     return true;
   }
   function pickup(a) {
@@ -91,13 +93,14 @@ export function installBeacon(env) {
   function finishArm(c) {
     const site = B.site;
     B.state = 'armed'; B.pos.copy(c.pos); snap(B.pos); B.planter = c; B.carrier = null; c.hasBeacon = false;
-    B.progress = 0; B.t = 0; B.actor = null; B.fuseLeft = B.fuse; B.beepT = 0; B.beeps = 0; B.warn = 0;
+    B.progress = 0; B.t = 0; B.actor = null; B.fuseLeft = B.fuse; B.beeps = 1; B.warn = 0; B.interval = beepInterval(B.fuse, B.fuse); B.beepT = B.interval;
     safe('combat.remove', () => C()?.remove?.(c, 'beacon'));
     M.armedThisRound = true; ms(c).round.objective++; ms(c).total.plants++;
     for (const a of M.teams.ember) { addCredits(a, ECON.plant, 'plant'); }
     M.roundEcon.ember.plant += ECON.plant;
     env.setPhase('armed', B.fuse);
     emit('beacon:armed', { actor: c, site, pos: B.pos });
+    emit('beacon:beep', { site, pos: B.pos, interval: B.interval, fuseLeft: B.fuse, n: 1, disarming: false });
     announce('beacon_armed', { site });
   }
 
@@ -178,9 +181,10 @@ export function installBeacon(env) {
     if (B.timeWarn < 1 && tl <= 30) { B.timeWarn = 1; announce('time_30'); }
     if (B.timeWarn < 2 && tl <= 10) { B.timeWarn = 2; announce('time_10'); }
     const ea = aliveOf('ember'), ta = aliveOf('tide');
+    env.clutchCheck();
     if (ea === 0) env.endRound('tide', 'elimination');          // includes simultaneous wipe: defenders take the tie
     else if (ta === 0) env.endRound('ember', 'elimination');
-    else if (M.phaseTime >= M.phaseDuration - EPS && B.state !== 'arming') env.endRound('tide', 'time');   // an arming in progress is allowed to finish
+    else if (M.phaseTime >= M.phaseDuration - EPS) { if (B.state === 'arming') cancelArm('time'); env.endRound('tide', 'time'); }   // 0:00 ends the round, even mid-arm (DESIGN: Tide wins on time with no beacon armed)
   }
 
   function tick(dt) {

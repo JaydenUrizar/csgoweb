@@ -24,7 +24,9 @@ export function create(ctx) {
   const vmState = { speed: 0, onGround: true, crouch: false, walking: false, aimPunch: { x: 0, y: 0 }, lookDelta: { x: 0, y: 0 }, scoped: false, scopeLevel: 0, hp: 100, tagger: null, cycle: 0 };
   const ap = { pitch: 0, yaw: 0 };
   const api = core;
-  api.fixedUpdate = ((base) => function (dt) { base(dt); core.utility.fixedUpdate?.(dt); core.viewmodel.fixedUpdate?.(dt); })(core.fixedUpdate);
+  const warned = new Set(), warn = (k, e) => { if (warned.has(k)) return; warned.add(k); console.error(`[combat] ${k} threw`, e); ctx.errors?.push?.(`combat:${k}: ${e?.stack || e}`); };
+  api.fixedUpdate = ((base) => function (dt) { base(dt); try { core.utility.fixedUpdate?.(dt); } catch (e) { warn('utility.fixedUpdate', e); } try { core.viewmodel.fixedUpdate?.(dt); } catch (e) { warn('viewmodel.fixedUpdate', e); } })(core.fixedUpdate);
+  if (typeof window !== 'undefined') window.addEventListener('wheel', (e) => { const a = ctx.localActor; if (a && ctx.input?.locked && !e.ctrlKey) core.brain(a).wheel = Math.sign(e.deltaY); }, { passive: true });
   api.update = function (dt, alpha) {
     const a = ctx.localActor;
     if (a) {
@@ -37,9 +39,9 @@ export function create(ctx) {
       S.scoped = !!w?.scopeLevel; S.scopeLevel = w?.scopeLevel || 0; S.hp = a.hp; S.tagger = w?.id || null;
       if (w && w.def && !w.def.melee && !w.def.utility) { S.ammo = w.mag; S.ammoMax = w.def.mag; } else { S.ammo = null; S.ammoMax = 0; }
       S.vy = a.vel.y;
-      core.viewmodel.update?.(dt, S);
+      try { core.viewmodel.update?.(dt, S); } catch (e) { warn('viewmodel.update', e); }
     }
-    core.utility.update?.(dt, alpha);
+    try { core.utility.update?.(dt, alpha); } catch (e) { warn('utility.update', e); }
   };
   const lateCam = {
     update() {

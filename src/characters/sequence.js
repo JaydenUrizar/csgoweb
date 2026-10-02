@@ -5,6 +5,8 @@ import { sampleBody, refreshHb } from './hitboxes.js';
 import { sstep, clamp } from './anim.js';
 
 const _pt = { x: 0, y: 0, z: 0 }, _col = new THREE.Color();
+let _ice = null;
+const iceMat = () => _ice || (_ice = new THREE.MeshStandardMaterial({ color: 0x9fd8ff, roughness: 0.08, metalness: 0.35, emissive: 0x2f6f9f, emissiveIntensity: 0.9 }));
 const T_FREEZE = 0.16, T_SHATTER = 0.52;
 
 const lin = (hex, mul = 1) => { _col.set(hex); return [_col.r * mul, _col.g * mul, _col.b * mul]; };
@@ -21,6 +23,7 @@ export function startTagOut(ctx, m, dir, opts = {}) {
   m.sp.fp[1] += lz * 2.2; m.sp.fr[1] += -lx * 2.2; m.sp.hp[1] += 1.2 * Math.sign(lz || 1);
   m.tag.tiltX = -lz * 0.09; m.tag.tiltZ = lx * 0.09;
   m.u.uFlash.value = 1.2;
+  if (m.held.obj) { m.heldFreeze = []; m.held.obj.traverse((o) => { if (o.isMesh) { m.heldFreeze.push([o, o.material]); o.material = iceMat(); } }); }
   return true;
 }
 
@@ -55,7 +58,7 @@ function shatter(ctx, m, fx, tick) {
   const center = new THREE.Vector3(m.actor.pos.x, m.gy + 1.0, m.actor.pos.z);
   const pal = palette(m);
   if (fx) fx.burst(tg.style, { samples: (o) => sampleBody(m, o, rng.next), dir: tg.dir, center, floor: m.gy, pal, team: m.teamColor });
-  ctx.events.emit('character:shatter', { actor: m.actor, point: center, color: m.teamColor, style: tg.style, dir: tg.dir });
+  ctx.events.emit('character:shattered', { actor: m.actor, point: center, color: m.teamColor, style: tg.style, dir: tg.dir });
   m.u.uFlash.value = 0;
   if (tg.style === 'pixelate') { tg.phase = 1; tg.dissolve = 0; m.u.uFreeze.value = 0.6; }
   else hideModel(m, tg);
@@ -63,6 +66,7 @@ function shatter(ctx, m, fx, tick) {
 
 /** Bring a tagged-out (or dissolving) model back: spawn-in materialise. */
 export function resetTag(m) {
+  if (m.heldFreeze) { for (const [o, mt] of m.heldFreeze) o.material = mt; m.heldFreeze = null; }
   m.tag = null; m.hidden = false; m.root.visible = true; m.root.rotation.x = m.root.rotation.z = 0;
   m.u.uFreeze.value = 0; m.u.uFlash.value = 0; m.u.uMat.value = 0; m.spawnT = 0;
   for (const k of Object.keys(m.sp)) { m.sp[k][0] = 0; m.sp[k][1] = 0; }

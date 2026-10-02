@@ -11,22 +11,22 @@ import { gather, resolve, resetContacts, probeSupport, fits, C, G, SKIN, triCoun
 // Ours is ~1.39x faster than CS2 (6.6 m/s) so everything speed-like scales by the same factor.
 // ---------------------------------------------------------------------------------------------
 export const TUNE = {
-  runSpeed: 6.6, walkMul: 0.52, crouchMul: 0.34,
+  runSpeed: 7.2, walkMul: 0.52, crouchMul: 0.34,
   accel: 9.0, friction: 5.6, stopSpeed: 1.6,            // ground (Source formulas)
   gravity: 23, terminal: 46, jumpHeight: 1.05,           // jump v0 = sqrt(2 g h) = 6.95 m/s, hang ≈ 0.60 s
-  airAccel: 12, airCap: 0.79,                            // 30 u/s * (6.6/250) ≈ 0.79 m/s wish cap
-  softStart: 8.0, softEnd: 12.0, hardMax: 15,            // air-strafe gain fades 1 → 0 between these horizontal speeds
-  bhopCap: 8.1, bhopKeep: 0.4,                           // takeoff above bhopCap keeps only this fraction of the excess
+  airAccel: 12, airCap: 0.86,                            // 30 u/s * (7.2/250) ≈ 0.86 m/s wish cap
+  softStart: 7.8, softEnd: 11.0, hardMax: 12.2,            // air-strafe gain fades 1 → 0 between these horizontal speeds
+  bhopCap: 99, bhopKeep: 1,                           // takeoff above bhopCap keeps only this fraction of the excess
   coyote: 0.075, jumpBuffer: 0.11,
   stepHeight: 0.45, snapDown: 0.45,
-  launchSpeed: 7.4,                                      // running off a ramp crest faster than this launches instead of gluing
+  launchSpeed: 8.1,                                      // running off a ramp crest faster than this launches instead of gluing
   // slide
-  slideMinSpeed: 5.4, slideBoost: 1.2, slideBoostMax: 8.8, slideEndSpeed: 3.0, slideMaxTime: 1.15, slideMinTime: 0.12, slideCooldown: 0.4,
-  slideDecelBase: 3.0, slideDecelK: 0.5, slideSteer: 1.7, slideSlope: 0.9,
+  slideMinSpeed: 4.8, slideBoost: 1.38, slideBoostMax: 10.0, slideEndSpeed: 3.3, slideMaxTime: 1.5, slideMinTime: 0.15, slideCooldown: 0.45,
+  slideDecelBase: 1.5, slideDecelK: 0.22, slideSteer: 1.7, slideSlope: 0.9,
   // mantle
-  mantleMaxLip: 0.6, mantleMinLip: 0.08, mantleMaxAboveGround: 1.45, mantleCooldown: 0.18,
-  crouchRate: 16, eyeSlideDrop: 0.2,
-  strideRun: 2.05, strideWalk: 1.55, strideCrouch: 1.15,
+  mantleMaxLip: 0.65, mantleMinLip: 0.08, mantleMaxAboveGround: 1.62, crouchJumpLift: 0.17, mantleCooldown: 0.18,
+  crouchRate: 16, eyeSlideDrop: 0.3,
+  strideRun: 2.25, strideWalk: 1.7, strideCrouch: 1.25,
   actorPush: true,
 };
 
@@ -44,7 +44,7 @@ export function newMove(existing) {
     gnx: 0, gny: 1, gnz: 0, wishSpeed: 0, tickAccel: 0, gait: 0, viewStep: 0, viewStepV: 0, teleports: 0,
     // internals
     jumpPrev: false, jumpBuf: 0, coyote: 0, crouchPrev: false, crouchBuf: 0, slideT: 0, slideCd: 0, slideK: 0, slideSide: 1,
-    stride: 0, foot: 0, mantle: null, mantleCd: 0, jumped: false, hasEnd: false, ex: 0, ey: 0, ez: 0, lastLandSpeed: 0, lastJumpTick: -1, tick: 0,
+    stride: 0, foot: 0, mantle: null, mantleCd: 0, jumped: false, tucked: false, hasEnd: false, ex: 0, ey: 0, ez: 0, lastLandSpeed: 0, lastJumpTick: -1, tick: 0,
     wishx: 0, wishz: 0, prevHS: 0, hitWallTicks: 0, mantleCount: 0, groundTicks: 0,
   });
   return m;
@@ -92,11 +92,24 @@ export function createSim(env) {
           const into = vel.x * nx + vel.y * ny + vel.z * nz;
           if (into < 0) { vel.x -= nx * into; vel.y -= ny * into; vel.z -= nz * into; }
         }
-        // second pass handles creases (two planes)
-        if (C.nWall > 1) for (let k = 0; k < C.nWall; k++) {
-          const nx = C.wx[k], ny = C.wy[k], nz = C.wz[k];
-          const into = vel.x * nx + vel.y * ny + vel.z * nz;
-          if (into < -1e-6) { vel.x -= nx * into; vel.y -= ny * into; vel.z -= nz * into; }
+        // creases: 2 planes → slide along their intersection line, 3+ planes → stop dead
+        if (C.nWall > 1) {
+          let bad = 0, bi = -1, bj = -1;
+          for (let k = 0; k < C.nWall; k++) { const into = vel.x * C.wx[k] + vel.y * C.wy[k] + vel.z * C.wz[k]; if (into < -1e-4) { bad++; if (bi < 0) bi = k; else bj = k; } }
+          if (bad >= 1) {
+            let i0 = bi, j0 = bj;
+            if (j0 < 0) { // one plane still violated after the first pass: pair it with the plane we last slid along
+              j0 = (bi + 1) % C.nWall;
+            }
+            let dx = C.wy[i0] * C.wz[j0] - C.wz[i0] * C.wy[j0], dy = C.wz[i0] * C.wx[j0] - C.wx[i0] * C.wz[j0], dz = C.wx[i0] * C.wy[j0] - C.wy[i0] * C.wx[j0];
+            const dl = Math.hypot(dx, dy, dz);
+            if (dl < 1e-4) { vel.x = vel.y = vel.z = 0; }
+            else {
+              dx /= dl; dy /= dl; dz /= dl; const al = vel.x * dx + vel.y * dy + vel.z * dz;
+              vel.x = dx * al; vel.y = dy * al; vel.z = dz * al;
+              for (let k = 0; k < C.nWall; k++) if (vel.x * C.wx[k] + vel.y * C.wy[k] + vel.z * C.wz[k] < -1e-3) { vel.x = vel.y = vel.z = 0; break; }
+            }
+          }
         }
         if (clip === 2 && grounded && vel.y < 0) { if (vel.y < LANDVY) LANDVY = vel.y; vel.y = 0; }
       }
@@ -137,11 +150,11 @@ export function createSim(env) {
     moveSlide(PB, VA, vx * dt * ext, 0, vz * dt * ext, hull, 1);
     const prog = Math.hypot(PB.x - x0, PB.z - z0);
     if (prog < hDoneA + 0.002) return false;
-    const hvx = VA.x, hvz = VA.z;            // horizontal velocity after the lifted (clipped) move
+    const hvx = vx, hvz = vz;                // keep the pre-step velocity (a stair lip must not eat speed)
     resetContacts();
     moveSlide(PB, null, 0, -(lift + 0.06), 0, hull, 0, true);
     if (!C.ground) return false;
-    if (PB.y - y0 > TUNE.stepHeight + 0.02) return false;
+    if (PB.y - y0 > TUNE.stepHeight + 0.02 || PB.y - y0 < 0.03) return false;      // must actually rise (else it's just a wall slide)
     if (C.gny < 0.7) return false;
     if (!probeSupport(PB, hull, R, 0.02) || G.y - y0 > TUNE.stepHeight + 0.02) return false;   // the SURFACE we land on must be ≤ step height up (not just the lip we balance on)
     if (Math.hypot(PB.x - x0, PB.z - z0) < hDoneA + 0.002) return false;      // ended up no further than the plain slide
@@ -208,6 +221,7 @@ export function createSim(env) {
     m.tick++;
     if (cmd.yaw !== undefined) a.yaw = cmd.yaw;
     if (cmd.pitch !== undefined) a.pitch = cmd.pitch;
+    if (env.speedScale) { const sc = env.speedScale(a); if (sc > 0) m.speedScale = sc; }
     const dead = !a.alive, frozen = m.frozen;
     let fw = cmd.forward || 0, rt = cmd.right || 0, jump = !!cmd.jump, crouch = !!cmd.crouch, walk = !!cmd.walk;
     if (dead || frozen) { fw = rt = 0; jump = false; if (dead) crouch = false; }
@@ -273,7 +287,7 @@ export function createSim(env) {
     if (canGround && !frozen && !dead && (m.jumpBuf > 0 || (m.autoBhop && jump && m.onGround))) {
       v.y = Math.sqrt(2 * TUNE.gravity * TUNE.jumpHeight);
       if (hs > TUNE.bhopCap) { const ns = TUNE.bhopCap + (hs - TUNE.bhopCap) * TUNE.bhopKeep, k = ns / hs; v.x *= k; v.z *= k; hs = ns; }
-      m.onGround = false; m.coyote = 0; m.jumpBuf = 0; m.jumped = true; m.airTime = 0; m.lastJumpTick = m.tick;
+      m.onGround = false; m.coyote = 0; m.jumpBuf = 0; m.jumped = true; m.tucked = false; m.airTime = 0; m.lastJumpTick = m.tick;
       if (m.sliding) { m.sliding = false; m.slideCd = TUNE.slideCooldown * 0.5; }
       emit('jump', { actor: a, speed: hs, crouch: m.crouching, pos: a.pos });
     }
@@ -322,6 +336,12 @@ export function createSim(env) {
     } else {
       // ================= AIR =================
       m.airTime += dt; m.groundTicks = 0;
+      if (m.crouching && !m.tucked && v.y > 0.5 && m.jumped) {
+        // crouch-jump: legs pull up, feet gain a little height (CS crouch-jump bonus)
+        const lift = TUNE.crouchJumpLift;
+        if (fits(p.x, p.y + lift, p.z, HC, R)) { p.y += lift; m.viewStep = Math.max(-0.7, Math.min(0.7, m.viewStep - lift)); }
+        m.tucked = true;
+      }
       if (m.sliding) { m.sliding = false; m.slideCd = TUNE.slideCooldown; }
       if (wmag > 0) airAccel(v, wx, wz, TUNE.runSpeed * m.speedScale, wmag, dt);
       const pvx = v.x, pvz = v.z, pvy = v.y;
@@ -329,10 +349,14 @@ export function createSim(env) {
       if (v.y < -TUNE.terminal) v.y = -TUNE.terminal;
       resetContacts(); LANDVY = 0;
       moveSlide(p, v, v.x * dt, v.y * dt, v.z * dt, hull, 2);
+      if (C.hitWall || C.ground) {      // blocked in the air / landed against something: velocity = what actually happened
+        const cv = Math.hypot(v.x, v.z), act = Math.hypot(p.x - px0, p.z - pz0) / dt;
+        if (cv > 1e-3 && act < cv * 0.6) { if (act < 0.3) { v.x = v.z = 0; } else { v.x = (p.x - px0) / dt; v.z = (p.z - pz0) / dt; } }
+      }
       if (C.ground && LANDVY < 0) {
         landed = true; landSpeed = -LANDVY;
         m.onGround = true; m.gnx = C.gnx; m.gny = C.gny; m.gnz = C.gnz; m.groundY = p.y; m.groundTicks = 1;
-        m.jumped = false; v.y = 0;
+        m.jumped = false; m.tucked = false; v.y = 0;
       } else {
         v.y -= TUNE.gravity * dt * 0.5;
         if (v.y < -TUNE.terminal) v.y = -TUNE.terminal;
@@ -383,7 +407,14 @@ export function createSim(env) {
         if (hDone < 1e-6) { /* keep V */ }
       }
     }
-    v.x = V.x; v.z = V.z;
+    if (steppedDy === 0 && hWant > 1e-5 && hDone >= hWant * 0.92) { v.x = hvx; v.z = hvz; }   // grazed a lip but wasn't actually slowed: keep speed
+    else { v.x = V.x; v.z = V.z; }
+    {
+      // blocked? take velocity from what actually happened (zero when wedged) → no phantom speed / footsteps
+      const cv = Math.hypot(v.x, v.z), act = Math.hypot(p.x - x0, p.z - z0) / dt;
+      if (cv < 0.6 && act < 0.3 && steppedDy === 0) { v.x = v.z = 0; }
+      else if (cv > 1e-3 && act < cv * 0.6 && steppedDy === 0) { if (act < 0.3) { v.x = v.z = 0; } else { v.x = (p.x - x0) / dt; v.z = (p.z - z0) / dt; } }
+    }
     // is there still ground under us?
     let sup = probeSupport(p, hull, R, 0.02);
     let launched = false;
@@ -443,7 +474,8 @@ export function createSim(env) {
       m.viewStep = m.viewStep < 0 ? -mag : mag; if (mag < 1e-4) { m.viewStep = 0; m.viewStepV = 0; }
     }
     // footsteps + gait phase
-    if (m.onGround && !m.sliding && hs > 0.6) {
+    const actSpeed = moved / dt;
+    if (m.onGround && !m.sliding && hs > 0.6 && actSpeed > 0.5) {
       const len = m.crouching ? TUNE.strideCrouch : m.walking ? TUNE.strideWalk : TUNE.strideRun;
       m.stride += moved; m.gait += moved / len * Math.PI;
       if (m.stride >= len) {
@@ -451,7 +483,7 @@ export function createSim(env) {
         _surfacePos.x = p.x; _surfacePos.y = p.y - 0.1; _surfacePos.z = p.z;
         emit('footstep', { actor: a, pos: p.clone ? p.clone() : { x: p.x, y: p.y, z: p.z }, surface: env.surfaceAt?.(_surfacePos) || 'stone', speed: hs, crouch: m.crouching, walk: m.walking, foot: m.foot });
       }
-    } else if (hs < 0.3) m.stride = Math.min(m.stride, 0.4);
+    } else if (actSpeed < 0.3) m.stride = Math.min(m.stride, 0.4);
     if (landed) {
       _surfacePos.x = p.x; _surfacePos.y = p.y - 0.1; _surfacePos.z = p.z;
       emit('land', { actor: a, speed: landSpeed, surface: env.surfaceAt?.(_surfacePos) || 'stone', pos: p.clone ? p.clone() : { x: p.x, y: p.y, z: p.z }, hspeed: hs, crouch: m.crouching });

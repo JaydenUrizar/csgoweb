@@ -72,3 +72,9 @@ Quality presets: low (no MSAA/SSAO), medium (2048 shadows), high (default: MSAA4
 Tuning: `ctx.render.debug.fx` (exposure .85, bloom, ao, vignette, contrast, saturation), `setSky({sunElevation,sunAzimuth,skyTop,...})`.
 Known gaps: single shadow cascade (R=26-40 m around view); `addPostPass` is a no-op; no SSR/DOF; menu backdrop patches ctx.render.render so `?test=1` shows the menu unless `ctx.menu.backdrop.leave()` is called (render scenes hide HUD via #ui).
 Inspect: `?test=1&seed=1&scene=render-gallery`, `?scene=render-fx` (`__game.ctx.render.debug.fxScene.jump(i)`), toggles via `debug.toggle('ssao'|'bloom'|'grain'|'vignette'|'shadows'|'shafts', bool)`, `debug.stageCam.pos/look` to move the camera.
+
+## Round 2 changes
+* Ambient is now a separate near-neutral warm env palette (`sky.params.envTop/envMid/envHorizon/envGround`), env intensity 0.36, hemi 0.10, no blue fill light; sky dome desaturated; fog 0.002; bloom threshold 2.0.
+* **Sky occlusion / interior ambient** (`src/render/skyocc.js`): after `ctx.map` exists, render bakes a 0.75 m grid over `ctx.map.bounds` (uses `map.raycast/heightAt/visible/lamps`) with sky openness, ceiling height and lamp pools. A global hook on `THREE.Material.prototype.onBeforeCompile` scales indirect light for every lit material under a ceiling (darker, warmer, lamp pools). No map changes needed. Toggle: `render.debug.toggle('skyocc', bool)`; tune `render.debug.skyOcc.U.uSkyOccMin / uLampK / uSkyWarm`.
+* Grade: shadows desaturated + slight cool split-tone, contrast 1.14, sat 1.06. Real-map check: `node shots/render/views.mjs prefix "mid,b-tunnel,hub-arches"`.
+* Mid-doors: door leaves were black only because they were in direct shadow under the arch with ambient ~0; now lit by the occluded-but-floored ambient (min 0.34).

@@ -40,7 +40,6 @@ export const NODES = [
   N('hub-pillar-e', 'cover', 'both', 'MID', 5.5, 6.2, 0, 'hub pillar east'),
   N('hub-ledge', 'hold', 'tide', 'MID', -8.5, -10, 0, 'raised ledge overlooking hub', { elevated: true }),
   N('hub-arch-w', 'choke', 'tide', 'MID', -6, -15, S, 'west arch', { width: 4 }),
-  N('hub-arch-c', 'choke', 'tide', 'MID', 0, -15, S, 'centre arch', { width: 4 }),
   N('hub-arch-e', 'choke', 'tide', 'MID', 6, -15, S, 'east arch', { width: 4 }),
   N('short-ramp-mid', 'choke', 'both', 'A', 14.5, -6, 0, 'short ramp climb', { width: 5 }),
   N('catwalk-hold', 'hold', 'tide', 'A', 14.5, -24, S, 'catwalk deck, overlooks palace', { elevated: true }),
@@ -77,23 +76,35 @@ export const NODES = [
   N('a-big-crate', 'cover', 'tide', 'A', 35.5, -14.8, S, 'big crate behind long ramp'),
   N('a-triple', 'hold', 'tide', 'A', 25.5, -18, E, 'triple stack, covers catwalk & long'),
   N('a-container', 'cover', 'both', 'A', 42.5, -25.5, 0, 'container north face'),
-  N('a-pillar', 'cover', 'both', 'A', 28, -35.2, E, 'pillar west'),
+  N('a-pillar', 'cover', 'both', 'A', 26, -39, E, 'pillar west'),
   N('a-stall', 'lurk', 'tide', 'A', 26.5, -12.8, E, 'pergola stall corner'),
   // ---------------- tide spawn exits
   N('tide-mid-hold', 'hold', 'tide', 'MID', 0, -30, S, 'tide mid lane'),
-  N('tide-east-room', 'hold', 'tide', 'A', 9, -33, S, 'east room, covers palace east'),
+  N('tide-east-room', 'hold', 'tide', 'A', 10.5, -34.5, S, 'east room, covers palace east'),
   N('tide-window-room', 'hold', 'tide', 'B', -14, -31, S, 'window room'),
   N('ember-mid-gate', 'choke', 'ember', 'MID', 0, 38, 0, 'ember mid exit', { width: 10 }),
 ];
 
-export const PATHS = [
+// Hand-placed anchors; PATHS below is generated from them by `node src/world/verify.mjs genpaths` (clearance-checked, walkable without jumping).
+export const PATH_SEEDS = [
   { id: 'ember-long', team: 'ember', site: 'A', pts: [[25, 43], [37, 40], [38, 29], [38, 12], [38, -4], [38, -14], [34.5, -26]] },
   { id: 'ember-short', team: 'ember', site: 'A', pts: [[0, 37], [0, 12.5], [0, 2], [11, 7], [14.5, 0], [14.5, -14], [14.5, -26], [20, -29], [26, -28], [32, -28]] },
   { id: 'ember-mid-b', team: 'ember', site: 'B', pts: [[0, 37], [0, 12.5], [0, 0], [-6, -13], [-6, -15], [-8, -20], [-16, -22], [-20, -23], [-26, -23], [-32, -28]] },
   { id: 'ember-tunnels', team: 'ember', site: 'B', pts: [[-23, 43], [-33, 43], [-33, 28], [-39, 26], [-39, 9], [-33, 9], [-33, -14], [-33, -21], [-33, -27]] },
-  { id: 'tide-a', team: 'tide', site: 'A', pts: [[10, -43], [19, -43], [26, -42], [30, -36], [34.5, -29]] },
+  { id: 'tide-a', team: 'tide', site: 'A', pts: [[10, -43], [19, -43], [26, -42], [34.5, -36], [34.5, -29]] },
   { id: 'tide-b', team: 'tide', site: 'B', pts: [[-10, -43], [-19, -43], [-26, -42], [-30, -37], [-33, -31]] },
   { id: 'rotate-a-to-b-tide', team: 'tide', site: null, pts: [[30, -34], [24, -43], [19, -43], [10, -43], [-10, -43], [-19, -43], [-26, -42], [-31, -36]] },
   { id: 'rotate-a-to-b-palace', team: 'tide', site: null, pts: [[26, -29], [20, -29], [14.5, -26], [14.5, -17], [8, -18], [0, -18], [-10, -20], [-19, -23], [-26, -26]] },
   { id: 'rotate-b-to-a-tide', team: 'tide', site: null, pts: [[-31, -36], [-26, -42], [-19, -43], [-10, -43], [10, -43], [19, -43], [24, -43], [30, -34]] },
+];
+export const PATHS = [
+  { id: 'ember-long', team: 'ember', site: 'A', pts: [[25, 44], [26, 44], [33, 42], [38, 36], [39.5, 9.5], [38, -5], [38, -18.5], [34.5, -26]] },
+  { id: 'ember-short', team: 'ember', site: 'A', pts: [[0, 36.5], [1.5, 10], [3, 9], [4, 9], [12.5, 5], [14.5, 2], [16.5, -27.5], [21.5, -27.5], [23, -28], [32, -28]] },
+  { id: 'ember-mid-b', team: 'ember', site: 'B', pts: [[0, 36.5], [1.5, 10], [3, 9], [4, 9], [4.5, 8.5], [4.5, 7.5], [-0.5, -6.5], [-0.5, -7.5], [-3, -9.5], [-9.5, -21], [-13.5, -21], [-30, -28], [-32, -28]] },
+  { id: 'ember-tunnels', team: 'ember', site: 'B', pts: [[-23.5, 43], [-34.5, 40.5], [-35, 26], [-39, 22], [-36, 9], [-33.5, 6], [-34, -6.5], [-33, -27]] },
+  { id: 'tide-a', team: 'tide', site: 'A', pts: [[11, -43], [16, -43], [17, -43], [18, -43], [19, -43], [19.5, -42.5], [20, -42], [21, -42], [22, -42], [23, -42], [33.5, -37], [34.5, -29]] },
+  { id: 'tide-b', team: 'tide', site: 'B', pts: [[-10.5, -43], [-27.5, -39], [-28, -37.5], [-33, -31]] },
+  { id: 'rotate-a-to-b-tide', team: 'tide', site: null, pts: [[31, -34], [33, -35], [33, -37], [20, -43], [-26, -42], [-28, -37.5], [-31, -36]] },
+  { id: 'rotate-a-to-b-palace', team: 'tide', site: null, pts: [[26.5, -29.5], [26, -30], [25, -30], [24.5, -30.5], [23.5, -30.5], [22.5, -30.5], [21.5, -30.5], [19.5, -30.5], [14.5, -23], [13.5, -18], [12.5, -18.5], [-1.5, -17.5], [-15, -21.5], [-22.5, -25.5], [-26, -26]] },
+  { id: 'rotate-b-to-a-tide', team: 'tide', site: null, pts: [[-30.5, -36], [-27.5, -38], [-21.5, -43], [-20.5, -43], [-19.5, -43], [-18.5, -43], [-18, -43], [-17, -43], [-16, -43], [-15, -43], [16, -43], [17, -43], [18, -43], [19, -43], [20, -43], [21, -43], [22, -43], [29.5, -37.5], [32.5, -37.5], [33, -37], [33, -35], [30.5, -33.5]] },
 ];

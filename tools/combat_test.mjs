@@ -56,6 +56,7 @@ function makeCtx(dist = DIST) {
   const core = createCore(ctx); ctx.combat = core;
   return { ctx, core };
 }
+const RUN = (def) => 7.2 * def.moveSpeedU / 250;   // movement piece: runSpeed 7.2 x weapon speed mult
 const mkActor = (ctx, name, team, x = 0, z = 0, ai = true) => {
   const a = createActor({ name, team }); a.pos.set(x, 0, z); a.vel.set(0, 0, 0); if (ai) a.ai = { cmd: { fire: false, aim: false, reload: false, drop: false, use: false, last: false, inspect: false, slot: 0, dir: null } };
   ctx.actors.push(a); return a;
@@ -76,12 +77,12 @@ function sprayRun(id, stance, trial) {
   readyWeapon(core, a, id);
   const def = TAGGERS[id]; a.cb.rng = mulberry32(7919 * (trial + 1) + id.length * 131);
   a.crouching = stance === 'crouch'; a.onGround = stance !== 'jump';
-  if (stance === 'run') a.vel.set(def.moveSpeed, 0, 0); if (stance === 'jump') a.vel.set(def.moveSpeed * 0.6, 2.5, 0);
+  if (stance === 'run') a.vel.set(RUN(def), 0, 0); if (stance === 'jump') a.vel.set(RUN(def) * 0.6, 2.5, 0);
   a.yaw = 0; a.pitch = 0; a.eyeHeight = a.crouching ? 1.12 : 1.62;
   const pts = []; const off = core.hooks.shot.push((s) => { if (s.actor === a) pts.push([Math.atan2(s.end.x - s.origin.x, DIST) / Math.PI * 180, Math.atan2(s.end.y - s.origin.y, DIST) / Math.PI * 180, s.shot, s.inacc]); });
   const n = Math.min(def.mag, def.id === 'storm' ? 45 : 30);
   a.ai.cmd.fire = true; let guard = 0;
-  while (pts.length < n * (def.pellets || 1) && guard++ < 120 * 30) { if (stance === 'run') a.vel.set(def.moveSpeed, 0, 0); if (stance === 'jump') { a.onGround = false; a.vel.y = 2.5; } core.fixedUpdate(DT); }
+  while (pts.length < n * (def.pellets || 1) && guard++ < 120 * 30) { if (stance === 'run') a.vel.set(RUN(def), 0, 0); if (stance === 'jump') { a.onGround = false; a.vel.y = 2.5; } core.fixedUpdate(DT); }
   a.ai.cmd.fire = false; core.hooks.shot.length = 0;
   return pts;
 }
@@ -177,7 +178,12 @@ function csChecks() {
   // counter-strafe
   const d = TAGGERS.arc, s = { onGround: true, crouch: false, vy: 0, fire: 0, land: 0, scopeLevel: 0, speed: 0 };
   check('accuracy: perfectly accurate below 34 % speed (shift-walk)', inaccuracyDeg(d, { ...s, speed: d.moveSpeed * 0.34 }) === inaccuracyDeg(d, { ...s, speed: 0 }));
-  check('accuracy: running AK inaccuracy >= 25x standing', inaccuracyDeg(d, { ...s, speed: d.moveSpeed }) >= 25 * inaccuracyDeg(d, { ...s, speed: 0 }));
+  const rs = RUN(d), runI = inaccuracyDeg(d, { ...s, speed: rs, maxSpeed: rs });
+  check('accuracy: AK standing first shot ~0.4° (CS2)', near(inaccuracyDeg(d, s), 0.4, 0.05), inaccuracyDeg(d, s).toFixed(2));
+  check('accuracy: AK full-speed run ~10° (CS2)', near(runI, 10.4, 1.5), runI.toFixed(2));
+  check('Pip one-taps an unarmoured head at 30 m (CS2 USP-S)', dmg('pip', 'head', 30) >= 100, String(dmg('pip', 'head', 30)));
+  check('AK recovery_time_stand 0.43 s', TAGGERS.arc.recover.stand === 0.43);
+  check('Negev tightens when sustained', inaccuracyDeg(TAGGERS.storm, { ...s, shots: 12 }) < 0.4 * inaccuracyDeg(TAGGERS.storm, { ...s, shots: 0 }));
   check('accuracy: crouched tighter than standing', inaccuracyDeg(d, { ...s, crouch: true }) < inaccuracyDeg(d, s));
   check('accuracy: AWP unscoped >> scoped (>100x)', inaccuracyDeg(TAGGERS.lance, { ...s, speed: 0, scopeLevel: 0 }) > 100 * inaccuracyDeg(TAGGERS.lance, { ...s, speed: 0, scopeLevel: 1 }));
   check('spray patterns start at (0,0) = first shot accurate', Object.values(TAGGERS).every((t) => t.pattern[0] === 0 && t.pattern[1] === 0));
@@ -188,12 +194,12 @@ function functional() {
   console.log('\n== functional ==');
   { // first shot lands exactly where aimed (standing, no penalty), spray climbs, pattern deterministic
     const r1 = sprayRun('arc', 'stand', 0), r2 = sprayRun('arc', 'stand', 0), r3 = sprayRun('arc', 'stand', 1);
-    check('AK: first shot within 0.15° of aim standing still', Math.hypot(r1[0][0], r1[0][1]) < 0.25, `${r1[0][0].toFixed(3)}, ${r1[0][1].toFixed(3)}`);
+    check('AK: first shot within 1.0° of aim standing still (0.4° cone)', Math.hypot(r1[0][0], r1[0][1]) < 1.0, `${r1[0][0].toFixed(3)}, ${r1[0][1].toFixed(3)}`);
     check('AK: identical seed -> identical spray (deterministic)', JSON.stringify(r1) === JSON.stringify(r2));
     check('AK: spray climbs > 9° by shot 15', r1[15][1] > 9, r1[15][1].toFixed(1));
     const dev = r1.map((p, i) => Math.hypot(p[0] - r3[i][0], p[1] - r3[i][1]));
     check('AK: two different spreads follow the same pattern (mean dev < 1.6°)', dev.reduce((a, b) => a + b) / dev.length < 1.6, (dev.reduce((a, b) => a + b) / dev.length).toFixed(2));
-    const rr = sprayRun('arc', 'run', 0); check('AK: running spread is huge (first shot > 1.5°)', Math.hypot(rr[0][0], rr[0][1]) > 0.0 && rr[0][3] > 3, `inacc ${rr[0][3].toFixed(2)}`);
+    const rr = sprayRun('arc', 'run', 0); check('AK: running spread is huge (first shot > 1.5°)', rr[0][3] > 7, `inacc ${rr[0][3].toFixed(2)}`);
   }
   { // inventory: buy / give / drop / pickup / switch / Q
     const { ctx, core } = makeCtx(); const a = mkActor(ctx, 'a', 'ember'); a.credits = 5000;
@@ -262,6 +268,24 @@ function functional() {
     const v3 = mkActor(ctx, 'v3', 'tide', 5, -1, false); const m = mkActor(ctx, 'm2', 'ember', 5, 0.5, true); m.yaw = 0; v3.yaw = 0;
     readyWeapon(core, m, 'pip'); core.switchTo(m, 3); secs(core, 0.7); ev.hit.length = 0; m.ai.cmd.fire = true; step(core, 1); m.ai.cmd.fire = false; secs(core, 0.2);
     check('tap slash from behind (victim facing away) = 90', ev.hit[0] && ev.hit[0].damage === 90, ev.hit[0] ? String(ev.hit[0].damage) : 'miss');
+  }
+  { // held fire through a draw fires when ready; scope event on rescope; no damage after the round is decided
+    const { ctx, core } = makeCtx(); const a = mkActor(ctx, 'a', 'ember'); step(core, 2); core.switchTo(a, 3); secs(core, 0.8);
+    core.switchTo(a, 2); a.ai.cmd.fire = true; secs(core, 1.0); a.ai.cmd.fire = false; check('semi-auto: fire held through draw shoots once ready', eq(core, a).mag < 12, `mag ${eq(core, a).mag}`);
+    readyWeapon(core, a, 'lance'); const sc = []; ctx.events.on('weapon:scope', (e) => sc.push(e.scoped)); const l = eq(core, a);
+    a.ai.cmd.aim = true; step(core, 2); a.ai.cmd.aim = false; step(core, 2); a.ai.cmd.fire = true; step(core, 1); a.ai.cmd.fire = false; secs(core, 1.6);
+    check('weapon:scope events: in, out (bolt), in (resume)', JSON.stringify(sc) === '[true,false,true]', JSON.stringify(sc));
+    const v = mkActor(ctx, 'v', 'tide', 0, -12, false); readyWeapon(core, a, 'arc'); a.pitch = -0.03; ctx.match = { phase: 'roundEnd' }; a.ai.cmd.fire = true; step(core, 1); a.ai.cmd.fire = false;
+    check('no tags during roundEnd (damage refused)', v.hp === 100 && ctx.log.hit.length === 0);
+    ctx.match = { phase: 'live' }; secs(core, 0.3); a.ai.cmd.fire = true; step(core, 1); a.ai.cmd.fire = false; check('tags resume when live', v.hp < 100);
+  }
+  { // human path (ctx.input): semi-auto held through draw fires exactly once; releasing and clicking fires again
+    const { ctx, core } = makeCtx(); const held = new Set(); ctx.input = { locked: true, down: (k) => held.has(k), pressed: () => false, released: () => false };
+    const h = mkActor(ctx, 'h', 'ember', 0, 0, false); ctx.localActor = h; step(core, 2); core.switchTo(h, 3); secs(core, 0.8);
+    held.add('slot2'); step(core, 2); held.delete('slot2'); held.add('fire'); secs(core, 1.2);
+    check('human: LMB held through Pip draw -> one shot (semi-auto)', eq(core, h).mag === 11, `mag ${eq(core, h).mag}`);
+    held.delete('fire'); secs(core, 0.3); held.add('fire'); step(core, 2); held.delete('fire'); check('human: click fires again', eq(core, h).mag === 10, `mag ${eq(core, h).mag}`);
+    core.brain(h).wheel = 1; step(core, 2); check('mouse wheel cycles weapon', eq(core, h).id === 'tap', eq(core, h).id);
   }
   { // punch + crosshair
     const { ctx, core } = makeCtx(); const a = mkActor(ctx, 'a', 'ember'); readyWeapon(core, a, 'arc');

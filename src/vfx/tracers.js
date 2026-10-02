@@ -39,9 +39,12 @@ void main() {
   float style = aParm.z;
   if (style > 1.5 && style < 2.5) taper = mix(0.2, 1.0, pow(s, 2.2));
   float w = aParm.x * taper;
-  float minW = uPx * max(-pv.z, 0.1) * 1.8;
-  float hw = max(w * 0.5, minW * 0.5);
-  float thin = clamp(w / max(minW, 1e-5), 0.3, 1.0);          // keep sub-pixel tracers from over-brightening
+  float minW = uPx * max(-pv.z, 0.1) * 5.0;                 // >= ~5 px quad (core ~2-3 px)
+  // foreshortened (near-axial) tracers: widen into a hot blob so they still read
+  float axial = length(ax.xy) / max(length(ax), 1e-4);
+  float blob = 1.0 + (1.0 - smoothstep(0.1, 0.5, axial)) * 1.8;
+  float hw = max(w * 0.5, minW * 0.5) * blob;
+  float thin = clamp(w / max(minW, 1e-5), 0.8, 1.0);
   pv += side * corner.x * hw;
   float nearFade = smoothstep(uNear * 0.3, uNear, -pv.z);
   float remain = smoothstep(0.0, 1.0, seg / max(min(len, dist), 0.05));
@@ -65,38 +68,38 @@ void main() {
   float ay = abs(y);
   vec3 col = vCol.rgb;
   float a;
-  float core = exp(-ay * ay * 16.0);
-  float halo = exp(-ay * ay * 3.5) * 0.35;
-  float body = pow(s, 1.6);
-  float headHot = exp(-(1.0 - s) * (vLen * 3.0 + 4.0)) * 1.4;          // hot spot at the travelling head
+  float core = exp(-ay * ay * 9.0);
+  float halo = exp(-ay * ay * 2.2) * 0.45;
+  float body = pow(s, 1.1);
+  float headHot = exp(-(1.0 - s) * (6.0 / (1.0 + vLen * 0.25))) * 1.6;
+  vec3 sat = col * 1.5;
   if (style < 0.5) {                                   // BEAM
-    a = (core * (0.55 + headHot) + halo * 0.6) * body;
-    col = mix(col, vec3(1.0), core * (0.35 + headHot * 0.5));
+    a = (core * 1.25 + halo) * body + core * headHot;
+    col = mix(sat, vec3(1.0), core * (0.55 + headHot * 0.3));
   } else if (style < 1.5) {                            // PULSE (dashed energy packets)
-    float pat = smoothstep(0.35, 0.65, 0.5 + 0.5 * sin((s * vLen * 2.6 - vParm.w * 24.0) * 3.14159));
-    a = (core * (0.4 + pat * 0.9) + halo * 0.5) * body + core * headHot * 0.6;
-    col = mix(col, vec3(1.0), core * pat * 0.5);
-  } else if (style < 2.5) {                            // COMET (long fading tail, big hot head, fizz)
-    float fizz = 0.75 + 0.25 * sin(s * 90.0 + vParm.y * 40.0 - vParm.w * 60.0);
-    a = (core * pow(s, 2.4) * fizz + halo * pow(s, 2.0)) + exp(-ay * ay * 5.0) * headHot * 0.9;
-    col = mix(col, vec3(1.0), pow(s, 6.0) * core);
-  } else if (style < 3.5) {                            // PRISM (rainbow along the length)
-    vec3 rb = hsv(s * 0.85 + vParm.w * 1.5 + vParm.y, 0.55, 1.5);
-    a = (core * 0.9 + halo * 0.7) * body + core * headHot * 0.5;
-    col = mix(rb, vec3(1.0), core * 0.4);
-  } else if (style < 4.5) {                            // LASER (constant thin bright line)
-    float e = smoothstep(0.0, 0.25, s);
-    a = (exp(-ay * ay * 26.0) * 1.05 + halo * 0.45) * e;
-    col = mix(col, vec3(1.0), exp(-ay * ay * 60.0) * 0.8);
-  } else {                                             // TWIN (double helix strands)
+    float pat = smoothstep(0.3, 0.7, 0.5 + 0.5 * sin((s * vLen * 2.2 - vParm.w * 24.0) * 3.14159));
+    a = (core * (0.5 + pat * 0.9) + halo * 0.7) * body + core * headHot * 0.8;
+    col = mix(sat, vec3(1.0), core * pat * 0.6);
+  } else if (style < 2.5) {                            // COMET
+    float fizz = 0.8 + 0.2 * sin(s * 90.0 + vParm.y * 40.0 - vParm.w * 60.0);
+    a = (core * pow(s, 1.8) * fizz * 1.3 + halo * pow(s, 1.5)) + exp(-ay * ay * 4.0) * headHot * 0.9;
+    col = mix(sat, vec3(1.0), pow(s, 4.0) * core);
+  } else if (style < 3.5) {                            // PRISM
+    vec3 rb = hsv(s * 0.85 + vParm.w * 1.5 + vParm.y, 0.65, 1.6);
+    a = (core * 1.1 + halo) * body + core * headHot * 0.6;
+    col = mix(rb, vec3(1.0), core * 0.5);
+  } else if (style < 4.5) {                            // LASER
+    float e = smoothstep(0.0, 0.2, s);
+    a = (exp(-ay * ay * 14.0) * 1.4 + halo * 0.6) * e;
+    col = mix(sat, vec3(1.0), exp(-ay * ay * 30.0) * 0.85);
+  } else {                                             // TWIN
     float ph = s * vLen * 3.0 - vParm.w * 30.0 + vParm.y * 6.0;
-    float y1 = ay - 0.5 - 0.3 * sin(ph);
-    float y2 = ay - 0.5 + 0.3 * sin(ph);
-    a = (exp(-y1 * y1 * 60.0) + exp(-y2 * y2 * 60.0)) * 0.8 * body + halo * 0.3 * body + core * headHot * 0.6;
-    col = mix(col, vec3(1.0), 0.25);
+    float y1 = ay - 0.45 - 0.25 * sin(ph), y2 = ay - 0.45 + 0.25 * sin(ph);
+    a = (exp(-y1 * y1 * 40.0) + exp(-y2 * y2 * 40.0)) * 1.0 * body + halo * 0.5 * body + core * headHot * 0.7;
+    col = mix(sat, vec3(1.0), 0.3);
   }
   a *= step(abs(y), 1.0);
-  gl_FragColor = vec4(col * a * vCol.a, 0.0);          // additive (alpha 0 in premultiplied blending)
+  gl_FragColor = vec4(col * a * vCol.a * 3.2, 0.0);          // additive (alpha 0 in premultiplied blending)
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;

@@ -34,18 +34,18 @@ export const SURFACES = {
 // Per-tagger tracer look. width/len in metres, speed m/s.
 export const TAGGER_TRACER = {
   tap:     { style: 'none' },
-  pip:     { style: 'beam',  width: 0.020, len: 3.0, speed: 420, intensity: 1.6, white: 0.35, power: 0.7 },
-  twin:    { style: 'beam',  width: 0.018, len: 2.6, speed: 460, intensity: 1.6, white: 0.4, power: 0.7 },
-  judge:   { style: 'comet', width: 0.034, len: 5.0, speed: 360, intensity: 2.0, white: 0.3, power: 1.1 },
-  zip:     { style: 'beam',  width: 0.016, len: 2.4, speed: 480, intensity: 1.5, white: 0.4, power: 0.6 },
-  hum:     { style: 'beam',  width: 0.019, len: 3.4, speed: 480, intensity: 1.6, white: 0.35, power: 0.75 },
-  arc:     { style: 'beam',  width: 0.026, len: 4.6, speed: 520, intensity: 1.9, white: 0.25, power: 1.0 },
-  rail:    { style: 'beam',  width: 0.022, len: 5.6, speed: 560, intensity: 1.8, white: 0.3, power: 1.0 },
-  halo:    { style: 'twin',  width: 0.030, len: 5.0, speed: 560, intensity: 1.8, white: 0.3, power: 1.0 },
-  lance:   { style: 'laser', width: 0.045, len: 14.0, speed: 900, intensity: 3.0, white: 0.5, power: 1.9 },
-  scatter: { style: 'pulse', width: 0.014, len: 1.6, speed: 380, intensity: 1.4, white: 0.35, power: 1.4 },
-  storm:   { style: 'pulse', width: 0.024, len: 4.0, speed: 500, intensity: 1.7, white: 0.3, power: 1.2 },
-  default: { style: 'beam',  width: 0.02, len: 3.2, speed: 480, intensity: 1.6, white: 0.35, power: 1.0 },
+  pip:     { style: 'beam',  width: 0.044, len: 5.7, speed: 420, intensity: 1.6, white: 0.1, power: 0.7 },
+  twin:    { style: 'beam',  width: 0.040, len: 4.9, speed: 460, intensity: 1.6, white: 0.1, power: 0.7 },
+  judge:   { style: 'comet', width: 0.075, len: 9.5, speed: 360, intensity: 2.0, white: 0.1, power: 1.1 },
+  zip:     { style: 'beam',  width: 0.035, len: 4.6, speed: 480, intensity: 1.5, white: 0.1, power: 0.6 },
+  hum:     { style: 'beam',  width: 0.042, len: 6.5, speed: 480, intensity: 1.6, white: 0.1, power: 0.75 },
+  arc:     { style: 'beam',  width: 0.057, len: 8.7, speed: 520, intensity: 1.9, white: 0.1, power: 1.0 },
+  rail:    { style: 'beam',  width: 0.048, len: 10.6, speed: 560, intensity: 1.8, white: 0.1, power: 1.0 },
+  halo:    { style: 'twin',  width: 0.066, len: 9.5, speed: 560, intensity: 1.8, white: 0.1, power: 1.0 },
+  lance:   { style: 'laser', width: 0.099, len: 26.6, speed: 900, intensity: 3.0, white: 0.15, power: 1.9 },
+  scatter: { style: 'pulse', width: 0.031, len: 3.0, speed: 380, intensity: 1.4, white: 0.1, power: 1.4 },
+  storm:   { style: 'pulse', width: 0.053, len: 7.6, speed: 500, intensity: 1.7, white: 0.1, power: 1.2 },
+  default: { style: 'beam',  width: 0.044, len: 6.1, speed: 480, intensity: 1.6, white: 0.1, power: 1.0 },
 };
 
 export const STYLE_ID = { beam: 0, pulse: 1, comet: 2, prism: 3, laser: 4, twin: 5, thin: 4 };

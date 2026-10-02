@@ -34,7 +34,7 @@ export function create(H) {
       const e = easeOut(S.a); root.style.opacity = e.toFixed(2); root.style.transform = `translateX(-50%) translateY(${((1 - e) * 14).toFixed(1)}px)`;
       const v = H.view; if (!v) return;
       const col = H.pal[v.team]; root.style.setProperty('--sc', col);
-      if (S.name !== v.name) { S.name = v.name; av.innerHTML = emblem(v.name); }
+      if (S.name !== v.name + col) { S.name = v.name + col; av.innerHTML = emblem(v.name, col); }
       setNm(v.name); setHp(String(Math.max(0, Math.round(v.hp ?? 0)))); tHb(`scaleX(${clamp((v.hp ?? 0) / 100, 0, 1).toFixed(3)})`);
       const m = H.R.match; const ph = m?.phase;
       setOut(ph === 'roundEnd' ? 'Round over' : H.local?.alive === false ? 'Tagged out — respawn next round' : '');

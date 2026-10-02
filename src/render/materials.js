@@ -3,7 +3,7 @@ import { getTexture, makeToonGradient, KINDS } from './textures.js';
 import { TEAMS } from '../core/config.js';
 
 // Shared, cached material factory. The materials are shared between callers: never mutate, clone() first.
-export function createMaterials(renderer) {
+export function createMaterials(renderer, globalHook) {
   const time = { value: 0 };                 // shared animated-time uniform (updated by render())
   const cache = new Map();
   let toonGrad = null;
@@ -30,6 +30,7 @@ export function createMaterials(renderer) {
     const ckey = 'fx' + JSON.stringify(cfg);
     mat.customProgramCacheKey = () => ckey;
     mat.onBeforeCompile = (sh) => {
+      globalHook?.(sh);
       sh.uniforms.uTime = time;
       let vs = sh.vertexShader, fs = sh.fragmentShader, decl = 'varying vec3 vWP;\nuniform float uTime;\n';
       if (cfg.tri) { sh.uniforms.uTexScale = { value: cfg.tri[0] }; decl += 'uniform float uTexScale;\n'; }

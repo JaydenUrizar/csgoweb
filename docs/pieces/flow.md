@@ -22,3 +22,10 @@ Files: `index.js` (module + debug API + scenes), `flow.js` (state machine, teams
 
 ## Tuning / known gaps
 Constants in `flow.js TUNE` and `economy.js ECON`. Gaps: no 3D announcer/UI (hud/audio own them); world beacon prop is a simple procedural device; dropped-weapon world items rely on combat; combat/player/ai/avatars hooks are untested against real pieces (requests written in docs/requests/*-from-flow-1.md).
+
+## Round 2 changes
+* Exit frags (tags during roundEnd) now pay the reward, count stats, set victim `survived=false`; ledger re-syncs from `actor.inventory` (slots 1/2, utility) each round reset.
+* 0:00 ends the round even mid-arm (Tide `time` win; arm cancelled). Halftime clears the Beacon carrier and resets credits/streaks on the halftime card immediately.
+* Economy: each half starts at loss level 1 (pistol loser +1900); surviving Ember on a time-out get no loss bonus; lost-after-plant gives each Ember +800 (`credits` reason `plantloss`). Buy grace in live is 20 s.
+* New announce ids: `match_point {teams}`, `last_round_of_half`, `last_round`, `clutch {team,actor,vs}`, `beacon_dropped`/`beacon_picked_up` (`teams:['ember']`); `round:start` carries `matchPoint, lastRoundOfHalf, lastRound`. First `beacon:beep` fires at the moment of arming.
+* Test mode: spawn pin is off in `?test=1` (`?freeze=1` or `debug.pin(true)` restores); `?match=1&phase=live` starts live and sticks.

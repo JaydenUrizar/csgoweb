@@ -10,3 +10,6 @@ Layout is authored at 720p and scaled by `innerHeight/720 * settings.hudScale`; 
 `match.{phase,round,scores,timeLeft,buyTimeLeft,beacon,teams,catalog,canBuy,buy,mvp,history,scoreboard(),spectating,cycleSpectate}`, `combat.{equipped,inventory,crosshairSpread,utility.count}`, `map.{radar(canvasFor,bounds),sites,calloutAt|callouts,raycast}`, events tag:hit/out, credits, buy, util:blind, beacon:*, round:*, halftime, match:end. Radar falls back to a baked collider height-map if `map.radar` is missing.
 ## Known gaps
 Scope overlay also drawn by HUD (skipped if `combat.viewmodel.drawsScopeOverlay`); radar spotted-enemy = LOS from allies (no ai perception hook); damage arc style plain; no kit state read for disarm hint; buy menu is not mouse-unlocked in-game (hotkeys only, clicks work when cursor free); pip emblems are hash-generated; weapon silhouettes first-pass.
+
+## Round 2
+Radar now restyles `map.radar` (labels erased, dark silhouette + wall edges, 30 m range, big A/B badges clamped inside the ring, outlined dots + view cone); team-coloured pip tiles; topbar + buy menu share `match.buyTimeLeft` and the same tweened money; menus are near-opaque and fade banners/notices/toasts/prompts; compact 1.4 s round banner; thicker damage arcs with arrowhead; bigger hit markers; redrawn weapon icons.

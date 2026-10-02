@@ -2,6 +2,7 @@
 import { NX, NZ, X0, Z0, idx } from './grid.js';
 import { ZONES } from './layout.js';
 import { rgb, mulc, mixc } from './builder.js';
+import { roofForRect } from './roofs.js';
 
 const hash2 = (i, j) => { let h = (i * 374761393 + j * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const vnoise = (x, z) => {
@@ -75,6 +76,7 @@ export function meshTerrain(g, VB, CB) {
       const col = mulc(mixc(rgb(0xc9835a), rgb(0xd9b48a), hh), 0.95 + 0.1 * hash2(j0 >> 3, i0 >> 3));
       const x0 = X0 + i0, x1 = X0 + i1, z0 = Z0 + j0, z1 = Z0 + j1;
       VB.quad('roof', [x0, h, z1], [x1, h, z1], [x1, h, z0], [x0, h, z0], col);
+      if (!(x0 <= -50 || x1 >= 50 || z0 <= -52 || z1 >= 52) || (x1 - x0) > 1) roofForRect(VB, x0, z0, x1, z1, h);
     });
 
   // ------------------------------------------------------------------ collision tops (greedy on flat cells; slopes per cell)
@@ -118,14 +120,18 @@ export function meshTerrain(g, VB, CB) {
     if (p && p.d === s.d && p.line === s.line && p.s1 === s.s0 && p.hA0 === p.hA1 && s.hA0 === s.hA1 && p.hA0 === s.hA0 && p.hB0 === p.hB1 && s.hB0 === s.hB1 && p.hB0 === s.hB0 && p.zone === s.zone && p.openB === s.openB && p.stairA === s.stairA && p.stairB === s.stairB) p.s1 = s.s1;
     else merged.push({ ...s });
   }
-  for (const s of merged) { emitWall(VB, CB, s); }
+  for (const s of merged) {
+    emitWall(VB, CB, s, false, true);
+    const n = Math.max(1, Math.ceil((s.s1 - s.s0) / 5)); const L = (s.s1 - s.s0) / n;
+    for (let k = 0; k < n; k++) emitWall(VB, CB, { ...s, s0: s.s0 + k * L, s1: s.s0 + (k + 1) * L }, true, false);
+  }
   return { walls: merged };
 }
 
 function corner(dir, line, s, y) { // world position along a wall
   return DIRS[dir].coord === 'x' ? [line, y, s] : [s, y, line];
 }
-function emitWall(VB, CB, s) {
+function emitWall(VB, CB, s, doVis = true, doCol = true) {
   const { d, line, s0, s1 } = s;
   const lowP = Math.min(s.hA0, s.hB0), lowQ = Math.min(s.hA1, s.hB1), hiP = Math.max(s.hA0, s.hB0), hiQ = Math.max(s.hA1, s.hB1);
   const S0 = s0, S1 = s1;
@@ -140,7 +146,8 @@ function emitWall(VB, CB, s) {
     VB.quad(mat, v[0], v[1], v[2], v[3], cols, { uvo: [0, 0, 0] });
   };
   // collision: one quad
-  { const [Pa, Qa] = order(lowP, lowQ), [Pb, Qb] = order(hiP, hiQ); if (d === 0 || d === 3) CB.quad(Qa, Pa, Pb, Qb, 0); else CB.quad(Pa, Qa, Qb, Pb, 0); }
+  if (doCol) { const [Pa, Qa] = order(lowP, lowQ), [Pb, Qb] = order(hiP, hiQ); if (d === 0 || d === 3) CB.quad(Qa, Pa, Pb, Qb, 0); else CB.quad(Pa, Qa, Qb, Pb, 0); }
+  if (!doVis) return;
   // stairs meshed as steps hide this wall on the stair side
   if (s.stairA && !s.stairB) return;
   const P = pal(s.zone); const mass = pal('mass');

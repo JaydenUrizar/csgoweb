@@ -4,7 +4,7 @@ import { clamp, easeOut, h, fmtMoney, fmtTime, readLoadout, teamName } from './c
 import { icon, NAMES } from './icons.js';
 
 export const css = `
-.bdim{position:absolute;inset:0;background:radial-gradient(ellipse at 45% 50%,rgba(4,6,12,.30),rgba(4,6,12,.62));opacity:0;pointer-events:none;will-change:opacity}
+.bdim{position:absolute;inset:0;background:radial-gradient(ellipse at 45% 50%,rgba(4,6,12,.58),rgba(4,6,12,.82));opacity:0;pointer-events:none;will-change:opacity}
 .buy{position:absolute;left:50%;top:50%;width:962px;transform:translate(-50%,-50%);opacity:0;pointer-events:auto;will-change:opacity,transform;color:#fff}
 .buy .hd{display:flex;align-items:flex-end;justify-content:space-between;padding:0 4px 8px;text-shadow:0 1px 3px #000}
 .buy .hd .cash{font:700 34px/32px var(--font);letter-spacing:.02em;color:#f4f8ff;font-variant-numeric:tabular-nums}
@@ -14,7 +14,7 @@ export const css = `
 .buy .hd .bt.off b{color:#ff7a68}
 .buy .hd .tm{font:700 15px/16px var(--font);letter-spacing:.18em;color:var(--ally);text-transform:uppercase}
 .buy .main{display:flex;gap:10px}
-.buy .cols{flex:1;display:flex;gap:6px;padding:10px;border-radius:5px;background:linear-gradient(180deg,rgba(20,25,36,.92),rgba(12,15,24,.92));box-shadow:0 0 0 1px rgba(255,255,255,.09) inset,0 12px 40px rgba(0,0,0,.5)}
+.buy .cols{flex:1;display:flex;gap:6px;padding:10px;border-radius:5px;background:linear-gradient(180deg,rgba(20,25,36,.985),rgba(12,15,24,.985));box-shadow:0 0 0 1px rgba(255,255,255,.09) inset,0 12px 40px rgba(0,0,0,.5)}
 .buy .col{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;padding-bottom:2px;border-radius:3px;transition:background .12s}
 .buy .col.sel{background:rgba(255,255,255,.055);box-shadow:0 0 0 1px rgba(255,255,255,.22) inset}
 .buy .ch{display:flex;gap:6px;align-items:baseline;justify-content:center;padding:1px 0 5px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:1px;font:700 17px/20px var(--font);letter-spacing:.06em;color:#f1f5fb;text-transform:uppercase}
@@ -39,7 +39,7 @@ export const css = `
 .it .rs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 12px/14px var(--font);letter-spacing:.14em;color:#fff;text-transform:uppercase;text-shadow:0 1px 3px #000;opacity:0;white-space:nowrap}
 .it.empty{background:none;box-shadow:none;cursor:default;height:66px;pointer-events:none}
 .buy .side{width:206px;display:flex;flex-direction:column;gap:8px}
-.buy .sp{padding:10px;border-radius:5px;background:linear-gradient(180deg,rgba(20,25,36,.92),rgba(12,15,24,.92));box-shadow:0 0 0 1px rgba(255,255,255,.09) inset,0 12px 40px rgba(0,0,0,.5)}
+.buy .sp{padding:10px;border-radius:5px;background:linear-gradient(180deg,rgba(20,25,36,.985),rgba(12,15,24,.985));box-shadow:0 0 0 1px rgba(255,255,255,.09) inset,0 12px 40px rgba(0,0,0,.5)}
 .buy .sp h4{margin:0 0 6px;font:700 14px/16px var(--font);letter-spacing:.16em;color:rgba(255,255,255,.6);text-transform:uppercase}
 .buy .prev{position:relative;height:150px;padding:0;overflow:hidden;background:radial-gradient(90% 90% at 50% 70%,rgba(var(--ally-rgb),.28),rgba(12,15,24,.92) 70%)}
 .buy .prev canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -173,9 +173,9 @@ export function create(H) {
     const load = readLoadout(R, a, []), cur = load.find((x) => x.cur)?.id;
     const can = m?.canBuy ? !!safe(() => m.canBuy(a)) : true;
     const credits = a.credits ?? 0;
-    const sig = [credits, can ? 1 : 0, load.map((x) => x.id + x.count + (x.cur ? '*' : '')).join(','), a.armor, S.col, H.playerTeam, S.hover?.id, S.flash.length].join('|');
+    const sig = [Math.round(H.cashShown ?? credits), credits, can ? 1 : 0, load.map((x) => x.id + x.count + (x.cur ? '*' : '')).join(','), a.armor, S.col, H.playerTeam, S.hover?.id, S.flash.length].join('|');
     if (sig === S.sig && !S.flash.length) return; S.sig = sig;
-    cashEl.textContent = Math.round(credits).toLocaleString('en-US');
+    cashEl.textContent = Math.round(H.cashShown ?? credits).toLocaleString('en-US');
     lockmsg.style.display = can ? 'none' : 'block'; colsEl.style.opacity = can ? 1 : 0.45;
     for (const [id, st] of S.items) {
       const it = st.it, lock = isLocked(it), poor = credits < it.cost, own = owned(a, id, load), eq = id === cur;
@@ -214,7 +214,7 @@ export function create(H) {
       const ta = S.open ? 1 : 0; S.a = ta ? Math.min(1, S.a + dt * 9) : Math.max(0, S.a - dt * 11);
       const vis = S.a > 0.001; dim.style.display = root.style.display = vis ? '' : 'none';
       if (!vis) return;
-      const e = easeOut(S.a); dim.style.opacity = e.toFixed(3); root.style.opacity = e.toFixed(3);
+      H.overlayA = Math.max(H.overlayA || 0, S.a); const e = easeOut(S.a); dim.style.opacity = e.toFixed(3); root.style.opacity = e.toFixed(3);
       root.style.transform = `translate(-50%,-50%) scale(${(0.965 + 0.035 * e).toFixed(4)})`;
       if (S.open) build();
       // header

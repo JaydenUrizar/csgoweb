@@ -209,7 +209,7 @@ async function range(ctx, core) {
   let hud = null, xh = null;
   if (P.get('overlay') !== '0' && typeof document !== 'undefined') {
     hud = document.createElement('div'); hud.id = 'range-hud';
-    hud.style.cssText = 'position:fixed;left:12px;top:12px;z-index:50;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#e6f0ff;background:rgba(10,14,20,.72);border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:8px 10px;pointer-events:none;white-space:pre;min-width:290px';
+    hud.style.cssText = 'position:fixed;left:12px;top:205px;z-index:50;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#e6f0ff;background:rgba(10,14,20,.72);border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:8px 10px;pointer-events:none;white-space:pre;min-width:290px';
     document.body.appendChild(hud);
     if (!ctx.hud || ctx.hud.__stub) {
       xh = document.createElement('div'); xh.style.cssText = 'position:fixed;left:50%;top:50%;width:0;height:0;z-index:49;pointer-events:none';

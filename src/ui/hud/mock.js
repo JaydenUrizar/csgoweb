@@ -72,7 +72,7 @@ export function createMock(H) {
       else if (id === 'kit') { if (actor.hasKit) return { ok: false, reason: 'owned' }; actor.hasKit = true; inv.kit = true; }
       else if (it.slot === 4) { const n = inv.utility.filter((u) => u === id).length; if (inv.utility.length >= 3 || n >= 2) return { ok: false, reason: 'full' }; inv.utility.push(id); }
       else { if (Object.values(slots).includes(id)) return { ok: false, reason: 'owned' }; slots[it.slot === 2 ? 'secondary' : 'primary'] = id; inv.current = id; }
-      actor.credits -= it.cost; H.bus.emit('buy', { actor, item: id, name: it.name, cost: it.cost }); H.bus.emit('credits', { actor, delta: -it.cost, reason: 'Purchase' });
+      actor.credits -= it.cost; H.bus.emit('buy', { actor, item: id, name: it.name, cost: it.cost }); H.bus.emit('credits', { actor, delta: -it.cost, reason: 'buy:' + id });
       return { ok: true };
     },
   };
@@ -126,7 +126,7 @@ export function createMock(H) {
         { attacker: you, victim: B[3], tagger: 'arc', hitgroup: 'chest', through: 'smoke' }, { attacker: A[3], victim: B[4], tagger: 'lance', hitgroup: 'head', blind: true, noscope: true }, { attacker: B[0], victim: you, tagger: 'pulse' },
       ];
       for (const f of feed) H.bus.emit('tag:out', f);
-      H.bus.emit('credits', { actor: you, delta: 300, reason: 'Tag' });
+      H.bus.emit('credits', { actor: you, delta: 300, reason: 'tag' });
       H.bus.emit('tag:hit', { attacker: you, victim: B[0], damage: 27, hitgroup: 'chest', tagger: 'arc' });
       H.bus.emit('tag:hit', { attacker: B[0], victim: you, damage: 18, hitgroup: 'chest', tagger: 'rail' });
       H.toast?.('Kestrel: <b>Haze out!</b>', '');
@@ -144,7 +144,7 @@ export function createMock(H) {
     arming() { you.hasBeacon = true; A[2].hasBeacon = false; you.pos.x = 42; you.pos.z = -42; M.fixed = true; match.beacon = { state: 'arming', site: 'A', pos: you.pos, carrier: you, progress: 0.62, fuseLeft: 35 }; },
     'arm-prompt': () => { you.hasBeacon = true; A[2].hasBeacon = false; M.fixed = true; you.pos.x = 42; you.pos.z = -42; match.beacon = { state: 'carried', site: null, pos: you.pos, carrier: you, progress: 0, fuseLeft: 35 }; },
     disarming() { you.team = 'tide'; match.playerTeam = 'tide'; you.hasKit = true; match.phase = 'armed'; M.fixed = true; you.pos.x = 41; you.pos.z = -41; match.beacon = { state: 'disarming', site: 'A', pos: { x: 42, y: 0, z: -42 }, carrier: null, progress: 0.4, fuseLeft: 17 }; match.timeLeft = 0; },
-    'banner-round': () => { match.phase = 'freeze'; match.timeLeft = 5.2; H.prompts.roundIntro(match.round + 100 * Math.random() | 0 || 9); },
+    'banner-round': () => { match.phase = 'freeze'; match.timeLeft = 5.2; H.prompts.roundIntro(match.round); },
     'banner-win': () => H.bus.emit('round:end', { winner: 'ember', reason: 'beacon', n: 9 }),
     'banner-lose': () => H.bus.emit('round:end', { winner: 'tide', reason: 'disarmed', n: 9 }),
     'banner-mp': () => { match.scores = { ember: 7, tide: 5 }; match.round = 13; match.phase = 'freeze'; match.timeLeft = 4.1; H.prompts.roundIntro(13); },
@@ -174,7 +174,7 @@ export function createMock(H) {
     [0.6, () => H.bus.emit('tag:hit', { attacker: you, victim: B[0], damage: 27, hitgroup: 'chest' })],
     [0.9, () => H.bus.emit('tag:hit', { attacker: you, victim: B[0], damage: 27, hitgroup: 'stomach' })],
     [1.4, () => H.bus.emit('tag:hit', { attacker: you, victim: B[0], damage: 100, hitgroup: 'head' })],
-    [1.5, () => { H.bus.emit('tag:out', { attacker: you, victim: B[0], tagger: 'arc', hitgroup: 'head' }); you.stats.tags++; B[0].alive = false; B[0].tagged = true; H.bus.emit('credits', { actor: you, delta: 300, reason: 'Tag' }); you.credits += 300; }],
+    [1.5, () => { H.bus.emit('tag:out', { attacker: you, victim: B[0], tagger: 'arc', hitgroup: 'head' }); you.stats.tags++; B[0].alive = false; B[0].tagged = true; H.bus.emit('credits', { actor: you, delta: 300, reason: 'tag' }); you.credits += 300; }],
     [2.6, () => { B[2].pos.x = -18; B[2].pos.z = 6; H.bus.emit('tag:hit', { attacker: B[2], victim: you, damage: 22, hitgroup: 'chest' }); you.hp -= 22; }],
     [3.3, () => { H.bus.emit('tag:hit', { attacker: B[3], victim: you, damage: 34, hitgroup: 'chest' }); you.hp -= 34; }],
     [4.2, () => H.bus.emit('tag:out', { attacker: A[1], victim: B[3], tagger: 'arc', hitgroup: 'chest', wallbang: true }) || (B[3].alive = false)],
@@ -183,7 +183,7 @@ export function createMock(H) {
     [8.2, () => { M.holdSpread = 0.9; }], [10.0, () => { M.holdSpread = 0; }],
     [10.5, () => H.bus.emit('util:blind', { actor: you, amount: 0.8 })],
     [12.5, () => H.bus.emit('tag:out', { attacker: B[2], victim: A[4], tagger: 'rail', hitgroup: 'head', through: 'smoke' }) || (A[4].alive = false)],
-    [14.0, () => { you.credits -= 0; H.bus.emit('credits', { actor: you, delta: 250, reason: 'Beacon armed' }); you.credits += 250; }],
+    [14.0, () => { you.credits -= 0; H.bus.emit('credits', { actor: you, delta: 250, reason: 'plant' }); you.credits += 250; }],
   ];
   const LOOP = 16;
   let si = 0;

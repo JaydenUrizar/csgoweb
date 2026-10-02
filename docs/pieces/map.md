@@ -20,3 +20,14 @@ Collision: terrain slopes/stairs are smooth ramps; props are AABB/octagon prisms
 
 ## Known gaps / next
 Rooftops are plain; facades repeat windows; no instanced foliage variety; murals are procedural shapes not illustrations; AO is grid-based (no baked prop-to-wall contact except contact rings); no real point lights (emissives only, `ctx.map.lamps` lists positions); doors are static props; one canal only; water is a flat animated texture.
+
+
+## Round 2 changes
+- Facade kits (`facade.js`): per-zone stucco/brick panels with pilasters, string courses, shopfronts (door + awning + sign), balconies with railings/planters, window/shutter/grille variety, sloped-ramp walls too, terracotta eaves, pipes; tunnels get pipes/niches/hanging lamps; bunting over lanes.
+- Rooftops (`roofs.js`): hip/gable roofs, flat roofs with parapets/tanks/huts/AC; 6 landmark towers (Palace bell tower, A dome tower, B minaret, etc.); skyline buildings have roofs + window decals (separate sky meshes, hidden in `view=top`).
+- Props/cover (`extras.js`): lane-middle clusters (carts, cafe sets, parasols, sacks, planters), Hub block + pavilion + walls, A ruin walls/goose block/steps, kiosks in Tide Mid / Window Room / East Room, arcades.
+- Sightlines: centre Hub arch closed, kiosks added -> spawn<->spawn LOS 0.3% (was 8.6%), Ember mid exit<->Tide Mid 0%. Check: `node src/world/verify.mjs los`.
+- Callouts: `calloutAt` falls back to the floor zone name -> 100% floor coverage (also `zoneAt`).
+- PATHS: regenerated from `PATH_SEEDS` by `node src/world/verify.mjs genpaths` (clearance 0.62, no jumps); never crosses props.
+- Render glitch (black walls + white arch near Mid Doors): caused by `flatShading` derivative normals on large wall quads; map materials now use vertex normals (`flatShading=false`) and wall quads are <=5 m.
+- Perf: static geometry merged into one mesh per material (26 meshes), ~60k render tris, 7.4k collision tris, 130-140 draw calls in play.

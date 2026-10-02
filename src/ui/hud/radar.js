@@ -10,7 +10,7 @@ export const css = `
 .callout span{position:absolute;left:0;right:0;top:0;white-space:nowrap;will-change:transform,opacity}
 `;
 
-const R_PX = 88, RANGE = 42;           // radar radius in css px (176/2) and metres shown
+const R_PX = 88, RANGE = 30;           // radar radius in css px (176/2) and metres shown
 const CELLS = 160;
 
 export function create(H) {
@@ -26,6 +26,63 @@ export function create(H) {
     st.scale = px / 176;
   }
   H.onResize.push(resize); resize();
+
+  // ------------------------------------------------------------ restyle the map's radar image
+  // The map bakes pale floor tones, callout micro-labels and site letters into its canvas. We erase the labels
+  // (known positions), keep the floor shape, and re-ink it as a dark, low-noise silhouette with crisp wall edges.
+  const styled = new WeakMap();
+  function stylize(src, rect, map) {
+    if (!src) return src; if (styled.has(src)) return styled.get(src);
+    const iw = src.width || src.naturalWidth, ih = src.height || src.naturalHeight; if (!iw || !ih || !rect) return src;
+    const mpp = (rect.maxX - rect.minX) / iw;                     // metres per source px
+    const sc = Math.min(1, 4 * mpp, 1400 / Math.max(iw, ih));    // aim for ~4 px per metre
+    const w = Math.max(8, Math.round(iw * sc)), hh = Math.max(8, Math.round(ih * sc));
+    const tc = document.createElement('canvas'); tc.width = w; tc.height = hh; const tg = tc.getContext('2d', { willReadFrequently: true });
+    tg.imageSmoothingEnabled = true; tg.drawImage(src, 0, 0, w, hh);
+    let id; try { id = tg.getImageData(0, 0, w, hh); } catch { styled.set(src, src); return src; }
+    const d = id.data, N = w * hh;
+    const open = new Uint8Array(N), lum = new Float32Array(N), mask = new Uint8Array(N);
+    for (let i = 0; i < N; i++) {
+      const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], a = d[i * 4 + 3];
+      const bgDist = Math.abs(r - 11) + Math.abs(g - 17) + Math.abs(b - 20);
+      open[i] = a > 40 && bgDist > 26 ? 1 : 0; lum[i] = (r + g + b) / 3;
+    }
+    // erase labels / site letters by known bounding boxes
+    const toPx = (x, z) => [(x - rect.minX) / (rect.maxX - rect.minX) * w, (z - rect.minZ) / (rect.maxZ - rect.minZ) * hh];
+    const pxm = w / (rect.maxX - rect.minX);                       // processed px per metre
+    const box = (cx, cz, hw, hh2) => { const [px, py] = toPx(cx, cz); for (let y = Math.max(0, Math.floor(py - hh2)); y <= Math.min(hh - 1, Math.ceil(py + hh2)); y++) for (let x = Math.max(0, Math.floor(px - hw)); x <= Math.min(w - 1, Math.ceil(px + hw)); x++) mask[y * w + x] = 1; };
+    for (const co of (map?.callouts || [])) { const p = co.pos; if (!p || !co.name) continue; box(p.x, p.z, (co.name.length * 1.7 * 0.62 / 2 + 0.6) * pxm, 1.6 * pxm); }
+    for (const k of Object.keys(map?.sites || {})) { const c = map.sites[k].center; if (c) box(c.x, c.z, 4.6 * pxm, 4.6 * pxm); }
+    // diffuse neighbours into masked open pixels
+    let remaining = 0; for (let i = 0; i < N; i++) { if (mask[i] && !open[i]) mask[i] = 0; if (mask[i]) remaining++; }
+    for (let it = 0; it < 40 && remaining > 0; it++) {
+      const upd = [];
+      for (let y = 1; y < hh - 1; y++) for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x; if (!mask[i]) continue; let s2 = 0, c = 0;
+        for (const j of [i - 1, i + 1, i - w, i + w]) if (open[j] && !mask[j]) { s2 += lum[j]; c++; }
+        if (c) upd.push(i, s2 / c);
+      }
+      if (!upd.length) break;
+      for (let k = 0; k < upd.length; k += 2) { lum[upd[k]] = upd[k + 1]; mask[upd[k]] = 0; remaining--; }
+    }
+    // ink
+    const out = tg.createImageData(w, hh), o = out.data;
+    for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x; if (!open[i]) continue;
+      const edge = x === 0 || y === 0 || x === w - 1 || y === hh - 1 || !open[i - 1] || !open[i + 1] || !open[i - w] || !open[i + w];
+      const v = Math.max(0, Math.min(1, (lum[i] - 55) / 90)); const p = i * 4;
+      if (edge) { o[p] = 196; o[p + 1] = 214; o[p + 2] = 232; o[p + 3] = 255; }
+      else { o[p] = 32 + v * 30; o[p + 1] = 43 + v * 38; o[p + 2] = 58 + v * 44; o[p + 3] = 255; }
+    }
+    // inner edge pass: soften the 1px wall line into 2px for legibility
+    const o2 = new Uint8ClampedArray(o);
+    for (let y = 1; y < hh - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const p = (y * w + x) * 4; if (!o[p + 3] || o[p] > 150) continue;
+      if (o[p - 4] > 150 || o[p + 4] > 150 || o[p - w * 4] > 150 || o[p + w * 4] > 150) { o2[p] = 120; o2[p + 1] = 140; o2[p + 2] = 160; }
+    }
+    out.data.set(o2); tg.putImageData(out, 0, 0);
+    styled.set(src, tc); return tc;
+  }
 
   // ------------------------------------------------------------ map image source
   function imgSource(map) {
@@ -155,12 +212,12 @@ export function create(H) {
     // background disc
     g.save(); g.beginPath(); g.arc(R_PX, R_PX, R_PX - 1, 0, 7); g.clip();
     const bg = g.createRadialGradient(R_PX, R_PX, 10, R_PX, R_PX, R_PX);
-    bg.addColorStop(0, 'rgba(22,28,40,.80)'); bg.addColorStop(1, 'rgba(10,13,20,.86)');
+    bg.addColorStop(0, 'rgba(14,18,26,.92)'); bg.addColorStop(1, 'rgba(8,10,16,.94)');
     g.fillStyle = bg; g.fillRect(0, 0, 176, 176);
     // map
     if (st.img && st.rect) {
       const r = st.rect; g.save(); g.translate(R_PX, R_PX); g.rotate(yaw);
-      g.globalAlpha = 0.92; g.imageSmoothingEnabled = true;
+      g.globalAlpha = 1; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
       g.drawImage(st.img, (r.minX - px) * ppm, (r.minZ - pz) * ppm, (r.maxX - r.minX) * ppm, (r.maxZ - r.minZ) * ppm);
       g.restore();
     }
@@ -169,7 +226,7 @@ export function create(H) {
     g.beginPath(); g.arc(R_PX, R_PX, R_PX * 0.5, 0, 7); g.stroke();
     g.strokeStyle = 'rgba(255,255,255,.05)'; g.beginPath(); g.moveTo(R_PX, 6); g.lineTo(R_PX, 170); g.moveTo(6, R_PX); g.lineTo(170, R_PX); g.stroke();
 
-    const lim = R_PX - 7;
+    const lim = R_PX - 9;
     const put = (x, z, out) => {
       const dx = (x - px) * ppm, dz = (z - pz) * ppm; let sx = dx * cs - dz * sn, sy = dx * sn + dz * cs;
       const d = Math.hypot(sx, sy); out.clamped = false;
@@ -178,11 +235,16 @@ export function create(H) {
     };
     const P = { x: 0, y: 0, clamped: false };
     // sites
-    const sites = R.map?.sites; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '700 17px "Barlow Condensed",system-ui,sans-serif';
+    const sites = R.map?.sites; g.textAlign = 'center'; g.textBaseline = 'middle';
     if (sites) for (const k of Object.keys(sites)) {
-      const c = sites[k]?.center; if (!c) continue; put(c.x, c.z, P);
-      g.fillStyle = 'rgba(0,0,0,.5)'; g.fillText(k, P.x + 0.6, P.y + 1.2);
-      g.fillStyle = P.clamped ? 'rgba(255,214,110,.55)' : 'rgba(255,214,110,.92)'; g.fillText(k, P.x, P.y);
+      const c = sites[k]?.center; if (!c) continue;
+      const dx = (c.x - px) * ppm, dz = (c.z - pz) * ppm; let sx = dx * cs - dz * sn, sy = dx * sn + dz * cs; const d0 = Math.hypot(sx, sy), edge = R_PX - 15;
+      const cl = d0 > edge; if (cl) { sx *= edge / d0; sy *= edge / d0; }
+      const X = R_PX + sx, Y = R_PX + sy;
+      g.fillStyle = cl ? 'rgba(10,12,18,.55)' : 'rgba(10,12,18,.5)'; g.beginPath(); g.arc(X, Y, cl ? 10 : 13, 0, 7); g.fill();
+      g.strokeStyle = cl ? 'rgba(255,214,110,.6)' : 'rgba(255,214,110,.9)'; g.lineWidth = 1.6; g.stroke();
+      g.font = `700 ${cl ? 15 : 20}px "Barlow Condensed",system-ui,sans-serif`;
+      g.fillStyle = cl ? 'rgba(255,224,140,.8)' : '#ffe08a'; g.fillText(k, X, Y + 0.8);
     }
     // tagged-out markers
     for (let i = st.deaths.length - 1; i >= 0; i--) {
@@ -214,13 +276,15 @@ export function create(H) {
       }
       if (isAlly) {
         g.save(); g.translate(P.x, P.y); g.rotate(rel);
-        g.fillStyle = col; g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 1.5;
-        g.beginPath(); g.moveTo(0, -6.4); g.lineTo(4.6, 4.2); g.lineTo(0, 2.2); g.lineTo(-4.6, 4.2); g.closePath(); g.stroke(); g.fill(); g.restore();
+        g.fillStyle = `rgba(${hexRgb(col).join(',')},.22)`; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 17, -Math.PI / 2 - 0.5, -Math.PI / 2 + 0.5); g.closePath(); g.fill();
+        g.fillStyle = col; g.strokeStyle = 'rgba(0,0,0,.9)'; g.lineWidth = 3.2; g.lineJoin = 'round';
+        g.beginPath(); g.moveTo(0, -7.4); g.lineTo(5.4, 5); g.lineTo(0, 2.6); g.lineTo(-5.4, 5); g.closePath(); g.stroke();
+        g.strokeStyle = '#fff'; g.lineWidth = 1.3; g.stroke(); g.fill(); g.restore();
       } else {
         const pl = 0.5 + 0.5 * Math.sin(H.T * 6 + a.id);
         g.fillStyle = `rgba(${hexRgb(col).join(',')},${0.18 + 0.12 * pl})`; g.beginPath(); g.arc(P.x, P.y, 8.5, 0, 7); g.fill();
-        g.fillStyle = col; g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 1.6; g.beginPath(); g.arc(P.x, P.y, 4.4, 0, 7); g.stroke(); g.fill();
-        g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 1; g.beginPath(); g.arc(P.x, P.y, 4.4, 0, 7); g.stroke();
+        g.fillStyle = col; g.strokeStyle = 'rgba(0,0,0,.9)'; g.lineWidth = 3.4; g.beginPath(); g.arc(P.x, P.y, 5, 0, 7); g.stroke(); g.fill();
+        g.strokeStyle = '#fff'; g.lineWidth = 1.4; g.beginPath(); g.arc(P.x, P.y, 5, 0, 7); g.stroke();
       }
       if (Math.abs(dy) > 3.2) {   // above / below marker
         g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath();
@@ -238,11 +302,11 @@ export function create(H) {
     }
     // FOV wedge + self arrow
     const fov = (H.R.settings?.get?.('fov') || 100) * Math.PI / 180 * 0.5;
-    const wg = g.createRadialGradient(R_PX, R_PX, 2, R_PX, R_PX, 44);
+    const wg = g.createRadialGradient(R_PX, R_PX, 2, R_PX, R_PX, 60);
     wg.addColorStop(0, 'rgba(255,255,255,.26)'); wg.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = wg; g.beginPath(); g.moveTo(R_PX, R_PX); g.arc(R_PX, R_PX, 44, -Math.PI / 2 - fov, -Math.PI / 2 + fov); g.closePath(); g.fill();
+    g.fillStyle = wg; g.beginPath(); g.moveTo(R_PX, R_PX); g.arc(R_PX, R_PX, 60, -Math.PI / 2 - fov, -Math.PI / 2 + fov); g.closePath(); g.fill();
     g.save(); g.translate(R_PX, R_PX); g.fillStyle = '#fff'; g.strokeStyle = 'rgba(0,0,0,.85)'; g.lineWidth = 1.6;
-    g.beginPath(); g.moveTo(0, -7.6); g.lineTo(5.4, 5.2); g.lineTo(0, 2.8); g.lineTo(-5.4, 5.2); g.closePath(); g.stroke(); g.fill(); g.restore();
+    g.lineJoin = 'round'; g.lineWidth = 3.2; g.beginPath(); g.moveTo(0, -8.4); g.lineTo(6.2, 6); g.lineTo(0, 3.2); g.lineTo(-6.2, 6); g.closePath(); g.stroke(); g.fill(); g.restore();
     g.restore();
     // ring
     g.lineWidth = 2.4; g.strokeStyle = cIvory + '.94)'; g.beginPath(); g.arc(R_PX, R_PX, R_PX - 1.4, 0, 7); g.stroke();
@@ -272,11 +336,11 @@ export function create(H) {
       if (!vis) return;
       const map = R.map;
       const key = map?.radar || map?.bounds || (H.mock ? 'mock' : null);
-      const lvl = map?.radar?.canvasFor?.(view.pos.y); if (lvl && st.img !== lvl && st.lvlSrc) { st.img = lvl; }
+      if (st.lvlSrc && st.rect) { const lv = map.radar.canvasFor(view.pos.y); const sty = lv && styled.get(lv) || (lv && stylize(lv, st.rect, map)); if (sty && st.img !== sty) st.img = sty; }
       if (key !== st.lastMapKey) { st.lastMapKey = key; st.img = null; st.rect = null; st.bake = null; st.baked = false; }
       if (!st.img) {
         const src = imgSource(map);
-        if (src) { st.img = src; st.rect = mapRect(map, src); st.lvlSrc = !!map.radar?.canvasFor; }
+        if (src) { st.rect = mapRect(map, src); st.img = stylize(src, st.rect, map); st.lvlSrc = !!map.radar?.canvasFor; }
         else if (!st.bake && !st.baked && map && !map.__stub && map.raycast && map.bounds) st.bake = startBake(map);
       }
       if (st.bake) stepBake(st.bake, 10);

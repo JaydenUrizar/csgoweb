@@ -71,7 +71,7 @@ export function wireEvents(ctx, audio) {
   bind('weapon:empty', (e) => { const id = tagId(e.tagger) || ctx.combat?.equipped?.(e.actor || local())?.def?.id; if (id) audio.play(`tagger.${id}.empty`, { actor: e.actor || local() }); });
   bind('weapon:inspect', (e) => { const id = tagId(e.tagger); if (id) audio.play(`tagger.${id}.inspect`, { actor: e.actor }); });
   bind('weapon:scope', (e) => { audio.play(e.scoped === false || e.scope === false ? 'tagger.scope.out' : 'tagger.scope.in', { actor: e.actor }); });
-  bind('weapon:melee', (e) => { audio.play('tagger.tap.fire', { actor: e.actor }); });
+  bind('weapon:melee', (e) => { if (clock - lastTap > 0.35) audio.play('tagger.tap.fire', { actor: e.actor }); });
   bind('weapon:pickup', (e) => { audio.play('tagger.pickup', { actor: e.actor, pos: e.pos }); });
   bind('weapon:drop', (e) => { audio.play('tagger.drop', { actor: e.actor, pos: e.pos }); });
 
@@ -123,14 +123,14 @@ export function wireEvents(ctx, audio) {
   bind('util:blind', (e) => { if (!isLocal(e.actor)) return; const a = clamp(e.amount ?? 1, 0, 1); if (a < 0.1) return; audio.play('util.strobe.ring', { amount: a, fp: true }); audio.deafen(a * 0.95, Math.min(6, e.duration ? 1 + e.duration * 0.8 : 1.5 + 3.5 * a)); });
 
   // ---------------- UI / economy ----------------
-  const uiMap = { 'ui:click': 'ui.click', 'ui:hover': 'ui.hover', 'ui:open': 'ui.open', 'ui:close': 'ui.close', 'ui:back': 'ui.back', 'ui:error': 'ui.error', 'ui:tab': 'ui.tab', 'ui:toggle': 'ui.toggle', 'ui:notify': 'ui.notify', 'buy:fail': 'ui.error' };
+  const uiMap = { 'ui:tick': 'ui.hover', 'ui:click': 'ui.click', 'ui:hover': 'ui.hover', 'ui:open': 'ui.open', 'ui:close': 'ui.close', 'ui:back': 'ui.back', 'ui:error': 'ui.error', 'ui:tab': 'ui.tab', 'ui:toggle': 'ui.toggle', 'ui:notify': 'ui.notify', 'buy:fail': 'ui.error' };
   let lastHover = 0;
   for (const [ev, snd] of Object.entries(uiMap)) bind(ev, () => { if (snd === 'ui.hover') { if (clock - lastHover < 0.03) return; lastHover = clock; } audio.play(snd, { fp: true }); });
   bind('ui:scoreboard', () => audio.play('ui.scoreboard', { fp: true }));
   bind('buy', (e) => { if (isLocal(e.actor)) audio.play('ui.buy', { fp: true }); });
   let lastMoney = -9;
   bind('credits', (e) => { if (isLocal(e.actor) && (e.delta ?? 0) > 0 && e.reason !== 'buy' && clock - lastMoney > 0.2) { lastMoney = clock; audio.play('ui.money', { fp: true, delay: 0.2 }); } });
-  bind('announce', (e) => { if (e.id) audio.announce(e.id, e.delay ? { delay: e.delay } : {}); });
+  bind('announce', (e) => { if (!e.id) return; if ((e.id === 'round_start' || e.id === 'round_pistol') && phase !== 'live') return; audio.announce(e.id, e.delay ? { delay: e.delay } : {}); });   // buy-phase 'round start' would double the live one
   bind('ping', (e) => { if (e.pos) audio.play('ui.ping', { pos: e.pos }); });
 
   // ---------------- round flow ----------------
@@ -202,6 +202,26 @@ export function wireEvents(ctx, audio) {
   bev('beacon:disarm', () => { audio.play('beacon.disarm.done', { fp: true }); audio.announce('beaconDisarmed', { delay: 0.5 }); });
   bev('beacon:complete', () => { audio.play('beacon.complete', { fp: true }); audio.announce('beaconCharged', { delay: 1.9 }); });
 
+  bind('game:pause', (e) => audio.mixer?.setPaused(e.paused));
+
+  // ---------------- polled local input (events the other pieces don't emit) ----------------
+  let lastTap = -9;
+  const _pr = new THREE.Vector3(), _pd = new THREE.Vector3();
+  function inputPoll() {
+    const I = ctx.input, a = local(); if (!I?.pressed || !a || a.alive === false) return;
+    const w = ctx.combat?.equipped?.(a), id = w?.def?.id ?? w?.id;
+    if (I.locked && id && I.pressed('inspect') && (w.state === 'idle' || w.state === undefined) && audio.sounds[`tagger.${id}.inspect`]) audio.play(`tagger.${id}.inspect`, { actor: a });
+    if (I.locked && (w?.def?.melee || id === 'tap') && (I.pressed('fire') || I.pressed('aim')) && w.state !== 'draw' && clock - lastTap > 0.35) { lastTap = clock; audio.play('tagger.tap.fire', { actor: a, pitch: I.pressed('aim') ? 0.85 : 1 }); }
+    if (I.pressed('scoreboard')) audio.play('ui.scoreboard', { fp: true });
+    else if (I.released?.('scoreboard')) audio.play('ui.scoreboard', { fp: true, pitch: 0.8, gain: 0.6 });
+    if (I.pressed('ping')) {
+      const cam = audio.camera || ctx.render?.camera, map = ctx.map; let pos = null;
+      if (cam && map?.raycast) { cam.getWorldPosition(_pr); cam.getWorldDirection(_pd); try { const h = map.raycast(_pr, _pd, 120); if (h) pos = { x: h.point.x, y: h.point.y + 0.3, z: h.point.z }; } catch {} }
+      audio.play('ui.ping', pos ? { pos } : { fp: true });
+    }
+  }
+  bind('weapon:melee', () => { lastTap = clock; });
+
   // ---------------- timers & phase polling ----------------
   function timerUpdate() {
     const m = ctx.match; if (!m) return;
@@ -243,7 +263,7 @@ export function wireEvents(ctx, audio) {
   return {
     room,
     update(dt) {
-      clock += dt; flushImpacts(); probe(dt); beaconUpdate(dt); timerUpdate();
+      clock += dt; flushImpacts(); inputPoll(); probe(dt); beaconUpdate(dt); timerUpdate();
     },
     dispose() { for (const o of offs) o?.(); stopDrone(); },
   };

@@ -1,5 +1,6 @@
 // Sound catalogue registry. Each sound is a pure synthesis function fn(V, o) that schedules nodes into V.out
 // and returns nothing (V.end tracks the tail). See dsp.js for the voice object.
+import { CALIB } from './calib.js';
 export const SOUNDS = Object.create(null);
 
 const DEFAULTS = {
@@ -16,7 +17,7 @@ const DEFAULTS = {
 };
 
 export function reg(name, fn, opts = {}) {
-  SOUNDS[name] = { name, fn, ...DEFAULTS, ...opts };
+  const d = { name, fn, ...DEFAULTS, ...opts }; d.gain *= CALIB[name] ?? 1; SOUNDS[name] = d;
   return SOUNDS[name];
 }
 export const has = (n) => !!SOUNDS[n];

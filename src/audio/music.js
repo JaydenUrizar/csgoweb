@@ -11,8 +11,8 @@ const at = (V, when) => ({ ...V, t: V.t + when, end: 0 });
 function kick(V, w, g = 0.8) { const v = at(V, w); osc(v, { f0: 140, f1: 44, pt: 0.05, d: 0.3, g, sat: 0.15 }); noise(v, { a: 0.0005, d: 0.012, g: g * 0.3, lp: 3000 }); }
 function hat(V, w, g = 0.15, open = false) { noise(at(V, w), { a: 0.0005, d: open ? 0.16 : 0.035, g, hp: 7500 }); }
 function clap(V, w, g = 0.3) { const v = at(V, w); for (const o of [0, 0.011, 0.023]) noise(v, { when: o, a: 0.0005, d: 0.02, g: g * 0.6, bp: 1600, q: 1.2 }); noise(v, { when: 0.024, a: 0.001, d: 0.14, g, bp: 1500, q: 0.8 }); }
-function bass(V, w, note, dur, g = 0.4, bright = 900) { const f = midi(note), v = at(V, w); osc(v, { type: 'sawtooth', f0: f, d: dur, hold: dur * 0.15, a: 0.005, g, lp: [bright * 0.35, bright, 0.02], lpQ: 2 }); osc(v, { f0: f, d: dur * 1.1, g: g * 0.9, a: 0.005 }); }
-function pad(V, w, notes, dur, g = 0.05) { const v = at(V, w); for (const n of notes) for (const dt of [-9, 0, 9]) osc(v, { type: 'sawtooth', f0: midi(n), det: dt, a: Math.min(1.2, dur * 0.4), hold: dur * 0.3, d: dur * 0.5, g, lp: [500, 1300, dur * 0.6], lpQ: 0.8 }); }
+function bass(V, w, note, dur, g = 0.4, bright = 900) { const f = midi(note), v = at(V, w); osc(v, { type: 'sawtooth', f0: f, d: dur, hold: dur * 0.15, a: 0.03, g, lp: [bright * 0.35, bright, 0.02], lpQ: 2 }); osc(v, { f0: f, d: dur * 1.1, g: g * 0.9, a: 0.03 }); }
+function pad(V, w, notes, dur, g = 0.05) { const v = at(V, w), L = dur * 1.7; for (const n of notes) for (const dt of [-9, 0, 9]) osc(v, { type: 'sawtooth', f0: midi(n), det: dt, a: L * 0.3, hold: L * 0.2, d: L * 0.5, g, lp: [500, 1300, L * 0.6], lpQ: 0.8 }); }
 function pluck(V, w, note, g = 0.12, d = 0.28) { const f = midi(note), v = at(V, w); osc(v, { type: 'triangle', f0: f, d, g, a: 0.002, lp: [4200, 900, d] }); osc(v, { type: 'square', f0: f, d: d * 0.5, g: g * 0.35, a: 0.002, lp: [3000, 700, d * 0.5] }); }
 function riser(V, w, len, g = 0.1) { noise(at(V, w), { a: len * 0.9, hold: 0.05, d: 0.1, g, bp: 400, q: 0.6, sweep: [7000, len], hp: 300 }); }
 
@@ -35,10 +35,10 @@ function step(V, state, i, w, sd, I = 0) {
     if (s16 % 4 === 0) hat(V, w, 0.06);
     if (s16 === 0) kick(V, w, 0.3);
     if (s16 === 10 || s16 === 15) pluck(V, w, ch[(s16 + bar) % 3] + 24, 0.08, 0.3);
-  } else if (state === 'live') {
-    if (s16 === 0) { pad(V, w, [root + 12, root + 19], sd * 16, 0.04); bass(V, w, root, sd * 14, 0.14, 300); }
-    if (s16 === 8 && bar % 2 === 1) pluck(V, w, ch[bar % 3] + 24, 0.05, 0.6);
-    if (s16 % 8 === 0) hat(V, w, 0.025);
+  } else if (state === 'live') {   // sparse, warm bed: sub/pad drone + soft low plucks (no HF ticks so loop seams stay inaudible)
+    if (s16 === 0) { pad(V, w, [root + 12, root + 19, ch[0] + 12], sd * 16, 0.04); bass(V, w, root, sd * 18, 0.12, 280); }
+    if (s16 === 0 || s16 === 6 || s16 === 10) pluck(V, w, ch[(s16 + bar) % 3] + 12, 0.05, 0.7);
+    if (s16 === 8) pluck(V, w, root + 24, 0.03, 0.9);
   } else if (state === 'armed') {
     const lvl = I;    // 0..1
     if (s16 % 4 === 0) kick(V, w, 0.5);

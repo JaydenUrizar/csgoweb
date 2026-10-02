@@ -25,10 +25,11 @@ export function inaccuracyDeg(def, s) {
     const k = sc ? (scoped ? sc.scopedMul : sc.hipMul) : 1;
     base = (s.crouch ? t.crouch : t.stand) * k; move = t.move * (sc && scoped ? 0.85 : 1); air = t.air;
   }
-  let d = base + move * moveFrac(s.speed, def.moveSpeed) ;
+  let d = base + move * moveFrac(s.speed, s.maxSpeed || def.moveSpeed);
   if (!s.onGround) d += air * clamp(0.55 + Math.abs(s.vy) / 9, 0.55, 1.15);
   else if (s.land > 0) d += air * 0.55 * s.land;
   d += s.fire;
+  if (t.tighten && s.shots != null) d *= 1 - t.tighten * clamp(s.shots / t.tightenShots, 0, 1);   // Negev: tightens to a laser
   return d;
 }
 

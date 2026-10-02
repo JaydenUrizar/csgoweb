@@ -88,10 +88,14 @@ const STEP = {
 };
 function stepVoice(V, s, o) {
   const k = stepK(o) * (V.fp ? 0.85 : 1), j = jit(V, 0.07) * (o.foot ? 1.05 : 0.97);
-  STEP[s](V, k, j, 1);
+  STEP[s](V, k, j, 0.45);
+  // bright scuff + grit: the locatable 1-6 kHz part of a footstep
+  noise(V, { a: 0.0004, d: 0.04, g: 0.55 * k, bp: 2600 * j, q: 0.6, hp: 1100, sat: 0.3 });
+  noise(V, { a: 0.0003, d: 0.022, g: 0.3 * k, hp: 4800 });
+  click(V, { g: 0.2 * k, hp: 2200 });
   // toe-off tick a moment later (softer, higher)
   const toe = 0.06 + V.r() * 0.01;
-  const sub = { ...V, t: V.t + toe, end: 0 }; STEP[s](sub, k * 0.32, j * 1.25, 0.2); V.end = Math.max(V.end, toe + sub.end);
+  const sub = { ...V, t: V.t + toe, end: 0 }; STEP[s](sub, k * 0.32, j * 1.25, 0.1); noise(sub, { a: 0.0003, d: 0.03, g: 0.28 * k, bp: 3400, q: 0.7, hp: 1500 }); V.end = Math.max(V.end, toe + sub.end);
   // cloth
   noise(V, { kind: 'pink', a: 0.01, d: 0.09, g: 0.05 * k, bp: 1500, q: 0.5 });
 }
@@ -99,7 +103,7 @@ function stepVoice(V, s, o) {
 export function registerWorld() {
   for (const s of SURFACES) {
     reg(`impact.${s}`, (V) => IMPACT[s](V, clamp(V.o.intensity ?? 1, 0.3, 1.4), jit(V, 0.1)), { cat: 'impact', ref: 3.5, roll: 1.2, maxDist: 70, send: 0.35, voices: 10, prio: 1 });
-    reg(`step.${s}`, (V) => stepVoice(V, s, V.o), { cat: 'step', ref: 1.6, roll: 1.35, maxDist: 42, send: 0.14, voices: 14, prio: 2 });
+    reg(`step.${s}`, (V) => stepVoice(V, s, V.o), { cat: 'step', ref: 1.6, roll: 1.35, maxDist: 42, send: 0.2, voices: 16, prio: 2, gain: 1.3 });
   }
   reg('impact.body', (V) => {   // pulse strikes a player
     click(V, { g: 0.35, hp: 2400 }); noise(V, { a: 0.0005, d: 0.05, g: 0.4, bp: 1800, q: 1 }); osc(V, { f0: 300, f1: 110, pt: 0.02, d: 0.08, g: 0.35 });

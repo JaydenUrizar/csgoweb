@@ -6,7 +6,7 @@ import { DEG, MATERIALS, inaccuracyDeg, crosshairFrac, rawDamage, armourSplit, n
 import { mulberry32 } from '../core/rng.js';
 
 const UTIL_PRICE = { haze: 300, strobe: 200, pulse: 300 };
-const SCORE_PHASES = new Set(['warmup', 'live', 'armed', 'roundEnd', 'practice']);
+const SCORE_PHASES = new Set(['warmup', 'live', 'armed', 'practice']);   // no tags once the round is decided (roundEnd/halftime/matchEnd)
 const NO_FIRE_PHASES = new Set(['freeze', 'halftime', 'matchEnd']);
 const TWO_PI = Math.PI * 2;
 const _v = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
@@ -319,6 +319,7 @@ export function createCore(ctx) {
   /** Public: apply a tag. hit = {attacker, victim, damage(raw pre-armour), hitgroup, point, dir, tagger, wallbang, through, distance} */
   function applyTag(hit) {
     const victim = hit.victim, att = hit.attacker; if (!victim || victim.alive === false || victim.hp <= 0) return null;
+    if (!damageAllowed()) return null;
     const def = typeof hit.tagger === 'string' ? TAGGERS[hit.tagger] : hit.tagger;
     const group = normGroup(hit.hitgroup);
     let health = 0, absorbed = 0, armorLoss = 0;
@@ -433,9 +434,15 @@ export function createCore(ctx) {
     const f = actor.forward(_f), rx = Math.cos(actor.yaw), rz = -Math.sin(actor.yaw);
     actor.eyePos(out); out.x += f.x * 0.55 + rx * 0.17; out.y += f.y * 0.55 - 0.14; out.z += f.z * 0.55 + rz * 0.17; return out;
   }
+  /** Weapon max ground speed in the units movement actually uses (ctx.player.runSpeed x speedMult). */
+  function maxRun(actor, w) {
+    const base = ctx.player?.runSpeed ?? 7.2;
+    let s = w.def.moveSpeedU; if (w.scopeLevel && w.def.scopedSpeedU) s = w.def.scopedSpeedU; else if (w.scopeLevel && w.def.scope) s *= w.def.scope.moveMul;
+    return base * s / 250;
+  }
   function currentInacc(actor, cb, w) {
     const speed = Math.hypot(actor.vel.x, actor.vel.z);
-    return inaccuracyDeg(w.def, { speed, onGround: actor.onGround !== false, crouch: !!actor.crouching, vy: actor.vel.y, fire: cb.inaccFire, land: cb.landT, scopeLevel: w.scopeLevel });
+    return inaccuracyDeg(w.def, { speed, maxSpeed: maxRun(actor, w), shots: cb.recoilIdx, onGround: actor.onGround !== false, crouch: !!actor.crouching, vy: actor.vel.y, fire: cb.inaccFire, land: cb.landT, scopeLevel: w.scopeLevel });
   }
   function shoot(actor, cb, w, dirOverride) {
     const def = w.def, i0 = cb.recoilIdx;
@@ -596,6 +603,14 @@ export function createCore(ctx) {
   }
   const edge = (cb, k, v) => { const e = !!v && !cb.prev[k]; cb.prev[k] = !!v; return e; };
 
+  function cycleWeapon(actor, dir) {
+    const i = inv(actor), order = [];
+    for (const k of [1, 2, 3]) if (i.slots[k]) order.push(k);
+    if (i.utility.length) order.push(4); if (actor.hasBeacon) order.push(5);
+    if (order.length < 2) return;
+    let k = order.indexOf(i.current); if (k < 0) k = 0;
+    equip(actor, order[(k + (dir > 0 ? 1 : order.length - 1)) % order.length], true);
+  }
   // ------------------------------------------------------------------------------------------------ per-actor tick
   function tickActor(actor, dt) {
     const cb = brain(actor);
@@ -613,8 +628,9 @@ export function createCore(ctx) {
     const eFire = edge(cb, 'fire', c.fire), eAim = edge(cb, 'aim', c.aim), eRel = edge(cb, 'reload', c.reload), eDrop = edge(cb, 'drop', c.drop),
       eUse = edge(cb, 'use', c.use), eLast = edge(cb, 'last', c.last), eInsp = edge(cb, 'inspect', c.inspect), eSlot = c.slot && cb.prev.slotV !== c.slot ? c.slot : 0;
     cb.prev.slotV = c.slot;
-    const blocked = NO_FIRE_PHASES.has(phase());
+    const blocked = NO_FIRE_PHASES.has(phase()) || !!ctx.match?.frozen || !!ctx.match?.paused;
     // switching
+    if (cb.wheel) { cycleWeapon(actor, cb.wheel); cb.wheel = 0; }
     if (eSlot) equip(actor, eSlot);
     if (eLast && i.previous && i.previous !== i.current) equip(actor, i.previous);
     if (eDrop) drop(actor);
@@ -624,7 +640,7 @@ export function createCore(ctx) {
     if (!W) { decay(actor, cb, dt, null); return; }
     const def = W.def;
     // state timers
-    if (W.state === 'draw') { W.t += dt; if (core.time >= W.drawEnd) { W.state = 'idle'; W.t = 0; } }
+    if (W.state === 'draw') { if (c.fire) cb.drawHeld = true; else cb.drawHeld = false; W.t += dt; if (core.time >= W.drawEnd) { W.state = 'idle'; W.t = 0; if (cb.drawHeld && c.fire && !def.auto) cb.fireBuf = 0.07; cb.drawHeld = false; } }
     else if (W.state === 'fire') { W.t += dt; if (W.t >= Math.min(0.14, def.cycle)) { W.state = 'idle'; W.t = 0; } }
     else if (W.state === 'reload') reloadTick(actor, cb, W, dt);
     else W.t += dt;
@@ -638,7 +654,7 @@ export function createCore(ctx) {
       emit('weapon:scope', { actor, tagger: W.id, scoped: W.scoped, level: W.scopeLevel });
     }
     // bolt: resume zoom after the cycle
-    if (cb.scopeResume > 0 && core.time >= W.nextFire && W.state === 'idle') { W.scopeLevel = cb.scopeResume; W.scoped = true; cb.scopeResume = 0; if (isLocal(actor)) vm()?.event?.('scopeIn', { id: W.id, level: W.scopeLevel - 1, resume: true }); }
+    if (cb.scopeResume > 0 && core.time >= W.nextFire && W.state === 'idle') { W.scopeLevel = cb.scopeResume; W.scoped = true; cb.scopeResume = 0; emit('weapon:scope', { actor, tagger: W.id, scoped: true, level: W.scopeLevel, resume: true }); if (isLocal(actor)) vm()?.event?.('scopeIn', { id: W.id, level: W.scopeLevel - 1, resume: true }); }
     // manual reload
     if (eRel) startReload(actor, cb, W);
     // auto reload on empty
@@ -766,7 +782,7 @@ export function createCore(ctx) {
     command: (actor, cmd) => { brain(actor).ext = cmd; },
     crosshairSpread: (actor) => actor?.cb?.xhair ?? 0,
     inaccuracy: (actor) => { const w = cur(actor); return w && !w.def.melee ? currentInacc(actor, brain(actor), w) : 0; },
-    aimPunch, zoom, scopeFov, speedMult, maxSpeed: (a) => speedMult(a) * 6.35,
+    aimPunch, zoom, scopeFov, speedMult, maxSpeed: (a) => speedMult(a) * (ctx.player?.runSpeed ?? 7.2),
     ensureLoadout, brain, cur, muzzlePos, remove,
     /** match compat: resetLoadout(a, {keepWeapons}) — does not touch hp/alive (match does that). */
     resetLoadout: (actor, o = {}) => reset(actor, { keep: !!o.keepWeapons, revive: false }),

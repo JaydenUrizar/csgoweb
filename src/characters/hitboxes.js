@@ -6,9 +6,9 @@ import { B } from './body.js';
 // [group, boneA, ax, ay, az, boneB, bx, by, bz, radius]
 const C = (g, b0, o0, b1, o1, r) => [g, b0, o0[0], o0[1], o0[2], b1, o1[0], o1[1], o1[2], r];
 export const CAPS = [
-  C('crown', B.head, [0, 0.03, 0], B.head, [0, 0.03, 0], 0.175),
-  C('chest', B.chest, [0, 0.03, 0], B.chest, [0, 0.25, 0], 0.235),
-  C('chest', B.neck, [0, -0.02, 0], B.neck, [0, 0.08, 0], 0.075),
+  C('crown', B.head, [0, 0.02, 0.0], B.head, [0, 0.05, 0], 0.165),
+  C('chest', B.chest, [0, 0.0, 0], B.chest, [0, 0.1, 0], 0.225),
+  C('chest', B.neck, [0, -0.04, 0], B.neck, [0, 0.03, 0], 0.07),
   C('stomach', B.pelvis, [0, -0.01, 0], B.spine, [0, 0.16, 0], 0.205),
   C('stomach', B.uLegL, [0, 0.02, 0], B.uLegR, [0, 0.02, 0], 0.125),
   C('arm', B.uArmL, [0, 0, 0], B.fArmL, [0, 0, 0], 0.085), C('arm', B.fArmL, [0, 0, 0], B.handL, [0, 0, 0], 0.076), C('arm', B.handL, [0, -0.03, 0], B.handL, [0, -0.09, 0], 0.075),
@@ -73,7 +73,7 @@ const clamp0 = (t, far) => (t < 0 ? 0 : t > far ? far : t);
 /** Nearest capsule hit for model m: returns index (or -1) and sets m._t. */
 export function narrow(m, ro, rd, far, tick) {
   const hb = refreshHb(m, tick); let best = -1, bt = far;
-  for (let i = 0; i < NC; i++) { const t = capT(ro, rd, hb.a[i], hb.b[i], CAPS[i][9]); if (t >= 0 && t <= bt) { bt = t; best = i; } }
+  for (let i = 0; i < NC; i++) { const t = capT(ro, rd, hb.a[i], hb.b[i], CAPS[i][9]); if (t >= 0 && (t < bt || (best >= 0 && i === 0 && t <= bt + 0.06))) { bt = Math.min(bt, t); best = i; } }
   m._t = bt; return best;
 }
 export function fillHit(m, i, ro, rd, t, out) {

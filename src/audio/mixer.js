@@ -4,7 +4,7 @@ import { SOUNDS } from './registry.js';
 import { mulberry32, clamp, lerp } from './dsp.js';
 import { makePresetIR } from './reverb.js';
 
-const OCC_GAIN = [1, 0.62, 0.42, 0.28], OCC_FC = [22000, 2600, 1250, 700];
+const OCC_GAIN = [1, 0.4, 0.22, 0.12], OCC_FC = [22000, 1700, 750, 420];
 const GRID = 0.75, OCC_TTL = 0.3;
 
 export function createMixer(ac, { offline = false, world = null, log = null } = {}) {
@@ -12,9 +12,9 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
   const bq = (type, f, q = 0.7, gain = 0) => { const n = ac.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; n.gain.value = gain; return n; };
 
   // ---- master chain ----
-  const master = g(1), makeup = g(5), comp = ac.createDynamicsCompressor(), lim = ac.createDynamicsCompressor(), clip = ac.createWaveShaper(), outG = g(0.92);
-  comp.threshold.value = -12; comp.knee.value = 12; comp.ratio.value = 2.5; comp.attack.value = 0.006; comp.release.value = 0.2;
-  lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.09;
+  const master = g(1), makeup = g(1.6), comp = ac.createDynamicsCompressor(), lim = ac.createDynamicsCompressor(), clip = ac.createWaveShaper(), outG = g(0.92);
+  comp.threshold.value = -10; comp.knee.value = 10; comp.ratio.value = 2; comp.attack.value = 0.006; comp.release.value = 0.2;
+  lim.threshold.value = -2; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.09;
   const cv = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = (i / 2047) * 2 - 1, a = Math.abs(x); cv[i] = a < 0.8 ? x : Math.sign(x) * (0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2)); }
   clip.curve = cv;
   master.connect(makeup); makeup.connect(comp); comp.connect(lim); lim.connect(clip); clip.connect(outG); outG.connect(ac.destination);
@@ -98,7 +98,7 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
     if (o.pitch && o.pitch !== 1) V.o.pitch = o.pitch;
     try { def.fn(V, V.o); } catch (e) { if (!play._warned) { play._warned = true; console.error('[audio] sound failed', name, e); (window.__errors ||= []).push('audio ' + name + ': ' + (e?.stack || e)); } try { inG.disconnect(); } catch {} return null; }
     const nodes = [inG]; let panner = null, lp = null, dgN = null, sendN = null, pan2 = null;
-    const dest = bus[def.bus]?.in || bus.sfx.in;
+    const dest = bus[o.bus || def.bus]?.in || bus.sfx.in;
     if (has3d) {
       lp = bq('lowpass', 22000, 0.6); dgN = g(1); panner = ac.createPanner();
       panner.panningModel = 'HRTF'; panner.distanceModel = 'inverse'; panner.refDistance = 1; panner.rolloffFactor = 0; panner.maxDistance = 20000;
@@ -121,7 +121,7 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
       const cutoff = Math.min(air, of), gain = dgv * og;
       const tt = ac.currentTime;
       lp.frequency.setValueAtTime(cutoff, Math.max(t - 0.001, tt)); dgN.gain.setValueAtTime(gain, Math.max(t - 0.001, tt));
-      if (sendN) sendN.gain.setValueAtTime(def.send * ctl.reverb * clamp(0.6 + d / 45, 0.6, 2.4) * dgv * Math.sqrt(og) * (o.send ?? 1), Math.max(t - 0.001, tt));
+      if (sendN) sendN.gain.setValueAtTime(def.send * ctl.reverb * clamp(0.9 + d / 12, 0.9, 4.5) * dgv * Math.sqrt(og) * (o.send ?? 1), Math.max(t - 0.001, tt));
     };
     if (has3d) { occV = o.occ ?? occlusion(sx, sy, sz, now); geo({ x: sx, y: sy, z: sz }); spatialActive++; }
     active++; counts[name] = (counts[name] | 0) + 1; played++;
@@ -159,14 +159,17 @@ export function createMixer(ac, { offline = false, world = null, log = null } = 
     for (const k of ['open', 'tunnel', 'room']) { const p = rv.wet[k].gain; p.setTargetAtTime((w[k] ?? 0) * (k === 'open' ? 0.85 : k === 'tunnel' ? 1.0 : 0.9), now, 0.35); }
   }
   setRoom(roomTarget);
-  function setVolumes({ master: m, sfx, music, ui }) {
-    const now = ac.currentTime;
-    if (m != null) master.gain.setTargetAtTime(m, now, 0.02);
-    if (sfx != null) { bus.sfx.vol.gain.setTargetAtTime(sfx, now, 0.02); bus.ui.vol.gain.setTargetAtTime(Math.min(1, sfx * (ui ?? 1)), now, 0.02); }
-    if (music != null) bus.music.vol.gain.setTargetAtTime(music * 0.13, now, 0.05);
+  const vols = { master: 0.8, sfx: 1, music: 0.5, voice: 1 }; let paused = false;
+  function applyVols() {
+    const now = ac.currentTime, pz = paused ? 0.12 : 1;
+    master.gain.setTargetAtTime(vols.master, now, 0.02);
+    bus.sfx.vol.gain.setTargetAtTime(vols.sfx * pz, now, 0.05); bus.ui.vol.gain.setTargetAtTime(Math.min(1, vols.sfx), now, 0.02);
+    bus.music.vol.gain.setTargetAtTime(vols.music * 0.13 * (paused ? 0.5 : 1), now, 0.05); bus.voice.vol.gain.setTargetAtTime(0.95 * vols.voice * pz, now, 0.05);
   }
+  function setVolumes(v) { Object.assign(vols, Object.fromEntries(Object.entries(v).filter(([, x]) => x != null))); applyVols(); }
+  function setPaused(p) { paused = !!p; applyVols(); }
   return {
-    ac, bus, master, analyser, play, duck, deafen, setRoom, setListener, setVolumes, occlusion, listener: L, ctl,
+    ac, bus, master, analyser, play, duck, deafen, setRoom, setListener, setVolumes, setPaused, vols, occlusion, listener: L, ctl,
     get roomTarget() { return roomTarget; },
     setWorld(w) { world = w; },
     stats: () => ({ active, spatialActive, played, dropped, occHits, counts: { ...counts } }),

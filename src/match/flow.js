@@ -11,7 +11,7 @@ import { installBeacon } from './beacon.js';
 
 export const TUNE = {
   halftime: 8,            // s, side swap / overtime card
-  buyGrace: 10,           // s after go during which the buy zone stays open (CS2: buy time outlasts freeze time)
+  buyGrace: 20,           // s after go during which the buy zone stays open (CS2 mp_buytime 20)
   warmupRespawn: 2,       // s
   hardFreeze: true,       // pin actors at spawn during buy/freeze even if the movement piece ignores match.frozen
   buyZoneRadius: 16,      // m from a friendly spawn (used when the map has no explicit buy zone)
@@ -40,6 +40,8 @@ export function newMs() {
 }
 
 export function createMatch(ctx, o = {}) {
+  // test mode: place()/debug must not be fought by the spawn pin (movement piece still sees match.frozen). ?freeze=1 forces it back on.
+  TUNE.hardFreeze = !(ctx.params?.get?.('test') && ctx.params.get('freeze') !== '1');
   const R = o.random || (() => coreRng.next());
   const rint = (a, b) => Math.floor(a + R() * (b - a + 1));
   const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
@@ -156,9 +158,22 @@ export function createMatch(ctx, o = {}) {
   }
   env.wipeLoadout = wipeLoadout;
 
+  /** Make our ledger match the real combat inventory (weapons can be dropped / picked up / lost outside the buy menu). */
+  function syncOwned(a) {
+    const c = C(); const inv = a.inventory; if (!c || !inv?.slots) return;
+    const o = ms(a).owned, sl = inv.slots;
+    const idOf = (w) => (typeof w === 'string' ? w : w?.id || w?.def?.id || null);
+    o.primary = idOf(sl[1] ?? sl.primary);
+    o.secondary = idOf(sl[2] ?? sl.secondary) || 'pip';
+    if (Array.isArray(inv.utility)) o.utility = inv.utility.map(idOf).filter(Boolean);
+    o.vest = a.armor > 0; o.kit = !!a.hasKit;
+  }
+  env.syncOwned = syncOwned;
+
   function resetActor(a, wipe) {
-    const s = ms(a);
-    const keep = !wipe && s.survived;
+    const s = ms(a), wasAlive = a.alive;
+    if (wasAlive) syncOwned(a);
+    const keep = !wipe && s.survived && wasAlive;
     a.alive = true; a.tagged = false; a.hp = 100; a.vel.set(0, 0, 0); a.pitch = 0; a.onGround = true; a.crouching = false; a.lastDamagedBy = null; a.hasBeacon = false;
     if (!keep) wipeLoadout(a);
     else { const c = C(); if (c?.resetLoadout) safe('combat.reset', () => c.resetLoadout(a, { keepWeapons: true })); }
@@ -170,7 +185,7 @@ export function createMatch(ctx, o = {}) {
 
   function resetEconomy(credits) {
     for (const a of ctx.actors) if (TEAMS[a.team]) a.credits = credits;
-    M.lossStreak.ember = M.lossStreak.tide = 0;
+    M.lossStreak.ember = M.lossStreak.tide = ECON.startLevel;
   }
 
   // ------------------------------------------------------------------ phases
@@ -201,12 +216,19 @@ export function createMatch(ctx, o = {}) {
     M.beaconApi.reset();
     M.beaconApi.assignCarrier();
     M.specTarget = null; setSpectate(null);
-    M.botPlan = null;
+    M.botPlan = null; M.clutchDone = { ember: false, tide: false };
     M.buyApi.scheduleBots();
     emit('round:reset', { n });
     setPhase('buy', MATCH.buyTime);
-    emit('round:start', { n, pistol: M.pistolRound, ot: M.ot });
+    emit('round:start', { n, pistol: M.pistolRound, ot: M.ot, matchPoint: ['ember', 'tide'].filter((t) => M.scores[t] === (M.ot ? M.otTarget : M.roundsToWin) - 1), lastRoundOfHalf: !M.ot ? n === M.regulationRounds / 2 : (M.otRound + 1) % TUNE.otHalfRounds === 0, lastRound: !M.ot && n === M.regulationRounds });
     announce(M.pistolRound ? 'round_pistol' : 'round_start', { n });
+    const target = M.ot ? M.otTarget : M.roundsToWin;
+    const mp = ['ember', 'tide'].filter((t) => M.scores[t] === target - 1);
+    const lastHalf = !M.ot ? n === M.regulationRounds / 2 : (M.otRound + 1) % TUNE.otHalfRounds === 0;
+    const lastRound = !M.ot && n === M.regulationRounds;
+    if (mp.length) announce('match_point', { teams: mp, both: mp.length === 2 });
+    if (lastRound) announce('last_round', { n }); else if (lastHalf) announce('last_round_of_half', { n });
+    M.roundInfo = { matchPoint: mp, lastRoundOfHalf: lastHalf, lastRound };
   }
 
   function enterFreeze() { M.buyApi.flushBots(); setPhase('freeze', MATCH.freezeTime); announce('freeze'); }
@@ -237,7 +259,13 @@ export function createMatch(ctx, o = {}) {
     const rows = { ember: [], tide: [] };
     const before = new Map(ctx.actors.map((a) => [a, a.credits]));
     for (const a of M.teams[winner]) addCredits(a, ECON.win, 'win');
-    for (const a of M.teams[loser]) addCredits(a, bonus, 'loss');
+    let noBonus = 0;
+    for (const a of M.teams[loser]) {
+      if (reason === 'time' && loser === 'ember' && a.alive) { noBonus++; continue; }       // CS2: attackers who survive a time-out get nothing (saving costs money)
+      addCredits(a, bonus, 'loss');
+    }
+    const plantLoss = loser === 'ember' && M.armedThisRound ? ECON.plantLoss : 0;
+    if (plantLoss) for (const a of M.teams.ember) addCredits(a, plantLoss, 'plantloss');
     const streakBefore = { ember: M.lossStreak.ember, tide: M.lossStreak.tide };
     M.lossStreak[winner] = nextLossLevel(M.lossStreak[winner], true);
     M.lossStreak[loser] = nextLossLevel(level, false);
@@ -254,7 +282,7 @@ export function createMatch(ctx, o = {}) {
       kills: { ember: M.roundEcon.ember.kills, tide: M.roundEcon.tide.kills },
       plant: { ember: M.roundEcon.ember.plant, tide: M.roundEcon.tide.plant },
       disarm: M.roundEcon.tide.disarm, teamTags: { ember: M.roundEcon.ember.teamTag, tide: M.roundEcon.tide.teamTag },
-      players: rows, resetNext: false,
+      survivorsNoBonus: noBonus, plantLoss, players: rows, resetNext: false,
     };
     // ---- score
     M.scores[winner]++;
@@ -315,6 +343,8 @@ export function createMatch(ctx, o = {}) {
     const swap = kind !== 'ot';
     if (swap) swapSides();
     M.needReset = true; M.resetCredits = kind === 'half' ? ECON.start : ECON.otStart;
+    M.beaconApi.reset(); for (const a of ctx.actors) a.hasBeacon = false;      // no stale carrier on the other side
+    resetEconomy(M.resetCredits);                                               // scoreboard on the halftime card shows the fresh credits
     emit('halftime', { kind, swapped: swap, scores: { ...M.scores }, n: M.history.length, ot: M.ot, otIndex: M.otIndex, playerTeam: M.playerTeam });
     announce(kind === 'half' ? 'halftime' : 'overtime', { kind });
   }
@@ -340,11 +370,14 @@ export function createMatch(ctx, o = {}) {
   function onTagOut(e) {
     const v = e?.victim; if (!v || !TEAMS[v.team]) return;
     v.alive = false; v.tagged = true; if (v.hp > 0) v.hp = 0;
-    const playing = M.phase === 'live' || M.phase === 'armed';
+    const exit = M.phase === 'roundEnd';             // "exit frag": tagged after the round was decided -> pays + stats, victim loses gear
+    const playing = M.phase === 'live' || M.phase === 'armed' || exit;
     const s = ms(v);
     if (!playing) { s.deadAt = M.clock; return; }
+    if (exit) { s.survived = false; syncOwned(v); }
     if (s.outRound === M.round) return;           // idempotent per round
     s.outRound = M.round; s.deadAt = M.clock; s.round.outs++; s.total.outs++;
+    if (!exit) clutchCheck();
     const a = e.attacker;
     if (a && a !== v && TEAMS[a.team]) {
       const as = ms(a);
@@ -361,11 +394,22 @@ export function createMatch(ctx, o = {}) {
   }
   function onTagHit(e) {
     const a = e?.attacker, v = e?.victim; if (!a || !v || a === v || a.team === v.team || !TEAMS[a.team]) return;
-    if (M.phase !== 'live' && M.phase !== 'armed') return;
+    if (M.phase !== 'live' && M.phase !== 'armed' && M.phase !== 'roundEnd') return;
     const d = Math.max(0, +e.damage || 0); ms(a).round.damage += d; ms(a).total.damage += d;
   }
   ctx.events.on('tag:out', onTagOut);
   ctx.events.on('tag:hit', onTagHit);
+
+  /** 1vX announce, once per team per round, while the round is being played. */
+  function clutchCheck() {
+    if (M.phase !== 'live' && M.phase !== 'armed') return;
+    for (const t of ['ember', 'tide']) {
+      if (M.clutchDone[t]) continue;
+      const mine = M.teams[t].filter((a) => a.alive), foes = aliveOf(other(t));
+      if (mine.length === 1 && foes >= 2) { M.clutchDone[t] = true; announce('clutch', { team: t, actor: mine[0], vs: foes }); }
+    }
+  }
+  env.clutchCheck = clutchCheck;
 
   // ------------------------------------------------------------------ spectating
   function setSpectate(a) {
@@ -475,7 +519,7 @@ export function createMatch(ctx, o = {}) {
       for (let i = 0; i < 5; i++) makeBot(other(team), names.pop(), M.difficulty, dummy);
     }
     for (const a of ctx.actors) if (TEAMS[a.team]) { a.credits = ECON.start; a.hasKit = false; a.stats = { tags: 0, outs: 0, assists: 0, score: 0, damage: 0, crowns: 0 }; a.match = newMs(); }
-    M.scores.ember = M.scores.tide = 0; M.lossStreak.ember = M.lossStreak.tide = 0;
+    M.scores.ember = M.scores.tide = 0; M.lossStreak.ember = M.lossStreak.tide = ECON.startLevel;
     M.history.length = 0; M.round = 0; M.winner = null; M.matchMvp = null; M.playerWon = null; M.mvp = null; M.lastRound = null;
     M.ot = false; M.otIndex = 0; M.otBase = 0; M.otTarget = 0; M.otRound = 0; M.swapped = false; M.halfKind = null;
     M.needReset = true; M.resetCredits = ECON.start; M.active = true; M.paused = false; M.playerTeam = team;
@@ -487,7 +531,7 @@ export function createMatch(ctx, o = {}) {
 
   function quit() {
     teardown(); M.active = false; M.winner = null; M.round = 0; M.history.length = 0; M.scores.ember = M.scores.tide = 0;
-    M.lossStreak.ember = M.lossStreak.tide = 0; M.ot = false; M.swapped = false; M.beaconApi?.reset?.(); setSpectate(null);
+    M.lossStreak.ember = M.lossStreak.tide = ECON.startLevel; M.ot = false; M.swapped = false; M.beaconApi?.reset?.(); setSpectate(null);
     for (const a of ctx.actors) if (TEAMS[a.team]) { a.alive = true; a.hp = 100; a.credits = ECON.cap; }
     setPhase('warmup', 0); syncTeams();
   }

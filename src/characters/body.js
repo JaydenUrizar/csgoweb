@@ -10,12 +10,12 @@ export const B = {
 // [name, parentIndex(-1 = root), world rest position]
 export const BONES = [
   ['pelvis', -1, [0, 0.93, 0]], ['spine', 0, [0, 1.03, 0]], ['chest', 1, [0, 1.23, 0]], ['neck', 2, [0, 1.53, 0]], ['head', 3, [0, 1.62, 0]],
-  ['uArmL', 2, [-0.27, 1.45, 0]], ['fArmL', 5, [-0.27, 1.13, 0]], ['handL', 6, [-0.27, 0.81, 0]],
-  ['uArmR', 2, [0.27, 1.45, 0]], ['fArmR', 8, [0.27, 1.13, 0]], ['handR', 9, [0.27, 0.81, 0]],
+  ['uArmL', 2, [-0.27, 1.45, 0]], ['fArmL', 5, [-0.27, 1.11, 0]], ['handL', 6, [-0.27, 0.77, 0]],
+  ['uArmR', 2, [0.27, 1.45, 0]], ['fArmR', 8, [0.27, 1.11, 0]], ['handR', 9, [0.27, 0.77, 0]],
   ['uLegL', 0, [-0.115, 0.91, 0]], ['lLegL', 11, [-0.115, 0.47, 0]], ['footL', 12, [-0.115, 0.07, 0]],
   ['uLegR', 0, [0.115, 0.91, 0]], ['lLegR', 14, [0.115, 0.47, 0]], ['footR', 15, [0.115, 0.07, 0]],
 ];
-export const SEG = { arm1: 0.32, arm2: 0.32, thigh: 0.44, shin: 0.40, hipY: 0.91, ankleY: 0.07, shoulderX: 0.27, shoulderY: 1.45, hipX: 0.115 };
+export const SEG = { arm1: 0.34, arm2: 0.34, thigh: 0.44, shin: 0.40, hipY: 0.91, ankleY: 0.07, shoulderX: 0.27, shoulderY: 1.45, hipX: 0.115 };
 
 const DARK = 0x262932, DARK2 = 0x1a1c21, VEST = 0x2c303a, PLATE = 0x3b404d, SOLE = 0x101216, BOOT = 0x1f2228;
 
@@ -40,9 +40,14 @@ function baseParts() {
   add(place(boxP(0.33, 0.045, 0.02, 0.005), { y: 1.445, z: 0.281 }), B.chest, 'team');
   add(place(boxP(0.035, 0.22, 0.02, 0.005), { y: 1.335, z: 0.281 }), B.chest, 'team');
   for (const s of [-1, 1]) {
-    add(place(sphereP(0.125, 0.085, 0.135, 0), { x: s * 0.315, y: 1.475 }), B.chest, 'accent');
+    add(place(sphereP(0.125, 0.085, 0.135, 0), { x: s * 0.315, y: 1.475 }), B.chest, 'suit');
     add(place(boxP(0.014, 0.05, 0.10, 0.004), { x: s * 0.437, y: 1.465 }), B.chest, 'team');
   }
+  // ---- team identity bands (always on, readable from every angle)
+  add(place(boxP(0.405, 0.045, 0.285, 0.008), { y: 1.085 }), B.spine, 'team');
+  add(place(boxP(0.54, 0.035, 0.30, 0.008, 0.52, 0.30), { y: 1.5 }), B.chest, 'team');
+  add(place(frustumP(0.092, 0.092, 0.028, 8), { y: 1.515 }), B.neck, 'team');
+  add(place(boxP(0.06, 0.12, 0.02, 0.006), { y: 1.69, z: 0.168 }), B.head, 'team');
   // ---- neck + head base
   add(place(frustumP(0.06, 0.055, 0.09, 6), { y: 1.545 }), B.neck, 'dark', DARK2);
   add(place(boxP(0.20, 0.06, 0.10, 0.02), { y: 1.575, z: 0.075 }), B.head, 'dark', DARK);
@@ -54,19 +59,20 @@ function baseParts() {
   // ---- arms
   for (const s of [-1, 1]) {
     const uA = s < 0 ? B.uArmL : B.uArmR, fA = s < 0 ? B.fArmL : B.fArmR, hA = s < 0 ? B.handL : B.handR, x = s * 0.27;
-    add(place(frustumP(0.082, 0.068, 0.32, 6), { x, y: 1.29 }), uA, 'suit');
-    add(place(sphereP(0.068, 0.062, 0.068, 0), { x, y: 1.13 }), fA, 'dark', DARK);
-    add(place(frustumP(0.068, 0.06, 0.18, 6), { x, y: 1.03 }), fA, 'suit');
-    add(place(frustumP(0.07, 0.066, 0.12, 6), { x, y: 0.875 }), fA, 'dark', DARK);
-    add(place(frustumP(0.073, 0.073, 0.022, 6), { x, y: 0.945 }), fA, 'team');
-    add(place(boxP(0.092, 0.09, 0.115, 0.022, 0.10, 0.115), { x, y: 0.765 }), hA, 'dark', DARK2);
-    add(place(boxP(0.03, 0.06, 0.05, 0.01), { x: x + s * 0.052, y: 0.795, z: -0.02 }), hA, 'dark', DARK2);
+    add(place(frustumP(0.082, 0.068, 0.34, 6), { x, y: 1.28 }), uA, 'suit');
+    add(place(sphereP(0.068, 0.062, 0.068, 0), { x, y: 1.11 }), fA, 'dark', DARK);
+    add(place(frustumP(0.068, 0.06, 0.2, 6), { x, y: 1.0 }), fA, 'suit');
+    add(place(frustumP(0.07, 0.066, 0.12, 6), { x, y: 0.835 }), fA, 'dark', DARK);
+    add(place(frustumP(0.076, 0.076, 0.03, 6), { x, y: 0.915 }), fA, 'team');
+    add(place(boxP(0.092, 0.09, 0.115, 0.022, 0.10, 0.115), { x, y: 0.725 }), hA, 'dark', DARK2);
+    add(place(boxP(0.03, 0.06, 0.05, 0.01), { x: x + s * 0.052, y: 0.755, z: -0.02 }), hA, 'dark', DARK2);
   }
   // ---- legs
   for (const s of [-1, 1]) {
     const uL = s < 0 ? B.uLegL : B.uLegR, lL = s < 0 ? B.lLegL : B.lLegR, fT = s < 0 ? B.footL : B.footR, x = s * 0.115;
     add(place(frustumP(0.108, 0.09, 0.44, 7), { x, y: 0.69 }), uL, 'suit');
-    add(place(boxP(0.014, 0.24, 0.05, 0.004), { x: x + s * 0.104, y: 0.70 }), uL, 'team');
+    add(place(boxP(0.02, 0.3, 0.07, 0.005), { x: x + s * 0.104, y: 0.70 }), uL, 'team');
+    add(place(frustumP(0.093, 0.093, 0.035, 7), { x, y: 0.33 }), lL, 'team');
     add(place(sphereP(0.08, 0.07, 0.07, 0), { x, y: 0.47, z: -0.05 }), lL, 'dark', DARK);
     add(place(frustumP(0.088, 0.066, 0.36, 7), { x, y: 0.29 }), lL, 'suit');
     add(place(boxP(0.09, 0.22, 0.04, 0.012, 0.08, 0.04), { x, y: 0.31, z: -0.066 }), lL, 'dark', PLATE);
@@ -96,14 +102,14 @@ function shellParts(shape) {
       add(place(sphereP(0.16, 0.145, 0.175, 1), { y: 1.65, z: 0.005 }), 'helmet');
       add(place(boxP(0.03, 0.03, 0.24, 0.008), { y: 1.792 }), 'hAccent');
   }
-  if (shape === 'crest') add(place(boxP(0.03, 0.10, 0.26, 0.01, 0.02, 0.16), { y: 1.85, z: 0.02 }), 'hAccent');
+  if (shape === 'crest') add(place(boxP(0.03, 0.08, 0.26, 0.01, 0.02, 0.16), { y: 1.83, z: 0.02 }), 'hAccent');
   if (shape === 'antenna') {
-    add(place(frustumP(0.008, 0.008, 0.22, 4), { x: 0.115, y: 1.84, z: 0.04, rz: -0.25 }), 'hAccent');
-    add(place(sphereP(0.026), { x: 0.14, y: 1.95, z: 0.04 }), 'visor');
+    add(place(frustumP(0.01, 0.01, 0.14, 4), { x: 0.11, y: 1.84, z: 0.04, rz: -0.25 }), 'hAccent');
+    add(place(sphereP(0.026), { x: 0.125, y: 1.92, z: 0.04 }), 'visor');
   }
-  if (shape === 'horns') for (const s of [-1, 1]) add(place(frustumP(0.032, 0.006, 0.17, 5), { x: s * 0.13, y: 1.83, z: -0.01, rz: -s * 0.55 }), 'hAccent');
+  if (shape === 'horns') for (const s of [-1, 1]) add(place(frustumP(0.03, 0.006, 0.11, 5), { x: s * 0.12, y: 1.82, z: -0.01, rz: -s * 0.5 }), 'hAccent');
   if (shape === 'halo') {
-    for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; add(place(boxP(0.11, 0.022, 0.022, 0.006), { x: Math.cos(a) * 0.2, y: 1.93, z: Math.sin(a) * 0.2, ry: -a }), 'visor'); }
+    for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; add(place(boxP(0.1, 0.02, 0.02, 0.005), { x: Math.cos(a) * 0.17, y: 1.88, z: Math.sin(a) * 0.17, ry: -a }), 'visor'); }
   }
   return P;
 }
@@ -136,8 +142,8 @@ function backParts(model) {
       add(place(boxP(0.3, 0.05, 0.16, 0.015), { y: 1.55, z: 0.3 }), B.chest, 'accent'); break;
     case 'wings':
       for (const s of [-1, 1]) {
-        add(place(slabP([[0, 0], [0.32, 0.22], [0.62, 0.5], [0.5, 0.05], [0.4, -0.3], [0.12, -0.22]], 0.025), { x: s * 0.1, y: 1.38, z: 0.24, ry: s * 0.6, rz: s * -0.15, sx: s }), B.chest, 'back');
-        add(place(slabP([[0.3, 0.2], [0.62, 0.5], [0.66, 0.42], [0.36, 0.14]], 0.03), { x: s * 0.1, y: 1.38, z: 0.24, ry: s * 0.6, rz: s * -0.15, sx: s }), B.chest, 'team');
+        add(place(slabP([[0, 0], [0.16, 0.16], [0.3, 0.34], [0.26, 0.04], [0.2, -0.24], [0.06, -0.18]], 0.025), { x: s * 0.07, y: 1.4, z: 0.25, ry: s * 1.05, rz: s * -0.1, sx: s }), B.chest, 'back');
+        add(place(slabP([[0.14, 0.14], [0.3, 0.34], [0.33, 0.28], [0.19, 0.1]], 0.03), { x: s * 0.07, y: 1.4, z: 0.25, ry: s * 1.05, rz: s * -0.1, sx: s }), B.chest, 'team');
       } break;
     case 'tail':
       for (let i = 0; i < 5; i++) { const t = i / 4; add(place(boxP(0.075 - t * 0.04, 0.07, 0.14, 0.02), { y: 0.9 + t * t * 0.3, z: 0.2 + t * 0.26, rx: 0.35 + t * 0.5 }), B.pelvis, i === 4 ? 'team' : 'back'); } break;
@@ -147,9 +153,9 @@ function backParts(model) {
         add(place(frustumP(0.048, 0.062, 0.05, 8), { x: s * 0.115, y: 1.135, z: 0.3 }), B.chest, 'visor');
       } break;
     case 'banner':
-      add(place(frustumP(0.011, 0.011, 0.9, 5), { x: 0.14, y: 1.85, z: 0.27 }), B.chest, 'dark', 0x33363f);
-      add(place(boxP(0.3, 0.34, 0.012, 0.004), { x: 0.29, y: 2.15, z: 0.27 }), B.chest, 'back');
-      add(place(boxP(0.3, 0.05, 0.016, 0.004), { x: 0.29, y: 2.05, z: 0.27 }), B.chest, 'team'); break;
+      add(place(frustumP(0.011, 0.011, 0.6, 5), { x: 0.1, y: 1.65, z: 0.28 }), B.chest, 'dark', 0x33363f);
+      add(place(boxP(0.2, 0.22, 0.012, 0.004), { x: 0.2, y: 1.84, z: 0.28 }), B.chest, 'back');
+      add(place(boxP(0.2, 0.04, 0.016, 0.004), { x: 0.2, y: 1.76, z: 0.28 }), B.chest, 'team'); break;
   }
   return P;
 }

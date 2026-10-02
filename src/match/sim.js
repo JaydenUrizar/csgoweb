@@ -129,7 +129,7 @@ export function createDriver(ctx, match, { rand, speed = 1, moveSpeed = 9 } = {}
 
 /** Independent re-implementation of the rules, watching events; records violations + measurements for the conformance table. */
 export function createChecker(ctx, match) {
-  const ev = ctx.events, K = { violations: [], measure: {}, rounds: [], halftimes: [], overtime: [], matchEnds: 0, phaseLog: [], lvl: { ember: 0, tide: 0 }, wins: { A: 0, B: 0 }, swapped: false, shadow: new Map(), tagRewards: new Set() };
+  const ev = ctx.events, K = { violations: [], measure: {}, rounds: [], halftimes: [], overtime: [], matchEnds: 0, phaseLog: [], lvl: { ember: ECON.startLevel, tide: ECON.startLevel }, wins: { A: 0, B: 0 }, swapped: false, shadow: new Map(), tagRewards: new Set() };
   const bad = (m) => { if (K.violations.length < 200) K.violations.push(`[r${match.round} ${match.phase} t=${match.clock.toFixed(2)}] ${m}`); };
   K.bad = bad;
   let lastPhase = null, lastAt = 0;
@@ -145,6 +145,7 @@ export function createChecker(ctx, match) {
     if (e.reason === 'win' && e.want !== ECON.win) bad(`win award ${e.want}`);
     if (e.reason === 'loss') { const exp = 1400 + 500 * Math.min(K.lvl[a.team], 4); if (e.want !== exp) bad(`loss award ${e.want} != ${exp} (level ${K.lvl[a.team]})`); (K.measure.lossAwards ||= []).push(e.want); }
     if (e.reason === 'plant' && e.want !== 300) bad('plant bonus');
+    if (e.reason === 'plantloss' && (e.want !== ECON.plantLoss || a.team !== 'ember')) bad('plant-loss bonus');
     if (e.reason === 'disarm' && e.want !== 300) bad('disarm bonus');
     if (e.reason === 'tag') K.tagRewards.add(e.want);
   });
@@ -175,7 +176,7 @@ export function createChecker(ctx, match) {
   ev.on('halftime', (e) => {
     K.halftimes.push({ ...e, at: match.history.length });
     if (e.swapped) K.swapped = !K.swapped;
-    K.lvl.ember = K.lvl.tide = 0;
+    K.lvl.ember = K.lvl.tide = ECON.startLevel;
     if (e.kind === 'half' && match.history.length !== 7) bad('halftime not after round 7: ' + match.history.length);
     if (e.kind === 'ot' && match.history.length !== 14) bad('OT must start after round 14');
     if (e.kind === 'otHalf' && (match.history.length - 14) % 3 !== 0) bad('OT half not on multiple of 3');

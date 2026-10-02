@@ -18,6 +18,7 @@ export function buildLayout() {
   solid(6, -12, 32, 36, 9.5);             // east block
   solid(-28, -12, -6, 36, 8.0);           // west block
   solid(-50, 30, -30, 52, 7.0);
+  solid(-47, -52, -20, -46, 6.0); solid(-50, -52, -46, -18, 6.0); solid(-47, -46, -46, -20, 6.0);   // lower north/west B walls: lets the NW sun into the plaza
 
   // ------------------------------------------------------------------ EMBER side (south)
   floor(-16, 38, 16, 50, 0, 'es', 'brick');
@@ -49,7 +50,7 @@ export function buildLayout() {
   ramp(12, -16, 17, 4, 'z', 4, 0, -16, H.DECK, 'short', 'stone');
   floor(-10, -12, -7, -4, H.BALC, 'hub', 'stone');
   ramp(-10, -4, -7, 0, 'z', 0, 0, -4, H.BALC, 'hub', 'stone', { stairs: true });
-  floor(-8, -16, -4, -14, 0, 'palace', 'stone'); floor(-2, -16, 2, -14, 0, 'palace', 'stone'); floor(4, -16, 8, -14, 0, 'palace', 'stone');
+  floor(-8, -16, -4, -14, 0, 'palace', 'stone'); floor(4, -16, 8, -14, 0, 'palace', 'stone');   // centre arch closed (breaks the x=0 spawn-to-spawn sightline)
   floor(-16, -26, 17, -16, 0, 'palace', 'stone');
   ramp(-22, -26, -16, -20, 'x', -16, 0, -22, H.BPLAZA, 'bconn', 'stone');
 
@@ -86,6 +87,15 @@ export function buildLayout() {
   // Long lane bright sand with a darker walking line
   paint(36, -4, 40, 27, { tint: 0xf1d9a4 });
 
+  // floor inlays: runners, borders, medallions (cell-level tints crisp against the paving)
+  paint(-1, 15, 1, 38, { tint: 0xc9a77a });                                  // mid lane runner
+  paint(-10, -26, 16, -25, { surf: 'brick', tint: 0xc98a68 }); paint(-10, -17, 16, -16, { surf: 'brick', tint: 0xc98a68 }); // palace border bricks
+  paint(-4, -1, 4, 1, { surf: 'tile', tint: 0xa9d3cd }); paint(-3, 0, 3, 1, { surf: 'tile', tint: 0x2a9d9f }); paint(-1, -4, 1, 4, { surf: 'tile', tint: 0x2a9d9f }); // hub compass
+  paint(35, 24, 41, 25, { surf: 'tile', tint: 0x2a9d9f }); paint(35, 30, 41, 31, { surf: 'tile', tint: 0x2a9d9f });  // long door tile bands
+  paint(-16, 38, 16, 39, { surf: 'tile', tint: 0xff7a2f }); paint(-16, -39, 16, -38, { surf: 'tile', tint: 0x2fd0ff });
+  paint(-5, -38, 5, -37, { surf: 'tile', tint: 0x2a9d9f }); paint(-15, -50, -14, -40, { surf: 'tile', tint: 0x9fd5d0 }); paint(14, -50, 15, -40, { surf: 'tile', tint: 0x9fd5d0 });
+  paint(23, -45, 24, -13, { surf: 'tile', tint: 0x9fc9c0 }); paint(46, -45, 47, -13, { surf: 'tile', tint: 0x9fc9c0 });
+  paint(-45, -45, -23, -44, { surf: 'tile', tint: 0x2a9d9f }); paint(-26, -45, -25, -22, { surf: 'tile', tint: 0xe0b090 });
   return { grid: g, op };
 }
 

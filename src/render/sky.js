@@ -5,10 +5,11 @@ import * as THREE from 'three';
 
 export const SKY_DEFAULTS = {
   sunElevation: 44, sunAzimuth: 205,               // degrees; azimuth 0 = +Z toward... (x = sin(az)*cos(el), z = cos(az)*cos(el))
-  sunColor: 0xffe7c2, sunIntensity: 5.0,
-  skyTop: 0x1d5fcf, skyMid: 0x4c93e8, skyHorizon: 0xc6dcef, ground: 0xb79f7c,
+  sunColor: 0xffe0b4, sunIntensity: 5.3,
+  skyTop: 0x5a8acb, skyMid: 0x92b4dc, skyHorizon: 0xddd8cd, ground: 0xb79f7c,
+  envTop: 0xaeb6c4, envMid: 0xc2c2c0, envHorizon: 0xc9c4b8, envGround: 0x9d8868,   // ambient-only palette: near-neutral warm, slight cool from above
   fogColor: null,                                  // null = derived from skyHorizon
-  fogDensity: 0.0032,
+  fogDensity: 0.0020,
   cloudAmount: 1,
 };
 
@@ -131,9 +132,8 @@ export function createSky(renderer) {
       const el = THREE.MathUtils.degToRad(p.sunElevation), az = THREE.MathUtils.degToRad(p.sunAzimuth);
       sunDir.set(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)).normalize();
       sunColor.set(p.sunColor);
-      for (const m of [domeMat, envMat]) {
-        const u = m.uniforms; u.uTop.value.set(p.skyTop); u.uMid.value.set(p.skyMid); u.uHorizon.value.set(p.skyHorizon); u.uGround.value.set(p.ground); u.uSunCol.value.copy(sunColor); u.uSunDir.value.copy(sunDir);
-      }
+      { const u = domeMat.uniforms; u.uTop.value.set(p.skyTop); u.uMid.value.set(p.skyMid); u.uHorizon.value.set(p.skyHorizon); u.uGround.value.set(p.ground); u.uSunCol.value.copy(sunColor); u.uSunDir.value.copy(sunDir); }
+      { const u = envMat.uniforms; u.uTop.value.set(p.envTop); u.uMid.value.set(p.envMid); u.uHorizon.value.set(p.envHorizon); u.uGround.value.set(p.envGround); u.uSunCol.value.copy(sunColor).multiplyScalar(0.25); u.uSunDir.value.copy(sunDir); }
       if (p.fogColor != null) fogColor.set(p.fogColor); else fogColor.set(p.skyHorizon).lerp(new THREE.Color(p.skyMid), 0.18);
       cloudMat.uniforms.uHorizon.value.copy(fogColor); cloudMat.uniforms.uAmt.value = p.cloudAmount;
       if (clouds) recolorClouds();

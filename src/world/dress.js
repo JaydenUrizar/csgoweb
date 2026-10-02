@@ -1,6 +1,8 @@
 // Hand-dressing of Crux Station: structures (gates, tunnel roofs, catwalk), props, signage requests, callouts, spawns, sites.
 import { H, ZONES } from './layout.js';
 import { hash2 } from './terrain.js';
+import { dressFacades, bunting } from './facade.js';
+import { extras } from './extras.js';
 import { rgb, mulc } from './builder.js';
 
 const A_Y = H.A, B_Y = H.BPLAZA;
@@ -37,7 +39,7 @@ export function dressWorld(D) {
   D.arch({ axis: 'x', cx: 17, cz: 43, w: 6, depth: 2, spring: 3.0, rise: 1.3, topY: 6.6, color: 0xf0d6a8 });          // ES -> long
   D.arch({ axis: 'z', cx: 0, cz: 12.5, w: 4, depth: 5, spring: 3.2, rise: 1.0, topY: 8.4, color: 0xe4c595 });         // mid doors
   D.arch({ axis: 'z', cx: 38, cz: 28.5, w: 6, depth: 3, spring: 3.4, rise: 1.5, topY: 8.4, color: 0xf0dcae });        // long doors
-  for (const cx of [-6, 0, 6]) D.arch({ axis: 'z', cx, cz: -15, w: 4, depth: 2, spring: 3.4, rise: 1.0, topY: 8.4, color: 0xeed3a4 }); // hub arches
+  for (const cx of [-6, 6]) D.arch({ axis: 'z', cx, cz: -15, w: 4, depth: 2, spring: 3.4, rise: 1.0, topY: 8.4, color: 0xeed3a4 }); // hub arches
   D.arch({ axis: 'x', cx: 19, cz: -43, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.4, color: 0xf0dcae });         // tide -> A
   D.arch({ axis: 'x', cx: -19, cz: -43, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.4, color: 0xe8c5a8 });        // tide -> B
   D.arch({ axis: 'x', cx: -19, cz: -23, w: 6, depth: 2, spring: 3.4, rise: 1.2, topY: 7.6, color: 0xe8c5a8 });        // palace -> B
@@ -70,9 +72,10 @@ export function dressWorld(D) {
   D.barrels([[4.3, 19], [3.5, 19.5]]);
   D.lowWall(-5, 21, -3.2, 23.5, 1.2);
   // open door leaves flush against jambs
-  for (const sx of [-1, 1]) D.VB.box('wood', sx * 2 - (sx > 0 ? 0.12 : 0), 0, 10.1, sx * 2 + (sx > 0 ? 0 : 0.12), 3.1, 14.9, rgb(0x7a4f30), { ao: 0.8 });
+  for (const sx of [-1, 1]) D.VB.box('wood', sx * 2 - (sx > 0 ? 0.12 : 0), 0, 10.1, sx * 2 + (sx > 0 ? 0 : 0.12), 3.1, 14.9, rgb(0xb07848), { ao: 0.8 });
   for (const z of [11, 17.5, 25, 34]) D.wallLamp(-5, 3.2, z, 1, 0, 0xffc880);
 
+  for (const [x, z] of [[0, 11.5], [0, 13.5], [38, 28.5]]) { D.VB.box('plain', x - 0.02, 3.2, z - 0.02, x + 0.02, 4.0, z + 0.02, rgb(0x30343a), { ao: 1 }); D.VB.box('emissive', x - 0.15, 2.9, z - 0.15, x + 0.15, 3.3, z + 0.15, mulc(rgb(0xffc880), 3.0), { ao: 1 }); D.lamps.push({ pos: [x, 3.1, z], color: 0xffc880, intensity: 1 }); }
   // ============================================================ HUB
   D.container(1.5, -5, 4.5, -2.5, 1.2, 0xc4673d, { name: 'xbox' }); D.crateBox(4.5, -4.2, 5.9, -2.6, 0.6, { variant: 'dark', name: 'xbox-step' });
   D.pillar(-5.5, 5, 1.0, 5.2); D.pillar(5.5, 5, 1.0, 5.2);
@@ -113,10 +116,10 @@ export function dressWorld(D) {
   // ============================================================ LONG LANE
   D.container(40.6, 0, 43, 6.2, 2.7, 0x2a9d9f, { name: 'cargo' });
   D.container(33, 6.5, 36, 9.5, 2.4, 0xd9834e, { name: 'long-corner' });
-  D.barrels([[34.4, 18], [35.2, 18.7], [34.6, 19.3]]); D.lowWall(37, 16, 39.5, 17.2, 1.1);
+  D.barrels([[34.4, 18], [35.2, 18.7], [34.6, 19.3]]);
   D.crate(41.8, 22, 1.4, { variant: 'olive' }); D.crate(41.8, 20.6, 1.4);
   D.crate(47, 12.6, 1.4, { y0: -1.5 }); D.crate(47, 16.6, 1.4, { y0: -1.5, variant: 'ember' });
-  for (const sx of [-1, 1]) D.VB.box('wood', 38 + sx * 3 - (sx > 0 ? 0.12 : 0), 0, 27.1, 38 + sx * 3 + (sx > 0 ? 0 : 0.12), 3.4, 29.9, rgb(0x7a4f30), { ao: 0.8 });
+  for (const sx of [-1, 1]) D.VB.box('wood', 38 + sx * 3 - (sx > 0 ? 0.12 : 0), 0, 27.1, 38 + sx * 3 + (sx > 0 ? 0 : 0.12), 3.4, 29.9, rgb(0xb07848), { ao: 0.8 });
   D.crate(22.5, 40.8, 1.4); D.crate(22.5, 42.2, 1.4, { variant: 'ember' }); D.barrels([[30.5, 40.8], [31.4, 41.2]]);
   D.planter(26, 45.4, 3, 1.1, 0.8); D.palm(25, 45, 4.2);
   D.pillar(33.8, 38.5, 1.0, 4.8);
@@ -135,7 +138,7 @@ export function dressWorld(D) {
   D.planter(23.4, -36, 1.0, 2.4, 0.8); D.planter(23.4, -23, 1.0, 2.4, 0.8); D.palm(23.5, -34.2, 4.4); D.palm(23.5, -21.5, 4.4);
   D.railing(41, -46, 41, -39.5, H.PLAT, 1.05);
   D.crate(45.8, -44.2, 1.4, { y0: H.PLAT }); D.crate(44.4, -44.2, 1.4, { y0: H.PLAT, variant: 'ember' }); D.barrels([[46.8, -37.5]], { y0: H.PLAT });
-  D.crate(20.2, -29.2, 1.4, { y0: H.DECK }); D.crate(20.2, -27.8, 1.4, { y0: H.DECK, variant: 'tide' });
+  D.crate(20.2, -29.2, 1.4, { y0: H.DECK }); 
   D.lampPost(32, -14, 4.2); D.lampPost(40, -44, 4.2); D.lampPost(24, -30, 4.2);
   // beacon plinth (visual only)
   plinth(D, 34.5, -28.5, A_Y, 0xff7a2f);
@@ -168,40 +171,9 @@ export function dressWorld(D) {
   D.barrels([[-41, 16], [-40.2, 16.6]]); D.crate(-31, 33, 1.4, { variant: 'ember' });
   D.pillar(-23, 44.8, 0.9, 4.3); D.crate(-25.5, 40.8, 1.4);
 
-  // ============================================================ per-wall automation: windows, murals, stripes, team trim
-  const walls = D.terrainWalls || [];
-  let mural = 0;
-  for (const s of walls) {
-    if (!s.openB) continue;
-    const len = s.s1 - s.s0, Hh = Math.max(s.hA0, s.hA1) - Math.min(s.hB0, s.hB1);
-    if (s.hA0 !== s.hA1 || s.hB0 !== s.hB1) continue;
-    const zone = s.zone; const nrm = [[1, 0], [-1, 0], [0, 1], [0, -1]][s.d];
-    const low = s.hB0, high = s.hA0;
-    const tun = zone === 'btun' || zone === 'tunapp' || zone === 'btunmouth';
-    const p = (t, y) => (s.d < 2 ? [s.line + nrm[0] * 0.03, y, t] : [t, y, s.line + nrm[1] * 0.03]);
-    if (!tun && high - low >= 6.2 && len >= 3.4) {
-      const step = 4.6; const n = Math.floor((len - 1) / step);
-      for (let k = 0; k < n; k++) {
-        const t = s.s0 + 0.5 + (len - 1) * (k + 0.5) / n; const hsh = hash2(Math.floor(t * 4), Math.floor(s.line * 4));
-        if (hsh < 0.18) continue;
-        const kind = hsh < 0.55 ? 'window' : hsh < 0.8 ? 'shutter' : 'grille';
-        const wy = low + (zone === 'a' || zone === 'aplat' ? 3.6 : 3.3) + (hsh * 0.8);
-        D.decal({ type: 'wall', kind, c: p(t, wy + 0.6), n: nrm, w: 1.2, h: 1.9, seed: Math.floor(hsh * 1000), tone: hsh });
-      }
-    }
-    if (!tun && s.openB && high - low >= 5 && !s.stairA) {
-      const P = ZONES[zone] || ZONES.mass, capc = rgb(P.cap), pc = mulc(rgb(P.c), 1.04); const o = 0.28;
-      const boxAlong = (t0, t1, y0, y1, off, col, o2 = {}) => { const a = nrm; const x0 = s.d < 2 ? Math.min(s.line, s.line + a[0] * off) : t0, x1 = s.d < 2 ? Math.max(s.line, s.line + a[0] * off) : t1, z0 = s.d < 2 ? t0 : Math.min(s.line, s.line + a[1] * off), z1 = s.d < 2 ? t1 : Math.max(s.line, s.line + a[1] * off); D.VB.box('wall', x0, y0, z0, x1, y1, z1, col, { ao: 0.85, ...o2 }); };
-      boxAlong(s.s0, s.s1, high - 0.62, high - 0.18, o, capc, { bottom: true });
-      boxAlong(s.s0, s.s1, high - 0.18, high, o * 0.5, mulc(capc, 1.05), {});
-      if (len >= 8) for (let t = s.s0 + 2.5; t < s.s1 - 2; t += 6.5) boxAlong(t, t + 0.55, low + 0.0, high - 0.62, 0.22, pc, { ao: 0.8, top: false });
-    }
-    if (!tun && len >= 7 && high - low >= 6 && mural < 36 && hash2(Math.floor(s.s0 * 3 + 5), Math.floor(s.line * 5)) > 0.55) {
-      const t = s.s0 + len / 2; const kinds = ['chevrons', 'triangles', 'stripes', 'sun']; const hsh = hash2(Math.floor(t), Math.floor(s.line));
-      const accent = { es: 0xff7a2f, ts: 0x2fd0ff, a: 0x2a9d9f, aplat: 0x2a9d9f, bplaza: 0x1f8a8f, bbalc: 0x1f8a8f, long: 0xc4673d, outerlong: 0xc4673d, palace: 0x2a9d9f, hub: 0xc4673d, midapp: 0xc4673d }[zone] || 0xc4673d;
-      D.decal({ type: 'wall', kind: kinds[Math.floor(hsh * 4)], c: p(t, low + 2.2 + 1.2), n: nrm, w: Math.min(4.4, len - 1.5), h: 2.4, color: accent, seed: Math.floor(hsh * 997) }); mural++;
-    }
-  }
+  // ============================================================ facade kits (panels, awnings, shopfronts, balconies, windows, eaves)
+  dressFacades(D, D.terrainWalls || []);
+  extras(D);
 }
 
 function plinth(D, x, z, y0, color) {

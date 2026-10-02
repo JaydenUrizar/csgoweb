@@ -131,7 +131,7 @@ export function create(ctx) {
   // ------------------------------------------------------------------ frame
   function update(dt) {
     const t0 = performance.now();
-    dt = Math.min(dt, 0.1); H.T += dt;
+    dt = Math.min(dt, 0.1); H.T += dt; H.overlayPrev = H.overlayA || 0; H.overlayA = 0;
     layout();
     if (H.mock && mock) mock.update(dt);
     refreshActors();

@@ -14,7 +14,10 @@
 * `__game.hold({forward:true})`, `__game.advance(1)`, `__game.ctx.player.debug.telemetry()` / `.history()` / `.tune({runSpeed:7})`.
 * Numbers: `node tools/move_test.mjs [--only accel,stop,bhop,slide,jump,stairs,ramps,ledges,tight,walls,fuzz]` then `python3 tools/move_plot.py` → `shots/move/charts.png`.
 
-## Measured (120 Hz) vs CS2
+## Round 2 changes
+Speed/footsteps now come from post-collision displacement (wedged in a V = 0 m/s, no steps); 2-plane crease clip; stair-lip snag fixed (no more speed loss at stairs44); bhop takeoff no longer loses speed (smooth soft cap 7.8→11 m/s, hard 12.2); run 7.2 m/s; slide ×1.38 boost to ≤10 m/s, ~1.2 s / 9 m, 3.4° roll, deeper eye drop; speed FOV kick removed (`fovKick` setting, default 0; world FOV fixed); crouch-jump +0.17 m; mantle up to 1.5 m; livelier bob (2.3 cm, 0.7° roll) + footstep bounce; consumes `ctx.combat.aimPunch/scopeFov/sensScale/speedMult` and `ctx.match.frozen`.
+
+## Measured (round 1 numbers; run is now 7.2)
 run 6.6 m/s (CS2 4.76; ×1.39), 90% speed in 0.15 s, walk 0.52×, crouch 0.34×, counter-strafe to accurate speed 0.05 s / full stop 0.08 s (hold 120 ms), release stop 0.42 s, jump 1.05 m / 0.60 s hang, run-jump 3.9 m, perfect bhop plateaus ≈ 8.9 takeoff / 10 peak (soft cap), slide boost ×1.2 to ≤ 8.8 m/s, ~0.9 s / 4.5 m, step 0.45 m, ramps ≤ 45°, mantle ≤ 0.6 m lip (≤ 1.45 m above last ground), tunnelling 0/102, determinism identical, ~5 µs/tick.
 
 ## Known gaps

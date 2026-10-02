@@ -46,8 +46,8 @@ def metrics(x, sr):
     seg = x[on:on + int(sr * 0.1)]
     if len(seg) > 64:
         f, P = signal.welch(seg, sr, nperseg=min(1024, len(seg))); m['centroid_hz'] = float((f * P).sum() / (P.sum() + 1e-20))
-        cs = np.cumsum(P) / (P.sum() + 1e-20); m['rolloff85_hz'] = float(f[np.searchsorted(cs, 0.85)])
-        lo = P[f < 300].sum() / (P.sum() + 1e-20); m['low_ratio'] = float(lo)
+        cs = np.cumsum(P) / (P.sum() + 1e-20); m['rolloff85_hz'] = float(f[min(len(f) - 1, np.searchsorted(cs, 0.85))])
+        lo = P[f < 300].sum() / (P.sum() + 1e-20); m['low_ratio'] = float(lo); m['hi_share'] = float(P[(f >= 1000) & (f < 8000)].sum() / (P.sum() + 1e-20))
     a = act[0] if len(act) else 0; b = act[-1] + 1 if len(act) else len(x)
     rms = np.sqrt(np.mean(x[a:b] ** 2) + 1e-14); m['rms_db'] = float(20 * np.log10(rms))
     y = kweight(x, sr); blk = int(sr * 0.4)
@@ -77,7 +77,7 @@ def main():
         sr, x = load(p); m = metrics(x, sr); res[name] = m
         plot(x, sr, os.path.join(d, name + '.png'), name, m, tmax=(len(x) / sr if name.startswith('music') else min(len(x) / sr, 2.5)))
     json.dump(res, open(jp, 'w'), indent=1)
-    cols = ['peak_db', 'rms_db', 'lufs_short_max', 'attack_ms', 'decay20_ms', 'dur50_ms', 'centroid_hz', 'rolloff85_hz', 'low_ratio']
+    cols = ['peak_db', 'rms_db', 'lufs_short_max', 'attack_ms', 'decay20_ms', 'dur50_ms', 'centroid_hz', 'rolloff85_hz', 'low_ratio', 'hi_share']
     lines = ['%-34s' % 'name' + ''.join('%14s' % c for c in cols)]
     for n, m in sorted(res.items()): lines.append('%-34s' % n + ''.join('%14s' % m.get(c, '') for c in cols))
     open(os.path.join(d, 'metrics.txt'), 'w').write('\n'.join(lines))

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 /** metres per texture repeat; local:true => UVs start at the box origin instead of world zero */
 export const MAT = {
-  wall: { tile: 4 }, plaster: { tile: 4 }, floor: { tile: 4 }, brick: { tile: 2 }, sand: { tile: 8 }, tile: { tile: 2 },
+  wall: { tile: 3 }, plaster: { tile: 4 }, floor: { tile: 4 }, brick: { tile: 2 }, sand: { tile: 8 }, tile: { tile: 2 },
   roof: { tile: 4 }, wood: { tile: 2 }, crate: { tile: 1.4, local: true }, metal: { tile: 2 }, ribbed: { tile: 2 }, deck: { tile: 2 },
   cloth: { tile: 2 }, plain: { tile: 1 }, emissive: { tile: 1 }, glass: { tile: 1 }, water: { tile: 4 }, foliage: { tile: 1 }, signs: { tile: 1, rgba: true }, contact: { tile: 1, rgba: true },
 };
@@ -15,7 +15,7 @@ export const mulc = (c, k) => [c[0] * k, c[1] * k, c[2] * k];
 export const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 export class VisBuilder {
-  constructor(chunk = 64) { this.chunk = chunk; this.b = new Map(); this.tris = 0; }
+  constructor(chunk = 256) { this.chunk = chunk; this.b = new Map(); this.tris = 0; }
   bucket(mat, x, z) {
     const cx = Math.floor((x + 50) / this.chunk), cz = Math.floor((z + 52) / this.chunk);
     const key = mat + '|' + cx + '|' + cz;

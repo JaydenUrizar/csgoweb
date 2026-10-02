@@ -290,7 +290,7 @@ if (should('ledges')) {
     const a = mkAt('ledge' + h); a.pos.z += 2.5;
     let tj = -1;
     const s = run(a, 2.0, (t, a, m, c) => { c.forward = 1; c.jump = (a.pos.z < -9 + 2 + 1.9 && a.pos.z > -9 + 2 + 1.4); });
-    const on = s[s.length - 1].y > h - 0.05;
+    const on = s.some((p) => p.g && p.y > h - 0.05);
     const mantles = events.filter((e) => e.t === 'mantle').length;
     results.ledges[h] = { walkUp: walk, jumpUp: on, mantles };
     rows.push(`${h.toFixed(2)}m: walk ${walk ? 'YES' : ' no'} | jump ${on ? 'YES' : ' no'}${mantles ? ' (mantle)' : ''}`);

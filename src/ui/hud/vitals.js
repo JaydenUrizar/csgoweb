@@ -123,7 +123,7 @@ export function create(H) {
       const cash = Math.round(v.credits ?? 0);
       if (cash !== S.cash) { S.cash = cash; }
       S.cashShown = Math.abs(S.cash - S.cashShown) < 1 ? S.cash : damp(S.cashShown, S.cash, 10, dt);
-      setAmt(Math.round(S.cashShown).toLocaleString('en-US'));
+      setAmt(Math.round(S.cashShown).toLocaleString('en-US')); H.cashShown = S.cashShown;
       fMoneyLow(S.cash < 500 && R.match?.phase === 'buy');
       let n = 0;
       for (let i = 0; i < dls.length; i++) {

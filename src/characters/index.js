@@ -81,8 +81,9 @@ export function create(ctx) {
   on('weapon:fire', (e) => { const m = model(e.actor); if (!m || m.tag) return; const id = idOf(e.tagger), cls = id ? classOf(id, e.tagger) : m.held.cls; onFire(m, cls); });
   on('weapon:reload', (e) => {
     const m = model(e.actor); if (!m || m.tag) return; const id = idOf(e.tagger), def = typeof e.tagger === 'object' ? e.tagger : ctx.combat?.taggers?.[id], cls = id ? classOf(id, def) : m.held.cls, st = String(e.stage ?? 'start');
-    if (/cancel|abort|interrupt/.test(st)) m.reload = null;
-    else if (/end|done|finish|complete/.test(st)) { if (m.reload) m.reload.t = Math.max(m.reload.t, m.reload.dur * 0.9); }
+    if (/cancel|abort|interrupt|switch|drop|fire/.test(st)) m.reload = null;
+    else if (/end|done|finish|complete|commit/.test(st)) { if (m.reload) m.reload.t = Math.max(m.reload.t, m.reload.dur * 0.9); }
+    else if (st === 'in') { /* mid-reload beat */ }
     else { m.reloadSeen = true; onReload(m, cls, def?.reloadTime ?? def?.reload ?? 2.2); }
   });
   on('weapon:switch', (e) => { const m = model(e.actor); if (m && !m.tag) syncHeld(m, idOf(e.tagger) ?? undefined); });
@@ -126,7 +127,7 @@ export function create(ctx) {
       syncHeld(m);
       animate(ctx, m, dt, alpha);
       if (m.held.obj) m.held.obj.visible = !fp && !m.hideHeld;
-      if (showHb) { if (!m.hbDbg) { m.hbDbg = createDebugMesh(m); scene.add(m.hbDbg); } m.hbDbg.visible = true; updateDebugMesh(m, m.hbDbg, tick); } else if (m.hbDbg) m.hbDbg.visible = false;
+      if (showHb && !m.firstPerson) { if (!m.hbDbg) { m.hbDbg = createDebugMesh(m); scene.add(m.hbDbg); } m.hbDbg.visible = true; updateDebugMesh(m, m.hbDbg, tick); } else if (m.hbDbg) m.hbDbg.visible = false;
       if (showNames) updatePlate(m);
     }
     fx.update(dt);

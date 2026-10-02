@@ -178,7 +178,7 @@ export class Dress {
   awning(x0, z0, x1, z1, y, drop = 0.5, o = {}) {
     const alongX = o.axis !== 'z'; const c = o.color ? rgb(o.color) : [1, 1, 1];
     // slopes down towards +z (axis x) or +x
-    if (alongX) { this.VB.quad('cloth', [x0, y - drop, z1], [x1, y - drop, z1], [x1, y, z0], [x0, y, z0], c, { uv: [[0, 0], [x1 - x0, 0], [x1 - x0, 1], [0, 1]].map(([a, b]) => [a / 2, b]) }); this.VB.quad('cloth', [x0, y, z0], [x1, y, z0], [x1, y - drop, z1], [x0, y - drop, z1], mulc(c, 0.8), { uv: [[0, 0], [1, 0], [1, 1], [0, 1]] }); }
+    if (alongX) { this.VB.quad('cloth', [x0, y - drop, z1], [x1, y - drop, z1], [x1, y, z0], [x0, y, z0], c, { uv: [[0, 0], [x1 - x0, 0], [x1 - x0, 1], [0, 1]].map(([a, b]) => [a / 2, b]) }); this.VB.quad('emissive', [x0, y - 0.025, z0], [x1, y - 0.025, z0], [x1, y - drop - 0.025, z1], [x0, y - drop - 0.025, z1], [0.45, 0.33, 0.25]); }
     else { this.VB.quad('cloth', [x1, y - drop, z0], [x1, y - drop, z1], [x0, y, z1], [x0, y, z0], c, { uv: [[0, 0], [1, 0], [1, 1], [0, 1]] }); this.VB.quad('cloth', [x0, y, z0], [x0, y, z1], [x1, y - drop, z1], [x1, y - drop, z0], mulc(c, 0.8), { uv: [[0, 0], [1, 0], [1, 1], [0, 1]] }); }
   }
   /** wooden pergola with string lights; posts collide */

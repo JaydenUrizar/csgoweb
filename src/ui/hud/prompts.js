@@ -11,15 +11,15 @@ export const css = `
 .ring{position:absolute;left:50%;top:50%;width:92px;height:92px;margin:-46px 0 0 -46px;opacity:0;pointer-events:none;will-change:opacity,transform}
 .ring svg{width:100%;height:100%;display:block;transform:rotate(-90deg);filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
 .ring .pc{position:absolute;left:0;right:0;top:100%;margin-top:6px;text-align:center;font:700 18px/18px var(--font);letter-spacing:.14em;color:#fff;text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.6);white-space:nowrap}
-.ban{position:absolute;left:0;right:0;top:19%;height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;will-change:opacity,transform}
-.ban .band{position:absolute;left:0;right:0;top:50%;height:96px;margin-top:-48px;background:linear-gradient(90deg,rgba(8,10,18,0),rgba(8,10,18,.72) 22%,rgba(8,10,18,.78) 50%,rgba(8,10,18,.72) 78%,rgba(8,10,18,0));transform-origin:50% 50%;will-change:transform}
+.ban{position:absolute;left:0;right:0;top:104px;height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;will-change:opacity,transform}
+.ban .band{position:absolute;left:18%;right:18%;top:50%;height:74px;margin-top:-37px;background:linear-gradient(90deg,rgba(8,10,18,0),rgba(8,10,18,.6) 20%,rgba(8,10,18,.68) 50%,rgba(8,10,18,.6) 80%,rgba(8,10,18,0));transform-origin:50% 50%;will-change:transform}
 .ban .band:before,.ban .band:after{content:"";position:absolute;left:12%;right:12%;height:2px;background:linear-gradient(90deg,rgba(255,255,255,0),var(--bc,#fff),rgba(255,255,255,0))}
 .ban .band:before{top:0}.ban .band:after{bottom:0}
-.ban .t{position:relative;font:700 60px/60px var(--font);letter-spacing:.09em;text-transform:uppercase;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.35),0 0 24px rgba(0,0,0,.55);will-change:transform}
+.ban .t{position:relative;font:700 40px/40px var(--font);letter-spacing:.09em;text-transform:uppercase;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.35),0 0 24px rgba(0,0,0,.55);will-change:transform}
 .ban .t em{font-style:normal;color:var(--bc,#fff)}
-.ban .s{position:relative;margin-top:4px;font:600 21px/24px var(--font);letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.88);text-shadow:0 1px 3px #000}
-.ban .m{position:relative;margin-top:2px;font:600 15px/18px var(--font);letter-spacing:.16em;text-transform:uppercase;color:#ffd25a;text-shadow:0 1px 3px #000;height:18px}
-.nt{position:absolute;left:50%;top:86px;transform:translateX(-50%);pointer-events:none;opacity:0;will-change:opacity,transform}
+.ban .s{position:relative;margin-top:3px;font:600 15px/18px var(--font);letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.88);text-shadow:0 1px 3px #000}
+.ban .m{position:relative;margin-top:1px;font:600 13px/16px var(--font);letter-spacing:.16em;text-transform:uppercase;color:#ffd25a;text-shadow:0 1px 3px #000;height:16px}
+.nt{position:absolute;left:50%;top:92px;transform:translateX(-50%);pointer-events:none;opacity:0;will-change:opacity,transform}
 .nt .in{display:flex;align-items:center;gap:8px;padding:4px 14px 4px 9px;border-radius:14px;background:rgba(10,13,22,.78);box-shadow:0 0 0 1px var(--nc,rgba(255,255,255,.2)) inset,0 3px 10px rgba(0,0,0,.4);font:600 16px/20px var(--font);letter-spacing:.08em;text-transform:uppercase;color:#fff;white-space:nowrap}
 .nt .in svg{width:18px;height:18px;color:var(--nc,#fff)}
 .toasts{position:absolute;left:22px;bottom:128px;display:flex;flex-direction:column;gap:2px;pointer-events:none;width:360px}
@@ -101,7 +101,7 @@ export function create(H) {
     const team = H.playerTeam, col = H.pal[team];
     const pistol = n === 1 || n === 8; const se = m.scores?.ember ?? 0, st = m.scores?.tide ?? 0;
     const mp = Math.max(se, st) === 7;
-    banner({ title: `ROUND <em>${n}</em>`, sub: side === 'attack' ? 'Attack — arm the Beacon at A or B' : 'Defend — protect both sites', meta: mp ? 'MATCH POINT' : pistol ? 'PISTOL ROUND' : '', color: col, hold: 2.4, kind: 'round' });
+    banner({ title: `ROUND <em>${n}</em>`, sub: side === 'attack' ? 'Attack — arm the Beacon at A or B' : 'Defend — protect both sites', meta: mp ? 'MATCH POINT' : pistol ? 'PISTOL ROUND' : '', color: col, hold: 1.4, kind: 'round' });
   }
   function onPhase(p, prev) {
     if (!p || p === S.lastPhase) return; S.lastPhase = p;
@@ -144,7 +144,7 @@ export function create(H) {
       const sig = p ? p.text + p.key + (p.hint || '') : '';
       if (sig !== S.prev) { S.prev = sig; if (p) { setKey(p.key || 'E'); setTx(p.text); setHint(p.hint || ''); prm.classList.toggle('sm', !!p.sm); } }
       const ta = p ? 1 : 0; S.prmA = ta ? Math.min(1, S.prmA + dt * 9) : Math.max(0, S.prmA - dt * 9);
-      const pa = (p && p.progress != null ? 0 : S.prmA).toFixed(2); if (S.pa !== pa) { S.pa = pa; prm.style.opacity = pa; prm.style.visibility = S.prmA > 0 ? '' : 'hidden'; }
+      const pa = ((p && p.progress != null ? 0 : S.prmA) * (1 - Math.min(1, (H.overlayPrev || 0) * 1.2))).toFixed(2); if (S.pa !== pa) { S.pa = pa; prm.style.opacity = pa; prm.style.visibility = S.prmA > 0 ? '' : 'hidden'; }
       const showRing = p && p.progress != null; const tr = showRing ? 1 : 0;
       S.ringA = tr ? Math.min(1, S.ringA + dt * 10) : Math.max(0, S.ringA - dt * 10);
       const ra = S.ringA.toFixed(2); if (S.ra !== ra) { S.ra = ra; ring.style.opacity = ra; ring.style.transform = `scale(${(0.85 + 0.15 * S.ringA).toFixed(3)})`; }
@@ -163,8 +163,8 @@ export function create(H) {
         if (age > total) { S.ban = null; ban.style.opacity = 0; ban.style.display = 'none'; }
         else {
           const pin = clamp(age / tin, 0, 1), pout = clamp((age - tin - b.hold) / tout, 0, 1);
-          const op = easeOut(pin) * (1 - pout);
-          const sc = 1 + (1 - easeOutBack(pin)) * 0.28; const y = -pout * 14;
+          const ov = 1 - Math.min(1, (H.overlayPrev || 0) * 1.2); const op = easeOut(pin) * (1 - pout) * ov;
+          const sc = 1 + (1 - easeOutBack(pin)) * 0.18; const y = -pout * 14;
           ban.style.opacity = op.toFixed(3);
           bt.style.transform = `scale(${sc.toFixed(3)})`;
           bandEl.style.transform = `scaleY(${(0.2 + 0.8 * easeOut(pin)).toFixed(3)})`;
@@ -176,13 +176,13 @@ export function create(H) {
       const n = S.nt;
       if (n) {
         const age = T - n.t0; if (age > n.dur) { S.nt = null; nt.style.opacity = 0; }
-        else { const i = easeOut(clamp(age / 0.2, 0, 1)), o = clamp((n.dur - age) / 0.4, 0, 1); nt.style.opacity = (i * o).toFixed(2); nt.style.transform = `translateX(-50%) translateY(${((1 - i) * -8).toFixed(1)}px)`; }
+        else { const i = easeOut(clamp(age / 0.2, 0, 1)), o = clamp((n.dur - age) / 0.4, 0, 1); nt.style.opacity = (i * o * (1 - Math.min(1, (H.overlayPrev || 0) * 1.2))).toFixed(2); nt.style.transform = `translateX(-50%) translateY(${((1 - i) * -8).toFixed(1)}px)`; }
       }
       // ---------- toasts
       for (let i = S.ts.length - 1; i >= 0; i--) {
         const o = S.ts[i], age = T - o.t0;
         if (age > 5) { o.el.remove(); S.ts.splice(i, 1); continue; }
-        const a = Math.round(clamp(age / 0.15, 0, 1) * clamp((5 - age) / 0.8, 0, 1) * 100) / 100;
+        const a = Math.round(clamp(age / 0.15, 0, 1) * clamp((5 - age) / 0.8, 0, 1) * (1 - Math.min(1, (H.overlayPrev || 0) * 1.2)) * 100) / 100;
         if (a !== o.a) { o.a = a; o.el.style.opacity = a; }
       }
       // ---------- flash-blind

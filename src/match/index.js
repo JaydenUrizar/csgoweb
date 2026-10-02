@@ -63,6 +63,8 @@ export function create(ctx) {
         credits: Object.fromEntries(r.ctx.actors.map((a) => [a.name, a.credits])), lossStreak: { ...m.lossStreak }, measure: Object.fromEntries(Object.entries(r.chk.measure).map(([k, v]) => [k, +(v.reduce((s, x) => s + x, 0) / v.length).toFixed(3)])),
       };
     },
+    /** Let place()/debug moves stick during buy/freeze (the spawn pin is off by default in ?test=1). */
+    pin: (on) => { TUNE.hardFreeze = !!on; return TUNE.hardFreeze; },
     snapshot: () => M.snapshot(),
     text: () => lab.text(),
     beacon: { forceArm: (site) => M.beaconApi.forceArm(site) },
@@ -78,7 +80,7 @@ export function create(ctx) {
   ctx.events.on('boot:done', () => {
     const p = ctx.params;
     if (p.get('scene')) return;
-    if (p.get('match')) M.startMatch({ difficulty: p.get('difficulty') || 'pro', playerTeam: p.get('team') || 'ember', dummies: p.get('dummies') === '1' });
+    if (p.get('match')) { M.startMatch({ difficulty: p.get('difficulty') || 'pro', playerTeam: p.get('team') || 'ember', dummies: p.get('dummies') === '1' }); if (p.get('phase')) M.debug.forcePhase(p.get('phase')); }
     else if (!p.get('test') && ctx.menu?.__stub) M.startMatch({ difficulty: 'pro', playerTeam: 'ember' });
   });
   return M;
