@@ -1,13 +1,13 @@
 {
- "updated": "2026-10-02T06:28:18.715Z",
- "wave": 2,
- "phase": "Integration pass — one fresh agent plays the whole game and unifies it",
+ "updated": "2026-10-02T08:15:20.122Z",
+ "wave": 3,
+ "phase": "Round 2 critics — blind comparison vs CS2 again",
  "pieces": [
   {
    "id": "render",
    "name": "Rendering, lighting & post-FX",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 5.6,
    "gap": "The ambient/shadow term is wrong. Surfaces outside the sun take an unoccluded, oversaturated blue sky term. Reproduce: ?test=1&seed=1&match=1, hide the HUD, then __game.ctx.map.debug.setView('mid' | 'long' | 'a-door' | 'b-tunnel')",
@@ -20,13 +20,13 @@
      "gap": "The ambient/shadow term is wrong. Surfaces outside the sun take an unoccluded, oversaturated blue sky term. Reproduce: ?test=1&seed=1&match=1, hide the HUD, then __game.ctx.map.debug.setView('mid' | 'long' | 'a-door' | 'b-tunnel')"
     }
    ],
-   "updated": "2026-10-02T01:29:37.047Z"
+   "updated": "2026-10-02T08:15:19.391Z"
   },
   {
    "id": "map",
    "name": "Map — Crux Station",
    "group": "world",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 5.2,
    "gap": "Detail density and facade variety. Every lane (Long 38,*,26->-20; Short/Catwalk 14.5,*,-8; Mid lane; Tunnels) is two 8-12 m walls in the same large-brick sandstone with the same small arched window. Floors are huge empty tile fiel",
@@ -39,13 +39,13 @@
      "gap": "Detail density and facade variety. Every lane (Long 38,*,26->-20; Short/Catwalk 14.5,*,-8; Mid lane; Tunnels) is two 8-12 m walls in the same large-brick sandstone with the same small arched window. Floors are huge empty tile fiel"
     }
    ],
-   "updated": "2026-10-02T01:29:37.125Z"
+   "updated": "2026-10-02T08:15:19.442Z"
   },
   {
    "id": "nav",
    "name": "Navigation & pathing",
    "group": "ai",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 6.8,
    "gap": "Tactical and path query cost tails will stall the main thread. On the real map (load avg ~28 on 4 cores) holdSpots(A site, toward Long Ramp, 12) took 176 ms and holdSpots(B, toward Tunnel Mouth) 350 ms per call. coverPoints took 5",
@@ -58,13 +58,13 @@
      "gap": "Tactical and path query cost tails will stall the main thread. On the real map (load avg ~28 on 4 cores) holdSpots(A site, toward Long Ramp, 12) took 176 ms and holdSpots(B, toward Tunnel Mouth) 350 ms per call. coverPoints took 5"
     }
    ],
-   "updated": "2026-10-02T06:28:18.336Z"
+   "updated": "2026-10-02T08:15:19.991Z"
   },
   {
    "id": "move",
    "name": "Movement & camera feel",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 7.2,
    "gap": "Wedge phantom velocity. On the movement course, goto('vcrease') and hold W for 2 s. The player wedges in the 30-degree V and stays wedged. actor.move.speed reads 0.62 m/s indefinitely, the position oscillates on a 3-tick cycle (ab",
@@ -77,13 +77,13 @@
      "gap": "Wedge phantom velocity. On the movement course, goto('vcrease') and hold W for 2 s. The player wedges in the 30-degree V and stays wedged. actor.move.speed reads 0.62 m/s indefinitely, the position oscillates on a 3-tick cycle (ab"
     }
    ],
-   "updated": "2026-10-02T01:29:37.209Z"
+   "updated": "2026-10-02T08:15:19.788Z"
   },
   {
    "id": "tagger",
    "name": "Tagger ballistics, recoil & inventory",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 6.4,
    "gap": "The accuracy model is far too forgiving compared with CS2, which flattens skill. Measured in the range (?scene=range, overlay, or ctx.combat.inaccuracy): Arc standing first-shot error is 0.10 deg (CS2 AK: inaccuracy_stand 6.41 + s",
@@ -96,13 +96,13 @@
      "gap": "The accuracy model is far too forgiving compared with CS2, which flattens skill. Measured in the range (?scene=range, overlay, or ctx.combat.inaccuracy): Arc standing first-shot error is 0.10 deg (CS2 AK: inaccuracy_stand 6.41 + s"
     }
    ],
-   "updated": "2026-10-02T01:29:37.292Z"
+   "updated": "2026-10-02T08:15:19.835Z"
   },
   {
    "id": "viewmodel",
    "name": "First-person viewmodels & animation",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 4.8,
    "gap": "Weapon silhouettes/finish read as stacked boxes with a skin that destroys form. Repro: ?test=1&seed=1&match=1&phase=live, give arc/rail/halo/lance/scatter/storm (shots/critic-viewmodel/g_sheet1.png, g_sheet2.png). The default in-m",
@@ -115,14 +115,14 @@
      "gap": "Weapon silhouettes/finish read as stacked boxes with a skin that destroys form. Repro: ?test=1&seed=1&match=1&phase=live, give arc/rail/halo/lance/scatter/storm (shots/critic-viewmodel/g_sheet1.png, g_sheet2.png). The default in-m"
     }
    ],
-   "updated": "2026-10-02T06:28:18.607Z",
+   "updated": "2026-10-02T08:15:19.645Z",
    "note": "Builder was stopped mid-work; awaiting go-ahead to relaunch"
   },
   {
    "id": "utility",
    "name": "Utility (Haze / Strobe / Pulse)",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 5.8,
    "gap": "What the smoke shows and what blocksLine reports do not match after bullets pass through it. Repro: utility-lab, spawn haze at (0,0.07,14), wait 3 s, place actor B at (1.5,0,9), stand at eye (-0.5,1.62,21) and emit 5 'weapon:fire'",
@@ -135,13 +135,13 @@
      "gap": "What the smoke shows and what blocksLine reports do not match after bullets pass through it. Repro: utility-lab, spawn haze at (0,0.07,14), wait 3 s, place actor B at (1.5,0,9), stand at eye (-0.5,1.62,21) and emit 5 'weapon:fire'"
     }
    ],
-   "updated": "2026-10-02T06:28:18.406Z"
+   "updated": "2026-10-02T08:15:19.692Z"
   },
   {
    "id": "avatars",
    "name": "Characters & animation",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 5.4,
    "gap": "Cosmetics override team identity. Resolved cosmetic specs ignore the team, and in shots/critic-avatars/m4.json actor 3 (ember) and actor 4 (tide) have byte-identical specs (suit base #1a0b3d, magenta #ff2cd6 accent, holo circuit p",
@@ -154,13 +154,13 @@
      "gap": "Cosmetics override team identity. Resolved cosmetic specs ignore the team, and in shots/critic-avatars/m4.json actor 3 (ember) and actor 4 (tide) have byte-identical specs (suit base #1a0b3d, magenta #ff2cd6 accent, holo circuit p"
     }
    ],
-   "updated": "2026-10-02T01:29:37.379Z"
+   "updated": "2026-10-02T08:15:19.491Z"
   },
   {
    "id": "cosmetics",
    "name": "Cosmetics & locker",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 5.8,
    "gap": "The locker preview is not what you get in game. The preview is a stand-in blocky rig with the raw suit colours. In game, characters.refreshCosmetics recolours the suit to the team: an Ember player who equips Neon Drift Skin (shown",
@@ -173,13 +173,13 @@
      "gap": "The locker preview is not what you get in game. The preview is a stand-in blocky rig with the raw suit colours. In game, characters.refreshCosmetics recolours the suit to the team: an Ember player who equips Neon Drift Skin (shown"
     }
    ],
-   "updated": "2026-10-02T06:28:18.472Z"
+   "updated": "2026-10-02T08:15:20.062Z"
   },
   {
    "id": "vfx",
    "name": "VFX & juice",
    "group": "look",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 5.6,
    "gap": "Tracers are effectively invisible in real play. Own pip shots at 7.5m show as faint 1px grey dashes (shots/critic-vfx/g_fire_0-1.png). In vfx-lab, tracer-beam and tracer-comet are a barely visible dotted line or a dot (frames/trac",
@@ -192,13 +192,13 @@
      "gap": "Tracers are effectively invisible in real play. Own pip shots at 7.5m show as faint 1px grey dashes (shots/critic-vfx/g_fire_0-1.png). In vfx-lab, tracer-beam and tracer-comet are a barely visible dotted line or a dot (frames/trac"
     }
    ],
-   "updated": "2026-10-02T01:29:37.614Z"
+   "updated": "2026-10-02T08:15:19.537Z"
   },
   {
    "id": "audio",
    "name": "Audio & music",
    "group": "feel",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 5.4,
    "gap": "Gunfire is dull, tonal and buried under foley/UI. Offline FP renders (node tools/audio_dump.mjs): spectral centroid in the first 100 ms is 145-600 Hz for every tagger (judge 144 Hz, lance 146 Hz, low_ratio 0.93-0.95; >4 kHz energy",
@@ -211,7 +211,7 @@
      "gap": "Gunfire is dull, tonal and buried under foley/UI. Offline FP renders (node tools/audio_dump.mjs): spectral centroid in the first 100 ms is 145-600 Hz for every tagger (judge 144 Hz, lance 146 Hz, low_ratio 0.93-0.95; >4 kHz energy"
     }
    ],
-   "updated": "2026-10-02T01:29:37.702Z"
+   "updated": "2026-10-02T08:15:19.940Z"
   },
   {
    "id": "bots",
@@ -222,13 +222,13 @@
    "score": 0,
    "gap": "",
    "history": [],
-   "updated": "2026-10-02T06:28:18.658Z"
+   "updated": "2026-10-02T08:15:20.121Z"
   },
   {
    "id": "flow",
    "name": "Match flow & economy",
    "group": "systems",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 6.5,
    "gap": "Exit frags are broken. Combat allows tags during roundEnd, but flow.onTagOut returns early outside live/armed: the killer gets no reward or stat, and the victim's match.survived stays true. Combat has already dropped the victim's ",
@@ -241,13 +241,13 @@
      "gap": "Exit frags are broken. Combat allows tags during roundEnd, but flow.onTagOut returns early outside live/armed: the killer gets no reward or stat, and the victim's match.survived stays true. Combat has already dropped the victim's "
     }
    ],
-   "updated": "2026-10-02T01:29:37.538Z"
+   "updated": "2026-10-02T08:15:19.884Z"
   },
   {
    "id": "hud",
    "name": "HUD",
    "group": "ui",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 7.3,
    "gap": "Radar readability. In a live match (?test=1&seed=1&match=1, any position, e.g. F1920_prot_e_second.png / L1280_08_mid.png) the radar is a pale grey map on black with dozens of rotated 4-6px callout labels sprinkled over it (unread",
@@ -260,13 +260,13 @@
      "gap": "Radar readability. In a live match (?test=1&seed=1&match=1, any position, e.g. F1920_prot_e_second.png / L1280_08_mid.png) the radar is a pale grey map on black with dozens of rotated 4-6px callout labels sprinkled over it (unread"
     }
    ],
-   "updated": "2026-10-02T01:29:37.459Z"
+   "updated": "2026-10-02T08:15:19.599Z"
   },
   {
    "id": "menu",
    "name": "Menus, settings & onboarding",
    "group": "ui",
-   "status": "building",
+   "status": "judging",
    "round": 2,
    "score": 6.6,
    "gap": "Every in-match overlay (pause, settings-from-pause, F1 cheat-sheet, tutorial card) renders BELOW the HUD. Repro: normal URL -> Play -> Esc (or pointer unlock) -> Settings; or press F1 in game. The radar, scorebar, round banner/kil",
@@ -279,7 +279,7 @@
      "gap": "Every in-match overlay (pause, settings-from-pause, F1 cheat-sheet, tutorial card) renders BELOW the HUD. Repro: normal URL -> Play -> Esc (or pointer unlock) -> Settings; or press F1 in game. The radar, scorebar, round banner/kil"
     }
    ],
-   "updated": "2026-10-02T06:28:18.542Z"
+   "updated": "2026-10-02T08:15:19.743Z"
   },
   {
    "id": "perf",
@@ -293,6 +293,16 @@
   }
  ],
  "log": [
+  {
+   "t": "2026-10-02T08:15:19.337Z",
+   "text": "WAVE 3 — Round 2 critics — blind comparison vs CS2 again",
+   "kind": "wave"
+  },
+  {
+   "t": "2026-10-02T08:15:19.279Z",
+   "text": "Integration pass complete (fresh agent played boot→match→halftime). Round 2 critics starting.",
+   "kind": "integrate"
+  },
   {
    "t": "2026-10-02T06:28:18.715Z",
    "text": "WAVE 2 — Integration pass — one fresh agent plays the whole game and unifies it",

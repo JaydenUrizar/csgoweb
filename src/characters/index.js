@@ -105,7 +105,7 @@ export function create(ctx) {
   });
   on('land', (e) => { const m = model(e.actor); if (m) landImpact(m, e.speed ?? 6); });
   on('jump', (e) => { const m = model(e.actor); if (m) m.jumpT = 0; });
-  on('spectate', (e) => { viewActor = e.actor || null; });
+  on('spectate', (e) => { viewActor = e.actor || undefined; });   // integration: null = back to own view; null here left the respawned local body visible (big coloured card in the camera)
   on('round:start', () => { fx.clear(); for (const m of models.values()) { if (m.actor.alive !== false) { if (m.tag) resetTag(m); else if (!m.auto || m.actor.alive) m.spawnT = 0; } } });
 
   // ------------------------------------------------------------------ frame update

@@ -76,6 +76,8 @@ export function createViewmodel(ctx) {
     hmats.setStyle(team, suit);
   }
   refreshStyle();
+  // Integration: loadouts are per team and apply() fires on every round:start/halftime/side pick, so restyle hands + tagger skin when the local loadout changes (otherwise the viewmodel keeps the previous side's colours).
+  ctx.events?.on?.('cosmetics:change', (e) => { if (e?.actor !== ctx.localActor || !S.model) return; const sk = e.spec?.taggerSkin; try { if (sk) { S.model.mats.apply(sk); S.skin = sk; } } catch (err) { /* keep old skin */ } refreshStyle(); });
 
   // ---------------------------------------------------------------- model swapping
   function mkBuffers(model) {

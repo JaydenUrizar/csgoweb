@@ -207,7 +207,7 @@ async function range(ctx, core) {
   }));
 
   let hud = null, xh = null;
-  if (P.get('overlay') !== '0' && typeof document !== 'undefined') {
+  if ((P.get('overlay') === '1' || (P.get('test') && P.get('overlay') !== '0')) && typeof document !== 'undefined') {   // integration: debug telemetry panel only in test mode / ?overlay=1 (it covered the HUD for real players)
     hud = document.createElement('div'); hud.id = 'range-hud';
     hud.style.cssText = 'position:fixed;left:12px;top:205px;z-index:50;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#e6f0ff;background:rgba(10,14,20,.72);border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:8px 10px;pointer-events:none;white-space:pre;min-width:290px';
     document.body.appendChild(hud);
@@ -302,6 +302,9 @@ async function range(ctx, core) {
     const i = core.hooks.impact.indexOf(hook); if (i >= 0) core.hooks.impact.splice(i, 1); targets.length = 0;
     if (ctx.map) { ctx.map.raycast = saved.raycast; ctx.map.surfaceAt = saved.surfaceAt; ctx.map.collider = saved.collider; ctx.map.thinWalls = saved.thinWalls; if (ctx.map.group) ctx.map.group.visible = true; }
   };
+  // integration: the range replaces map collider/visibility; tear it down when a real match starts or the player leaves to the menu (otherwise its floor/wall and HUD overlay stayed in every later match)
+  let gone = false; const bye = () => { if (gone) return; gone = true; try { sc.dispose(); } catch (e) { /* ignore */ } if (core.debug.range === sc) core.debug.range = null; };
+  const offA = ctx.events.on('match:start', bye), offB = ctx.events.on('match:quit', bye); offs.push(offA, offB);
   core.debug.range = sc;
   return sc;
 }

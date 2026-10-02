@@ -359,7 +359,8 @@ export function createBrain(B) {
     switch (o.kind) {
       case 'goto': case 'hold': case 'push': case 'roam': {
         let pos = o.pos, r = o.r ?? (o.kind === 'hold' ? K.arriveHold : K.arrive);
-        if (o.kind === 'goto' || o.kind === 'push') { pos = crowdOffset(ai, o); r = Math.max(r, 1.5); }
+        if (o.pickup) { r = Math.min(r, 0.5); }   // integration: Beacon pickup range is 1.6 m: no crowd offset / 1.5 m arrival slack, or the bot parks 2.4 m away and the round times out
+        else if (o.kind === 'goto' || o.kind === 'push') { pos = crowdOffset(ai, o); r = Math.max(r, 1.5); }
         goTo(ai, pos, r, o.walk ? 'walk' : 'run');
         break;
       }

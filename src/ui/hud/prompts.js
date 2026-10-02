@@ -73,7 +73,7 @@ export function create(H) {
   });
   H.bus.on('halftime', (hd) => {
     if (hd?.kind === 'ot' || hd?.kind === 'otHalf') { banner({ title: 'OVERTIME', sub: hd.kind === 'otHalf' ? 'Switching sides' : 'Sudden death — first to 4', color: '#ffd25a', hold: 4, kind: 'half' }); return; }
-    const t = H.playerTeam; const side = H.R.match?.sideOf?.(t);
+    const t = H.R.localActor?.team || H.playerTeam; const side = H.R.match?.sideOf?.(t);   // integration: H.playerTeam is still the old side when this fires
     banner({ title: 'HALFTIME', sub: side ? `Switching sides — you are now ${side === 'attack' ? 'attacking' : 'defending'}` : 'Switching sides', color: '#ffd25a', hold: 4, kind: 'half' });
   });
   H.bus.on('match:end', (d) => {
@@ -128,6 +128,12 @@ export function create(H) {
       if (mine && near && (ph === 'live') && (bc.state === 'carried' || !bc.state)) return { text: `Hold to arm Beacon`, hint: `Site ${near}`, key: 'E' };
       if (bc.state === 'armed' && H.playerTeam === 'tide' && bc.pos && Math.hypot(v.pos.x - bc.pos.x, v.pos.z - bc.pos.z) < 2.6) return { text: 'Hold to disarm Beacon', hint: v.hasKit ? 'Kit equipped' : '', key: 'E' };
       if (bc.state === 'dropped' && bc.pos && H.playerTeam === 'ember' && Math.hypot(v.pos.x - bc.pos.x, v.pos.z - bc.pos.z) < 2.2) return { text: 'Pick up Beacon', key: 'E' };
+    }
+    // integration: dropped tagger within swap range (combat swaps on E; empty slots are picked up automatically, so only prompt for swaps)
+    const drops = R.combat?.drops;
+    if (drops && drops.length && !H.mock && ph !== 'roundEnd') {
+      let best = null, bd = 1.7; for (const d of drops) { if (!d.pos || !d.w?.def || d.age < 0.4) continue; const dy = d.pos.y - v.pos.y; if (dy < -0.5 || dy > 1.9) continue; const dist = Math.hypot(d.pos.x - v.pos.x, d.pos.z - v.pos.z); if (dist < bd) { bd = dist; best = d; } }
+      if (best && R.combat.inventory?.(v)?.slots?.[best.w.def.slot]) return { text: `Swap for ${best.w.def.name || best.w.id}`, key: 'E', sm: true };
     }
     const eq = R.combat?.equipped?.(v);
     if (eq && (eq.def || eq.id) && eq.mag === 0 && (eq.reserve ?? 0) > 0 && eq.state !== 'reload' && !NOAM.has(eq.id || eq.def?.id)) return { text: 'Reload', key: 'R', sm: true };

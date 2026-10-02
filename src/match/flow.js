@@ -534,6 +534,7 @@ export function createMatch(ctx, o = {}) {
   }
 
   function quit() {
+    emit('match:quit', {});
     teardown(); M.active = false; M.winner = null; M.round = 0; M.history.length = 0; M.scores.ember = M.scores.tide = 0;
     M.lossStreak.ember = M.lossStreak.tide = ECON.startLevel; M.ot = false; M.swapped = false; M.beaconApi?.reset?.(); setSpectate(null);
     for (const a of ctx.actors) if (TEAMS[a.team]) { a.alive = true; a.hp = 100; a.credits = ECON.cap; }

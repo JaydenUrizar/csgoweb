@@ -59,7 +59,7 @@ export function create(ctx) {
   const FWD = ['round:phase', 'round:start', 'round:end', 'match:end', 'halftime', 'weapon:fire', 'weapon:reload', 'weapon:switch', 'weapon:empty', 'tag:hit', 'tag:out', 'util:throw', 'util:detonate', 'util:blind',
     'beacon:pickup', 'beacon:drop', 'beacon:arm', 'beacon:armed', 'beacon:disarm', 'beacon:complete', 'buy', 'credits', 'spectate', 'ping'];
   const offs = [];
-  for (const t of FWD) offs.push(ctx.events.on(t, (d) => { if (!H.mock) H.bus.emit(t, d); }));
+  for (const t of FWD) offs.push(ctx.events.on(t, (d) => { if (H.mock) return; const lt = ctx.localActor?.team; if (lt) H.playerTeam = lt; H.bus.emit(t, d); }));   // integration: events fire inside the sim tick, before refreshActors(); a stale playerTeam showed Attack banners to Tide (round 1 / after halftime)
   offs.push(ctx.events.on('settings:change', (d) => { H._xh = null; H._dirtySettings = true; }));
   H.bus.on('spectate', (d) => { if (d?.actor) H.specTarget = d.actor; });
 
