@@ -1,0 +1,26 @@
+{"piece":"hud","round":1,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"Buy menu (720p, live game, B pressed in freeze): ours has clear prices/affordability colours and a loadout panel, but the 'ROUND 1' banner and the beacon toast bleed through the translucent menu header, radar/feed stay lit, money shown twice ($800 x2), and the topbar says 'BUY TIME 0:11' while the menu says 'BUY TIME REMAINING 00:17'. CS2 dims the world and shows one calm, consistent panel."},
+ {"pair":2,"picked":"ours","truth":"ours","why":"Live HUD idle (L1280_08 vs t1_019): ours has bolder, crisper HP/armor/ammo numerals and clearer hierarchy; only the radar loses (pale grey blob, unreadable micro-labels)."},
+ {"pair":3,"picked":"ours","truth":"ours","why":"Combat moment (two tags, F1280_e vs t4_027): ours has a readable feed with a red self-kill border, the +$300 money delta, and a strong ammo/HP read; the CS2 frame's HUD is faint. Ours wins on feedback density, not refinement."}],
+"winner_overall":"tie","score":7.3,
+"biggest_gap":"Radar readability. In a live match (?test=1&seed=1&match=1, any position, e.g. F1920_prot_e_second.png / L1280_08_mid.png) the radar is a pale grey map on black with dozens of rotated 4-6px callout labels sprinkled over it (unreadable noise even at 1080p). The B site letter is clipped by the rim, and a large part of the disc is empty void. CS2's radar is a dark, low-noise silhouette with a few legible callouts only, big A/B letters inside the disc, and high-contrast player dots with view cones. Drop the per-room micro-labels (keep only the current-callout label under the disc), raise wall/floor contrast, keep site letters fully inside the ring, and tune the zoom so the playable area fills the disc.",
+"other_gaps":[
+ "Overlay layering: the scoreboard (Tab) and buy menu are too transparent. The ROUND banner text, beacon toast and even the pause menu show through them (L1280_03_buycol, 1280_05_sb). Hide or fade banners and toasts when a menu opens, and give panels a more opaque backdrop or a world dim.",
+ "Timer semantics: the topbar labels the freeze countdown 'BUY TIME 0:11' while the buy menu shows the real buy window 'BUY TIME REMAINING 00:17'. Label the topbar freeze timer differently, or show a single buy countdown.",
+ "The round-start banner is a full-width dark band across the upper-centre screen for about 2s and covers the crosshair-height sightline area. CS2 keeps the centre clear; make it smaller or higher.",
+ "Money duplication: the buy menu header and the bottom-left both show money. In the gallery buy state they disagree ($3,450 vs a $3,464 mid-tween), and '+$300 Tag' appears both as a chat line and as a delta.",
+ "Colourblind modes recolour team text and score (prot: ember becomes yellow), but the topbar pips are hash-coloured multicolour tiles with no team-coded frame, so you can't tell team membership at a glance in any mode.",
+ "Damage-direction arcs are thin plain red curves at about 600px radius, so they are easy to miss. Hit marker and crosshair are crisp but small at 720p."],
+"bugs":[
+ "Engine advance() (src/core/engine.js) calls input.endFrame() on even steps without frameUpdate, so a single-frame 'buy' press is dropped before the HUD's update() reads input.pressed('buy'). In test mode B or an injected buy:true does not open the buy menu unless the advance is exactly 1 step. This is a harness issue, but the HUD depends on it.",
+ "Esc from gameplay opens the pause menu, which renders under the scoreboard and is visible through it (1280_05_sb.png).",
+ "Inconsistent buy-time readouts between the topbar and the buy menu (see other_gaps).",
+ "No console errors observed in live runs (720p, 1080p prot) or gallery runs."],
+"strengths":[
+ "Crisp bundled Barlow Condensed typography, with a strong numeric hierarchy for HP, armor and ammo at both 720p and 1080p.",
+ "The buy menu is well organised: 1-6 columns, 1-9 items, clear affordable/unaffordable price colours, locks, EQUIPPED tag, loadout panel and hotkey legend.",
+ "Clean scoreboard with team-coloured rules, a round-history strip, and dead players greyed out.",
+ "Good tag feedback: red-bordered self feed entries, money delta tween, outlined red X hit marker plus a gold tag-out ring.",
+ "Cheap: HUD update about 0.40-0.51 ms per frame in a live match (perfAvg)."],
+"pass":false}

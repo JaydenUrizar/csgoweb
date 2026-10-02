@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-01T23:53:55.328Z",
+ "updated": "2026-10-02T01:29:37.760Z",
  "wave": 1,
  "phase": "Builders fan out — 14 pieces built in parallel",
  "pieces": [
@@ -7,23 +7,39 @@
    "id": "render",
    "name": "Rendering, lighting & post-FX",
    "group": "look",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:54.427Z"
+   "status": "building",
+   "round": 2,
+   "score": 5.6,
+   "gap": "The ambient/shadow term is wrong. Surfaces outside the sun take an unoccluded, oversaturated blue sky term. Reproduce: ?test=1&seed=1&match=1, hide the HUD, then __game.ctx.map.debug.setView('mid' | 'long' | 'a-door' | 'b-tunnel')",
+   "history": [
+    {
+     "t": "2026-10-02T01:29:37.047Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 5.6,
+     "gap": "The ambient/shadow term is wrong. Surfaces outside the sun take an unoccluded, oversaturated blue sky term. Reproduce: ?test=1&seed=1&match=1, hide the HUD, then __game.ctx.map.debug.setView('mid' | 'long' | 'a-door' | 'b-tunnel')"
+    }
+   ],
+   "updated": "2026-10-02T01:29:37.047Z"
   },
   {
    "id": "map",
    "name": "Map — Crux Station",
    "group": "world",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:54.501Z"
+   "status": "building",
+   "round": 2,
+   "score": 5.2,
+   "gap": "Detail density and facade variety. Every lane (Long 38,*,26->-20; Short/Catwalk 14.5,*,-8; Mid lane; Tunnels) is two 8-12 m walls in the same large-brick sandstone with the same small arched window. Floors are huge empty tile fiel",
+   "history": [
+    {
+     "t": "2026-10-02T01:29:37.124Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 5.2,
+     "gap": "Detail density and facade variety. Every lane (Long 38,*,26->-20; Short/Catwalk 14.5,*,-8; Mid lane; Tunnels) is two 8-12 m walls in the same large-brick sandstone with the same small arched window. Floors are huge empty tile fiel"
+    }
+   ],
+   "updated": "2026-10-02T01:29:37.125Z"
   },
   {
    "id": "nav",
@@ -40,23 +56,39 @@
    "id": "move",
    "name": "Movement & camera feel",
    "group": "feel",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:54.626Z"
+   "status": "building",
+   "round": 2,
+   "score": 7.2,
+   "gap": "Wedge phantom velocity. On the movement course, goto('vcrease') and hold W for 2 s. The player wedges in the 30-degree V and stays wedged. actor.move.speed reads 0.62 m/s indefinitely, the position oscillates on a 3-tick cycle (ab",
+   "history": [
+    {
+     "t": "2026-10-02T01:29:37.209Z",
+     "round": 2,
+     "winner": "ours",
+     "score": 7.2,
+     "gap": "Wedge phantom velocity. On the movement course, goto('vcrease') and hold W for 2 s. The player wedges in the 30-degree V and stays wedged. actor.move.speed reads 0.62 m/s indefinitely, the position oscillates on a 3-tick cycle (ab"
+    }
+   ],
+   "updated": "2026-10-02T01:29:37.209Z"
   },
   {
    "id": "tagger",
    "name": "Tagger ballistics, recoil & inventory",
    "group": "feel",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:54.691Z"
+   "status": "building",
+   "round": 2,
+   "score": 6.4,
+   "gap": "The accuracy model is far too forgiving compared with CS2, which flattens skill. Measured in the range (?scene=range, overlay, or ctx.combat.inaccuracy): Arc standing first-shot error is 0.10 deg (CS2 AK: inaccuracy_stand 6.41 + s",
+   "history": [
+    {
+     "t": "2026-10-02T01:29:37.292Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 6.4,
+     "gap": "The accuracy model is far too forgiving compared with CS2, which flattens skill. Measured in the range (?scene=range, overlay, or ctx.combat.inaccuracy): Arc standing first-shot error is 0.10 deg (CS2 AK: inaccuracy_stand 6.41 + s"
+    }
+   ],
+   "updated": "2026-10-02T01:29:37.292Z"
   },
   {
    "id": "viewmodel",
@@ -85,12 +117,20 @@
    "id": "avatars",
    "name": "Characters & animation",
    "group": "look",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:54.816Z"
+   "status": "building",
+   "round": 2,
+   "score": 5.4,
+   "gap": "Cosmetics override team identity. Resolved cosmetic specs ignore the team, and in shots/critic-avatars/m4.json actor 3 (ember) and actor 4 (tide) have byte-identical specs (suit base #1a0b3d, magenta #ff2cd6 accent, holo circuit p",
+   "history": [
+    {
+     "t": "2026-10-02T01:29:37.379Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 5.4,
+     "gap": "Cosmetics override team identity. Resolved cosmetic specs ignore the team, and in shots/critic-avatars/m4.json actor 3 (ember) and actor 4 (tide) have byte-identical specs (suit base #1a0b3d, magenta #ff2cd6 accent, holo circuit p"
+    }
+   ],
+   "updated": "2026-10-02T01:29:37.379Z"
   },
   {
    "id": "cosmetics",
@@ -107,23 +147,39 @@
    "id": "vfx",
    "name": "VFX & juice",
    "group": "look",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:54.968Z"
+   "status": "building",
+   "round": 2,
+   "score": 5.6,
+   "gap": "Tracers are effectively invisible in real play. Own pip shots at 7.5m show as faint 1px grey dashes (shots/critic-vfx/g_fire_0-1.png). In vfx-lab, tracer-beam and tracer-comet are a barely visible dotted line or a dot (frames/trac",
+   "history": [
+    {
+     "t": "2026-10-02T01:29:37.614Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 5.6,
+     "gap": "Tracers are effectively invisible in real play. Own pip shots at 7.5m show as faint 1px grey dashes (shots/critic-vfx/g_fire_0-1.png). In vfx-lab, tracer-beam and tracer-comet are a barely visible dotted line or a dot (frames/trac"
+    }
+   ],
+   "updated": "2026-10-02T01:29:37.614Z"
   },
   {
    "id": "audio",
    "name": "Audio & music",
    "group": "feel",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:55.029Z"
+   "status": "building",
+   "round": 2,
+   "score": 5.4,
+   "gap": "Gunfire is dull, tonal and buried under foley/UI. Offline FP renders (node tools/audio_dump.mjs): spectral centroid in the first 100 ms is 145-600 Hz for every tagger (judge 144 Hz, lance 146 Hz, low_ratio 0.93-0.95; >4 kHz energy",
+   "history": [
+    {
+     "t": "2026-10-02T01:29:37.701Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 5.4,
+     "gap": "Gunfire is dull, tonal and buried under foley/UI. Offline FP renders (node tools/audio_dump.mjs): spectral centroid in the first 100 ms is 145-600 Hz for every tagger (judge 144 Hz, lance 146 Hz, low_ratio 0.93-0.95; >4 kHz energy"
+    }
+   ],
+   "updated": "2026-10-02T01:29:37.702Z"
   },
   {
    "id": "bots",
@@ -139,23 +195,39 @@
    "id": "flow",
    "name": "Match flow & economy",
    "group": "systems",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:55.085Z"
+   "status": "building",
+   "round": 2,
+   "score": 6.5,
+   "gap": "Exit frags are broken. Combat allows tags during roundEnd, but flow.onTagOut returns early outside live/armed: the killer gets no reward or stat, and the victim's match.survived stays true. Combat has already dropped the victim's ",
+   "history": [
+    {
+     "t": "2026-10-02T01:29:37.537Z",
+     "round": 2,
+     "winner": "ref",
+     "score": 6.5,
+     "gap": "Exit frags are broken. Combat allows tags during roundEnd, but flow.onTagOut returns early outside live/armed: the killer gets no reward or stat, and the victim's match.survived stays true. Combat has already dropped the victim's "
+    }
+   ],
+   "updated": "2026-10-02T01:29:37.538Z"
   },
   {
    "id": "hud",
    "name": "HUD",
    "group": "ui",
-   "status": "judging",
-   "round": 1,
-   "score": 0,
-   "gap": "",
-   "history": [],
-   "updated": "2026-10-01T23:53:55.144Z"
+   "status": "building",
+   "round": 2,
+   "score": 7.3,
+   "gap": "Radar readability. In a live match (?test=1&seed=1&match=1, any position, e.g. F1920_prot_e_second.png / L1280_08_mid.png) the radar is a pale grey map on black with dozens of rotated 4-6px callout labels sprinkled over it (unread",
+   "history": [
+    {
+     "t": "2026-10-02T01:29:37.459Z",
+     "round": 2,
+     "winner": "ours",
+     "score": 7.3,
+     "gap": "Radar readability. In a live match (?test=1&seed=1&match=1, any position, e.g. F1920_prot_e_second.png / L1280_08_mid.png) the radar is a pale grey map on black with dozens of rotated 4-6px callout labels sprinkled over it (unread"
+    }
+   ],
+   "updated": "2026-10-02T01:29:37.459Z"
   },
   {
    "id": "menu",
@@ -180,6 +252,11 @@
   }
  ],
  "log": [
+  {
+   "t": "2026-10-02T01:29:37.759Z",
+   "text": "Round 1 blind critics: all 9 judged pieces failed (5.2–7.3/10). Builders sent back in with each critic's biggest gap.",
+   "kind": "critic"
+  },
   {
    "t": "2026-10-01T23:53:55.327Z",
    "text": "Round 1 built for 13 of 14 pieces; blind critics run next. Viewmodel builder was stopped and still needs a relaunch.",

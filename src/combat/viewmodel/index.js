@@ -106,6 +106,7 @@ export function createViewmodel(ctx) {
   // ---------------------------------------------------------------- actions (clips)
   function startClip(name, { dur, speed, hold = false, loop = false, force = false } = {}) {
     const c = S.clips?.[name]; if (!c) return false;
+    if (act.on && /^(reload|bolt|pump|inspect)/.test(act.name) && !name.startsWith('reload')) { resetParts(); S.ammoLock = -1; }
     if (act.on && act.clip) { prev.clip = act.clip; prev.t = act.t; prev.on = true; prev.blend = 0; prev.speed = act.speed; }
     act.name = name; act.clip = c; act.t = 0; act.on = true; act.hold = hold; act.loop = loop; act.markI = 0; act.id++;
     act.speed = speed ?? (dur ? c.dur / dur : 1);
@@ -120,7 +121,10 @@ export function createViewmodel(ctx) {
     if (name.startsWith('show:')) { const p = S.model?.parts[name.slice(5)]; if (p) p.visible = true; return; }
     switch (name) {
       case 'cellOut': dropCell(); break;
-      case 'cellIn': S.ammoLock = S.ammoMax; S.ammo = S.ammoMax; S.ammoShown = -1; break;
+      case 'cellIn': S.ammoLock = S.ammoMax; S.ammoShown = -1; break;
+      case 'shellIn': S.ammoLock = Math.min(S.ammoMax, (S.ammoLock < 0 ? S.ammo : S.ammoLock) + 1); S.ammoShown = -1; kick.kick(1, -0.002, -0.05); break;
+      case 'seat': kick.kick(1, -0.003, -0.12); kick.kick(3, -0.012, -0.5); break;
+      case 'eject': ejectCasing(false); break;
       case 'release': S.thrown = true; S.consumed = true; if (S.model) S.model.root.visible = false; ctx.events?.emit?.('viewmodel:release', { id: S.id }); break;
       case 'swingStart': fx.trailStart(S.model?.mats.glowColor || _col.set(0xffaa33)); break;
       case 'swingEnd': fx.trailStop(); break;
@@ -131,7 +135,7 @@ export function createViewmodel(ctx) {
     emitMark(name);
   }
   function dropCell() {
-    const m = S.model, cp = m?.parts.cell; if (!cp) return;
+    const m = S.model, cp = m?.parts.cell || m?.parts.drum || m?.parts.cyl; if (!cp) return;
     cp.getWorldPosition(_p); castRoot.worldToLocal(_p);
     const s = m.meta.cellSize || [0.03, 0.09, 0.03];
     fx.drop(_p.x, _p.y, _p.z, s[0], s[1], s[2], m.mats.ammoColor);
@@ -144,11 +148,12 @@ export function createViewmodel(ctx) {
     while (act.markI < c.marks.length && c.marks[act.markI][0] <= u) { doMark(c.marks[act.markI][1]); act.markI++; }
     if (u >= 1) {
       if (act.hold) { act.t = c.dur * 0.999; return; }
-      if (act.loop) { act.t = 0; act.markI = 0; return; }
+      if (act.loop) { act.t = (c.loopFrom || 0) * c.dur; act.markI = 0; while (act.markI < c.marks.length && c.marks[act.markI][0] < (c.loopFrom || 0)) act.markI++; return; }
       const name = act.name; endClip(); onClipEnd(name);
     }
   }
   function onClipEnd(name) {
+    if (name === 'holster') { resetParts(); S.ammoLock = -1; }
     if (name === 'holster' && S.pending) { const p = S.pending; S.pending = null; setModel(p.id, p.skin); startClip('draw', { dur: p.time ?? S.prof.draw }); }
     else if (name === 'holster') { S.hidden = true; }
     else if (name.startsWith('reload')) { S.ammoLock = -1; resetParts(); }
@@ -167,7 +172,7 @@ export function createViewmodel(ctx) {
     if (!S.model || S.consumed) return;
     if (p.mag != null) { S.ammo = p.mag; if (p.max) S.ammoMax = p.max; } else if (S.ammo > 0) S.ammo = Math.max(0, S.ammo - 1);
     const pr = S.prof, k = pr.kick, n = S.shots++;
-    if (act.on && (act.name === 'inspect' || act.name === 'pump' || act.name === 'bolt' || act.name === 'empty')) { const nm = act.name; endClip(); onClipEnd(nm); }
+    if (act.on && (act.name === 'inspect' || act.name === 'pump' || act.name === 'bolt' || act.name === 'empty' || act.name.startsWith('reloadShell'))) { const nm = act.name; endClip(); onClipEnd(nm); }
     const amp = (i, v, mx) => { kick.x[i] += Math.abs(kick.x[i] + v) < Math.abs(mx) || Math.sign(kick.x[i]) !== Math.sign(v) ? v : 0; };
     const r1 = frand() - 0.5, r2 = frand() - 0.5, sgn = ((n * 2654435761) >>> 3) & 1 ? 1 : -1;
     amp(2, k.z * 0.01 * (0.85 + frand() * 0.3), k.z * 0.01 * k.max);
@@ -187,15 +192,16 @@ export function createViewmodel(ctx) {
     // visuals
     fx.fire(pr.flash, S.model.mats.glowColor, p.power ?? 1);
     S.model.mats.flash = 1;
-    const ej = S.meta.eject;
-    if (ej && !p.silent) {
-      S.model.anchors.eject.updateWorldMatrix(true, false); S.model.anchors.eject.getWorldPosition(_p); castRoot.worldToLocal(_p);
-      S.model.anchors.eject.getWorldQuaternion(_q);
-      _p2.set(ej.v[0] * 0.55 + (frand() - 0.5) * 0.35, ej.v[1] * 0.55 + frand() * 0.35, ej.v[2] * 0.4 + (frand() - 0.5) * 0.3).applyQuaternion(_q);
-      fx.eject(_p.x, _p.y, _p.z, _p2.x, _p2.y, _p2.z, S.model.mats.glowColor, S.meta.ejectSize || 1);
-    }
+    if (!S.meta.afterFire && !p.silent) ejectCasing(true);
     if (S.ammo <= 0) S.ammoLock = -1;
     if (S.meta.afterFire && S.ammo > 0) afterFireT = S.meta.afterFire.delay;
+  }
+  function ejectCasing() {
+    const ej = S.meta.eject; if (!ej || !S.model) return;
+    S.model.anchors.eject.updateWorldMatrix(true, false); S.model.anchors.eject.getWorldPosition(_p); castRoot.worldToLocal(_p);
+    S.model.anchors.eject.getWorldQuaternion(_q);
+    _p2.set(ej.v[0] * 0.55 + (frand() - 0.5) * 0.35, ej.v[1] * 0.55 + frand() * 0.35, ej.v[2] * 0.4 + (frand() - 0.5) * 0.3).applyQuaternion(_q);
+    fx.eject(_p.x, _p.y, _p.z, _p2.x, _p2.y, _p2.z, S.model.mats.glowColor, S.meta.ejectSize || 1);
   }
   let afterFireT = -1;
 
@@ -208,15 +214,15 @@ export function createViewmodel(ctx) {
     if (!S.model && name !== 'ammo' && name !== 'heat') return;
     switch (name) {
       case 'fire': if (dedupe('fire', 0.012)) return; fire(p); break;
-      case 'reloadStart': { if (act.on && act.name === 'reload') return; S.scopeIn = false; const c = reloadClipFor(p); if (!c) return; startClip(c, { dur: dur0 ?? S.prof.reload }); break; }
-      case 'reloadEnd': { if (act.on && act.name === 'reload') { act.speed = Math.max(act.speed, 4); } break; }
+      case 'reloadStart': { if (act.on && act.name.startsWith('reload')) return; S.scopeIn = false; const c = reloadClipFor(p); if (!c) return; S.ammoLock = c.startsWith('reloadShell') ? S.ammo : -1; startClip(c, { dur: dur0 ?? (c.startsWith('reloadShell') ? undefined : S.prof.reload) }); break; }
+      case 'reloadEnd': { if (act.on && act.name.startsWith('reload')) { act.speed = Math.max(act.speed, 4); } break; }
       case 'draw': if (S.pending) { S.pending.time = Math.max(0.25, (dur0 ?? S.prof.draw) - 0.14); break; } S.hidden = false; S.consumed = false; if (S.model) S.model.root.visible = true; startClip('draw', { dur: dur0 ?? S.prof.draw }); break;
       case 'holster': if (!(act.on && act.name === 'holster')) startClip('holster'); break;
       case 'inspect': if (!busy() && !S.consumed) startClip('inspect', { dur: p.time }); break;
       case 'scopeIn': if (S.meta?.scope) { S.scopeIn = true; if (p.level != null) S.zoomLevel = p.level; ctx.events?.emit?.('viewmodel:scope', { id: S.id, level: S.zoomLevel }); } break;
       case 'scopeOut': S.scopeIn = false; break;
       case 'empty': if (dedupe('empty', 0.08)) return; if (!busy()) startClip('empty'); break;
-      case 'melee': if (dedupe('melee', 0.1)) return; if (S.consumed) return; if (S.clips.melee1) { S.meleeSide ^= 1; startClip(S.meleeSide ? 'melee2' : 'melee1'); } else startClip('bash'); break;
+      case 'melee': if (dedupe('melee', 0.1)) return; if (S.consumed) return; if (p.kind === 'stab' && S.clips.stab) startClip('stab'); else if (S.clips.melee1) { S.meleeSide ^= 1; startClip(S.meleeSide ? 'melee2' : 'melee1'); } else startClip('bash'); break;
       case 'heat': S.heat = Math.max(S.heat, p.value ?? p.heat ?? 0); break;
       case 'ammo': if (p.mag != null) { S.ammo = p.mag; } if (p.max != null) S.ammoMax = p.max; S.ammoShown = -1; break;
       case 'throw': {
@@ -224,7 +230,7 @@ export function createViewmodel(ctx) {
         if (st === 'windup' || st === 'pull') { S.consumed = false; S.hidden = false; if (S.model) S.model.root.visible = true; startClip('throwWind', { hold: true, dur: p.time }); }
         else if (st === 'release') { S.throwPower = p.power ?? 1; S.throwLob = !!p.lob; startClip(S.throwLob ? 'throwLob' : 'throwRel', {}); ctx.events?.emit?.('viewmodel:throw', { id: S.id, power: S.throwPower }); }
         else if (st === 'cancel') { startClip('draw', { dur: 0.35 }); }
-        else { startClip('throwWind', { dur: 0.22 }); pendingRelease = 0.24; }
+        else { const dl = Math.max(0.08, p.delay ?? 0.16), lob = (p.power ?? 1) < 0.6; S.consumed = false; S.hidden = false; S.model.root.visible = true; const nm = lob ? 'throwFullLob' : 'throwFull'; startClip(nm, { dur: Math.max(0.3, Math.min(1.0, dl / 0.58)) }); ctx.events?.emit?.('viewmodel:throw', { id: S.id, power: p.power ?? 1 }); }
         break; }
       case 'plant': case 'disarm': {
         const nm = name === 'plant' ? 'plant' : 'disarm'; const c = S.clips[nm] || S.clips.plant; if (!c) return;
@@ -252,7 +258,7 @@ export function createViewmodel(ctx) {
     if (ctx.__vmGallery && !st.__g) return;   // gallery drives the rig itself
     dt = clamp(dt, 0, 0.05); if (dt <= 0) { dt = 1 / 240; }
     S.time += dt;
-    const pr = S.prof, meta = S.meta, model = S.model, wgt = pr.weight;
+    let pr = S.prof, meta = S.meta, model = S.model, wgt = pr.weight;
     // ---- inputs
     const speed = st.speed || 0, onGround = st.onGround !== false, crouch = !!st.crouch, walking = !!st.walking;
     const sprint = st.sprinting != null ? (st.sprinting ? 1 : 0) : smooth(7.6, 9.6, speed);
@@ -266,7 +272,8 @@ export function createViewmodel(ctx) {
     if (!S.lastGround && onGround && S.time - S.landAt > 0.15) { const sp = clamp((st.landSpeed ?? Math.max(4, speed)) / 9, 0.25, 1.4); doLand(sp); }
     S.lastGround = onGround;
     // ---- action clips
-    advanceAct(dt);
+    advanceAct(dt); plantTick();
+    if (S.model !== model) { pr = S.prof; meta = S.meta; model = S.model; wgt = pr.weight; }   // a clip end / plant swap may have changed the model
     if (afterFireT >= 0) { afterFireT -= dt; if (afterFireT < 0 && !act.on) startClip(meta.afterFire.clip, { dur: meta.afterFire.dur }); else if (afterFireT < 0) afterFireT = -1; }
     if (pendingRelease >= 0) { pendingRelease -= dt; if (pendingRelease < 0 && act.on && act.name === 'throwWind') { startClip('throwRel'); ctx.events?.emit?.('viewmodel:throw', { id: S.id, power: 1 }); } }
     if (act.clip) sampleInto(act.clip, act.t, chA); else for (const n in chA) chA[n].fill(0);
@@ -334,7 +341,7 @@ export function createViewmodel(ctx) {
     placeHand(handR, hd.r, chA.rh, chA.rc[0]); placeHand(handL, hd.l, chA.lh, chA.lc[0]);
     // ammo gauge / glow
     const frac = S.ammoMax > 0 ? S.ammo / S.ammoMax : 1;
-    const shown = S.ammoLock >= 0 ? S.ammoMax : S.ammo;
+    const shown = S.ammoLock >= 0 ? S.ammoLock : S.ammo;
     if (shown !== S.ammoShown) { S.ammoShown = shown; if (model.gauge.n) setGauge(model, S.ammoMax > 0 ? shown / S.ammoMax : 1); }
     model.mats.update(S.heat + (meta.idleHeat || 0), S.ammoMax > 0 ? shown / S.ammoMax : 1, S.ammoMax > 0 ? 1 : 0, model.mats.flash * 0.7, S.time);
     void frac;
@@ -368,6 +375,32 @@ export function createViewmodel(ctx) {
   ctx.events?.on?.('jump', (e) => { if (isMe(e?.actor) && S.time - S.jumpAt > 0.2) { jump.kick(1, 0.004, 0.09); jump.kick(3, 0, 0.5); S.jumpAt = S.time; } });
   ctx.events?.on?.('land', (e) => { if (isMe(e?.actor) && S.time - S.landAt > 0.15) doLand(clamp((e?.speed ?? 6) / 9, 0.25, 1.4)); });
   ctx.events?.on?.('footstep', (e) => { if (e?.actor && e.actor === ctx.localActor && S.bobAmp > 0.15) { const d = S.bobPhase - Math.round(S.bobPhase / Math.PI) * Math.PI; S.bobPhase -= d * 0.3; } });
+
+
+  // ---- beacon plant / disarm arm animation, driven by the match piece's events
+  let plantPrev = null, restoreAt = -1;
+  const onMe = (n, f) => ctx.events?.on?.(n, (e) => { if (isMe(e?.actor) && S.ready) f(e); });
+  function plantBegin(modelId, kind) {
+    if (!plantPrev) plantPrev = { id: S.id, skin: S.skin };
+    restoreAt = -1; S.hidden = false; S.consumed = false;
+    if (S.id !== modelId) { S.pending = null; setTaggerRaw(modelId, null, { instant: true }); }
+    event(kind, { on: true, progress: 0 });
+  }
+  function plantStop() {
+    if (!(S.plantOn || plantPrev)) return;
+    event('plant', { on: false });
+    if (plantPrev) restoreAt = S.time + 0.4;
+  }
+  onMe('beacon:arm', () => plantBegin('beacon', 'plant'));
+  onMe('beacon:disarm', (e) => plantBegin(e.kit ? 'kit' : 'beacon', 'disarm'));
+  for (const n of ['beacon:armed', 'beacon:armCancel', 'beacon:disarmed', 'beacon:disarmCancel']) onMe(n, plantStop);
+  function plantTick() {
+    if (restoreAt >= 0 && S.time >= restoreAt) {
+      restoreAt = -1; const pr = plantPrev; plantPrev = null;
+      if (pr && (S.id === 'beacon' || S.id === 'kit') && pr.id && pr.id !== S.id) setTaggerRaw(pr.id, pr.skin, { instant: true });
+    }
+    if (S.plantOn) { const pg = ctx.match?.beacon?.progress; if (pg != null) S.plantProg = pg; }
+  }
 
   function setTaggerRaw(id, skin = null, opts = {}) {
     if (!DEFS[id]) id = 'pip'; skin = skinOf(skin);

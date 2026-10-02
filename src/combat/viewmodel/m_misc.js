@@ -15,7 +15,7 @@ export function tap(b) {
   m.cyl('trim', [0, 0, -61], 4.9, 4.9, 2.6, 8); m.cyl('glow', [0, 0, -62.5], 3.5, 3.5, 0.3, 8);
   return {
     name: 'Tap', cls: 'melee', skin: { pattern: 'solid', primary: 0x30353f, accent: 0x9aa3b4, glow: 0xffc24a, wear: 0.1 },
-    muzzle: [0, 0, -63], anchors: { tip: [0, 0, -61], tipBase: [0, 0, -34] }, len: 74, trail: true, hold: 'melee',
+    muzzle: [0, 0, -63], anchors: { tip: [0, 0, -61], tipBase: [0, 0, -51] }, len: 74, trail: true, hold: 'melee',
     hands: { r: { p: [2.4, 3.4, 0], r: [0, 90, 0], curl: [0.78, 0.8, 0.82, 0.84, 0.55], pose: 'fist' }, l: null },
   };
 }

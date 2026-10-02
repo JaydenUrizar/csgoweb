@@ -1,0 +1,25 @@
+{"piece":"vfx","round":1,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"Tracer read: CS2 (t4_024) shows a long bright orange-white streak from barrel to target with a spark at the hit, so shot direction is obvious. Ours (g_fire_0, pip at 7.5m) has a nice muzzle star but the tracer is 2-3 faint grey dashes that vanish against the light wall."},
+ {"pair":2,"picked":"ref","truth":"ref","why":"Hit confirmation at range: CS2 (t2_029) has a tracer plus a big coloured mist at the hit point. Ours, 50ms after a body hit (g_fire_3), has no tracer and no burst at the hit point. Only the character's white flash shows anything happened."},
+ {"pair":3,"picked":"ours","truth":"ours","why":"Muzzle flash: our yellow star core with glow is crisp, short (2-3 frames) and sits low-right without hiding the crosshair. CS2's (t1_019) is richer but heavier. Readability goes to ours."}],
+"winner_overall":"ref","score":5.6,
+"biggest_gap":"Tracers are effectively invisible in real play. Own pip shots at 7.5m show as faint 1px grey dashes (shots/critic-vfx/g_fire_0-1.png). In vfx-lab, tracer-beam and tracer-comet are a barely visible dotted line or a dot (frames/tracer-beam_1.png). Even the 60-tracer 'fight' stress shows no streaks (l_fight_1.png). An enemy tracer vfx.tracer((4,1.4,-46)->(0.7,1.55,-29.5),0x2fd0ff,'arc'|'beam'), seen from the player at (0,0,-30), renders as one static ~3px grey dot with no cyan colour and no streak (h_in_*_0-1.png). CS2 tracers are thick, HDR-bright streaks with a hot white core, several metres long and visible for 2-4 frames, readable at 30m+ and when coming toward you. Fix: a minimum screen-space width of about 2-3px, a core brightness that survives bloom and tonemapping, length tied to speed so a streak is visible on at least 2 frames, a camera-facing ribbon so near-axial tracers still read, and team or tagger tint kept at full saturation.",
+"other_gaps":[
+ "Wall impacts on light surfaces are close to invisible: 8 pip shots at a sandstone pillar (g_wall_3-5, s_wallcrop.png) give a faint ring and a 3px puff, and no readable bullet-hole marks remain 1s later. CS2 leaves dark holes plus a surface-coloured dust or chip burst at every hit, so a spray can be read on the wall.",
+ "No hit burst on bodies at range: tag:hit has no spark or light-mist at the hit point, so it relies on the character flash alone. CS2's blood mist is the main 'I hit' cue at distance; use a stylised light burst in the tagger colour.",
+ "Clutter when effects stack: in the lab 'fight' stress, the stacked shatter floor glows wash out a white disc about 6m wide over the floor and targets (l_fight_1.png). The single tag-out floor shockwave at about 1.0s also covers about 40% of the lower screen at 7.5m (s_out.png frame 7). Cap the additive floor glow and lower its intensity per instance.",
+ "Lab tracer framing ('wide' cam) is too far to judge tracers, and the lab shooter is placed so tracers run nearly along the view axis.",
+ "Footstep dust is invisible at 1-4 frames (l_footstep_*). That is acceptable for CS2 parity, but then drop the cost. land-hard reads as a flat white disc rather than dust."],
+"bugs":[
+ "vfx.tracer() for an enemy shot passing 0.7m from the camera renders as a static ~3px grey dot, with no colour or streak (shots/critic-vfx/h_in_arc_0.png, h_in_beam_0.png).",
+ "muzzle-world in vfx-lab: the flash sits about 0.3m above and ahead of the dummy's gun tip and does not touch the barrel (shots/critic-vfx/frames/muzzle-world_0.png). Not verified on real character models.",
+ "CPU hitches inside vfx.update (swiftshader on a loaded host, so noisy): 10.7ms max over the window containing the first tag-out in game. In the lab, after the fight stress, 145.8ms max during the 2-8s window when 640 shards expire, and idle average stayed at 1.08ms against a 0.37ms baseline with 0 particles alive. Needs profiling on real hardware.",
+ "Not vfx (combat/viewmodel): calling combat.give(me,'arc') then switchTo(me,'arc') in live phase throws TypeError at src/combat/viewmodel/index.js:330 on the next advance."],
+"strengths":[
+ "Tag-out sequence (crown ping, then crystal tint, then confetti shard burst, then floor ring) is readable, well timed and satisfying (s_out.png).",
+ "Muzzle flash is crisp, short and does not hide the target.",
+ "Metal impact sparks and the stone puff have good easing and timing in the lab.",
+ "Batching is excellent: about 940 particles, 640 CPU shards and 60 tracers cost only +9 draw calls. In-game firing adds +5 calls.",
+ "No console errors."],
+"pass":false}

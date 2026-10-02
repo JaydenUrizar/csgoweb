@@ -57,7 +57,7 @@ export async function run(ctx, vm) {
       case 'draw': vm.debug.event('draw'); break;
       case 'holster': vm.debug.event('holster'); break;
       case 'fire': case 'burst': { const n = o.n ?? (anim === 'burst' ? 6 : 1), rate = o.rate ?? (cls === 'sniper' ? 0.6 : 0.09); for (let i = 0; i < n; i++) at(i * rate, () => vm.debug.event('fire', { mag: Math.max(0, (vm.debug.S.ammo || 30) - 1) })); break; }
-      case 'reload': vm.debug.setAmmo(Math.max(1, Math.round((vm.debug.S.ammoMax || 30) * 0.12)), vm.debug.S.ammoMax); vm.debug.event('reloadStart'); break;
+      case 'reload': vm.debug.setAmmo(Math.max(1, Math.round((vm.debug.S.ammoMax || 30) * 0.12)), vm.debug.S.ammoMax); vm.debug.event('reloadStart', { shell: !!vm.debug.model().meta.shell }); break;
       case 'inspect': vm.debug.event('inspect'); break;
       case 'empty': vm.debug.setAmmo(0); vm.debug.event('empty'); break;
       case 'melee': vm.debug.event('melee'); at(0.7, () => vm.debug.event('melee')); break;

@@ -1,0 +1,23 @@
+{"piece":"map","round":1,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"A site from Ledge (44.5,3.6,-40) vs CS2 Ancient A: ours is readable (A floor marker, teal zone, stairs) but ~40% of the frame is empty flat floor, cover is small isolated crates, and the skyline is floating untextured boxes. CS2 has a framed focal point (stairs+door), layered depth and material richness."},
+ {"pair":2,"picked":"ref","truth":"ref","why":"Palace fountain (-8,0,-20) vs CS2 Italy plaza: ours is a barren box courtyard. The shadowed half of the floor is saturated blue and reads like water. Buildings are plain cubes with no roof/eave silhouette and there is no landmark. CS2 has a tower, arcade, roofs, planters and a tree."},
+ {"pair":3,"picked":"ref","truth":"ref","why":"Long from Long Doors (38,0,26) vs CS2 Italy alley: ours is a 9.5 m sandstone canyon with the same oversized brick and the same arched window repeated on both 10 m walls. Props are generic crates/barrels and the wall has no story. CS2 has a mural, a prop cluster and layered facades. Floor callout text is a plus."}],
+"winner_overall":"ref","score":5.2,
+"biggest_gap":"Detail density and facade variety. Every lane (Long 38,*,26->-20; Short/Catwalk 14.5,*,-8; Mid lane; Tunnels) is two 8-12 m walls in the same large-brick sandstone with the same small arched window. Floors are huge empty tile fields, and from above about 60% of the footprint is flat checkerboard terracotta roof slabs (view=top, cine-a/mid). CS2 breaks every wall with eaves/roof overhangs, doorways, balconies, pipes, awnings, signage, planters, trim and material changes, and every lane has 1-2 composed prop clusters. Add per-region facade kits (roof edges, cornices, shutters, balconies, awnings, vertical trim, stucco/brick/plaster swaps) and prop clusters at each lane mid-point. Give the Palace and A a landmark silhouette above the roofline.",
+"other_gaps":[
+ "Spawn-to-spawn sightline down the straight x=0 mid axis. Collision raycasts at eye height (1.64 m) find 3,798/44,100 Ember-spawn<->Tide-spawn point pairs with clear LOS (e.g. (-7,49)<->(10,-42), 98 m), and 42% of Ember mid-exit(z30-38)<->Tide Mid(z-28..-36) pairs. Only the fountain and one crate interrupt it (shots scope-t2e/diag-t2e, script shots/critic-map/sight.mjs). Add a dogleg or a solid blocker in Hub/Palace.",
+ "Sites are flat open squares with only small crate cover: A is ~20x20 m at y=1.5 with a teal block and three crates; Hub is an empty plaza with one red box. CS2 sites have large default/goose structures and multi-height cover that create named angles.",
+ "Shadow tint is over-saturated blue on stone floors (Palace, Ember spawn, Tunnels, Window Room). It reads as water or a decal rather than shade and fights the Tide teal team colour.",
+ "Callout coverage: 29% of open floor cells (1 m grid) return no calloutAt, including the A entrance from A Door (24..30,-42..-36), the top of Long Ramp/A ramp (37,-18 and 38,-14), Hub east (12,6) and Palace west (-12,-20). The radar label goes blank there.",
+ "Bot PATHS run through solid props: ember-long hits the stone block at (38,16.5), ember-short and rotate-a-to-b-palace hit the terrace crate at (19.5,-28.5), and ember-tunnels hits the barrel at (-33,-6). A straight-line follower using the real simulate() gets stuck at each (shots/critic-map/walk_node.mjs).",
+ "Sky/skyline: stretched polygonal clouds (visible from Ledge) and untextured coloured skyline cubes look placeholder."],
+"bugs":[
+ "In-game render glitch at Mid Doors: __game.place(0,0,15,0,0) with HUD/viewmodel on. Both door leaves render pure black, the arch reveal blows out to a glowing white frame, and the viewmodel nearly vanishes. Reproduced twice (shots/critic-map/e_midlane.png, e3_midlane.png). The overview camera at the same spot (gate15.png) renders correctly.",
+ "PATHS data intersects solid props (see other_gaps) and will strand bots."],
+"strengths":[
+ "Watertight, sane collision: no snags or leaks walking chokepoints (Mid Doors, Long Doors, B Window jump-through, Pit exit, stairs) with the real sim. verify.mjs reports 0 leaks and 0 bad nodes.",
+ "Good zone colour coding and signage: terracotta B, teal Tide/A, white-stucco Tide spawn. Floor callouts (LONG DOORS, A DOOR) and plaques (B WINDOW, PALACE, MID DOORS) are crisp and legible.",
+ "Sensible timings and route structure: 3 Ember exits, Tide->A/B ~4.5-6 s, A<->B rotation ~11 s, plus a catwalk/ledge vertical layer.",
+ "Perf is fine: 165-225 draw calls, 59-78k tris per in-game frame, no console errors."],
+"pass":false}

@@ -7,7 +7,7 @@ import { open } from './lib.mjs';
 const A = process.argv.slice(2); const opt = (k, d) => { const i = A.indexOf('--' + k); return i >= 0 ? A[i + 1] : d; }; const flag = (k) => A.includes('--' + k);
 const [W, H] = opt('size', '960x540').split('x').map(Number); const out = opt('out', 'shots/viewmodel/sheets'); const frames = +opt('frames', 6); const cols = +opt('cols', 3);
 const DUR = { idle: 1.2, draw: 0.7, holster: 0.2, fire: 0.45, burst: 0.7, reload: 2.4, inspect: 3.4, empty: 0.3, melee: 1.0, throw: 2.4, plant: 2.8, scope: 1.4, walk: 1.2, run: 1.0, sprint: 1.0, jump: 0.9, look: 1.2 };
-const g = await open({ params: `test=1&seed=1&scene=viewmodel-gallery&bg=${opt('bg', 'mid')}`, size: [W, H] });
+const g = await open({ params: `test=1&seed=1&scene=viewmodel-gallery&bg=${opt('bg', 'mid')}`, size: [W, H], wait: 400000 });
 await g.eval(async () => { const m = await import('/src/combat/viewmodel/index.js'); const ctx = window.__game.ctx; const vm = m.createViewmodel(ctx); await ctx.debugScenes['viewmodel-gallery'](ctx); window.__game.ctx.localActor.pitch = 0; });
 const info = await g.eval(() => ({ ids: window.__vmGallery.list, cls: Object.fromEntries(window.__vmGallery.list.map((id) => [id, null])) }));
 let ids = opt('taggers', 'all') === 'all' ? info.ids : opt('taggers').split(',');

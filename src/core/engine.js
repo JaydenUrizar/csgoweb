@@ -17,7 +17,7 @@ export function createEngine(ctx) {
     /** Advance simulation by `seconds` of game time then render once. */
     advance(seconds, { render = true } = {}) {
       const n = Math.max(1, Math.round(seconds * PHYS_HZ));
-      for (let i = 0; i < n; i++) { engine.stepFixed(); if (i % 2 === 1 || i === n - 1) engine.frameUpdate(STEP * 2, 1); ctx.input.endFrame(); }
+      for (let i = 0; i < n; i++) { engine.stepFixed(); if (i % 2 === 1 || i === n - 1) { engine.frameUpdate(STEP * 2, 1); ctx.input.endFrame(); } }
       if (render) ctx.render?.render?.();
     },
     loop(now) {

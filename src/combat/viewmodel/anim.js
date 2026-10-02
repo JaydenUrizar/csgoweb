@@ -39,6 +39,7 @@ export class Spring {
 export function clip(dur, tracks, marks = [], opts = {}) {
   const c = { dur, tracks: {}, marks: marks.slice().sort((a, b) => a[0] - b[0]), ...opts };
   for (const name in tracks) {
+    if (!tracks[name]) continue;
     const keys = tracks[name].map(([t, v, e]) => {
       const arr = Array.isArray(v) ? v : [v];
       const six = arr.length > 1 || name.length > 2 && arr.length === 1 && false;

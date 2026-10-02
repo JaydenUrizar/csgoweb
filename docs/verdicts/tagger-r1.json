@@ -1,0 +1,20 @@
+{"piece":"tagger","round":1,
+"blind":[
+ {"pair":1,"picked":"ref","truth":"ref","why":"AK 30-round spray, measured in degrees. Ours climbs to 12-13 deg, and from bullet 10 on the hand-authored left/right sweep is buried under about 2 deg of random fire inaccuracy, so the top of the spray looks random and can't be learned. The reference shows a readable hook-left-then-right."},
+ {"pair":2,"picked":"ref","truth":"ref","why":"Inaccuracy over time after you stop running. Ours starts at only 5.6 deg (CS2 AK is about 10 deg), so shooting on the move is punished half as much. The stop timings are good on both sides (counter-strafe about 70 ms, release about 220 ms)."},
+ {"pair":3,"picked":"ref","truth":"ref","why":"Head damage against distance. Our default pistol (Pip, rangeMod 0.79) drops below 100 at about 18 m and does 80 at 30 m. The reference USP-S (0.99) one-taps an unarmoured head at every range. Rifle, Deagle and SMG curves match."}],
+"winner_overall":"ref","score":6.4,
+"biggest_gap":"The accuracy model is far too forgiving compared with CS2, which flattens skill. Measured in the range (?scene=range, overlay, or ctx.combat.inaccuracy): Arc standing first-shot error is 0.10 deg (CS2 AK: inaccuracy_stand 6.41 + spread 0.6 mrad = 0.40 deg), so long-range head taps that are about 40% in CS2 land about 100% here. Running at full speed gives 5.6 deg (CS2: 175 mrad = 10 deg), Rail 4.9, Pip 3.1. Fix: scale the inacc() tables to the real CS2 stand/crouch/move/jump mrad values, and reduce the fire-accumulation noise at the top of the spray so the hand-keyed pattern stays readable.",
+"other_gaps":[
+ "Pip (USP-S) rangeMod is 0.79; CS2 uses 0.99. Measured: unarmoured head does 96 at 20 m and 80 at 30 m, and a helmeted head does 56 at 12 m. The default pistol loses its one-tap identity.",
+ "Weapon movement speed has no effect. Running with Arc, Rail, Pip, Zip or Lance all measure 6.60 m/s, while maxSpeed() reports 5.46 for Arc and 5.08 for Lance. The f(speed) term then extrapolates above 1, and weapon mobility differences disappear. Either make movement honour speedMult/maxSpeed or fix the curve.",
+ "Negev-style Storm gets less accurate as you keep firing (up to 4.5 deg). The CS2 Negev tightens to a laser after about 10 rounds, which is its identity.",
+ "AK tap recovery is slow: after a 3-round burst the recoil index is still 1.0 at 0.4 s and only reaches 0 at 0.7 s (CS2 AK recovery_time_stand is about 0.43 s).",
+ "The range HUD overlay sits on top of the minimap (top-left).",
+ "weapon:fire hit[] entries for misses carry actor = the shooter, with no normal or surface, so consumers can read them as self-hits."],
+"bugs":[
+ "Holding semi-auto fire through a draw never fires. Pip drawn from the knife with fire held for 1.6 s: 0 shots. Lance drawn with fire held for 3 s: 0 shots. CS fires once when the gun is ready. The 70 ms buffer creates a dead trigger.",
+ "The automatic re-scope after the AWP bolt (core.js:641) emits no weapon:scope event. The camera zooms back to about 12 deg FOV while listeners last saw scoped:false, so the HUD scope overlay, audio and crosshair go out of sync, and the next aim press appears to toggle scope off.",
+ "combat/index.js api.update calls viewmodel.update with no guard. The current viewmodel throws 'reading position' (viewmodel/index.js:330) on every frame in ?scene=range. That exception aborts utility.update and escapes __game.advance."],
+"strengths":["Fire rates match exactly (600/666/857/750/1000 rpm, shotgun 171) and reload times match CS2 (2.43/3.07/2.2/3.7/5.7 s) with commit before end. Rifle, Deagle and AWP damage with hitgroups, armour, helmet and falloff are within 1 HP of CS2. Sprays are bit-identical across reloads with the same seed. Counter-strafe gets accurate in 67 ms against 217-250 ms for releasing. Bursts, bolt, shell-by-shell reload, reload cancel on switch, Q, drop and E swap all work. Wallbang damage and flags are correct. A strafing dummy took 20/20 hits. Zero console errors on the real map."],
+"pass":false}

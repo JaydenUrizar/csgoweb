@@ -1,0 +1,21 @@
+{"piece":"flow","round":1,
+"blind":[
+ {"pair":1,"picked":"ours","truth":"ours","why":"round timeline chart: denser cueing (30s/10s, fuse 10/5 calls), tighter 129s loop vs 137s; but 18s fully frozen pre-round with 3 voice cues in it"},
+ {"pair":2,"picked":"ours","truth":"ours","why":"beep cadence: curved ramp builds urgency earlier than the linear ref; near coin-flip"},
+ {"pair":3,"picked":"ref","truth":"ref","why":"attacker income by outcome: ref punishes time-out survivors (0) and pays a real plant consolation (+800), so saving/planting are decisions; ours pays survivors full loss bonus and plant barely matters"}],
+"winner_overall":"tie","score":6.5,
+"biggest_gap":"Exit frags are broken. Combat allows tags during roundEnd, but flow.onTagOut returns early outside live/armed: the killer gets no reward or stat, and the victim's match.survived stays true. Combat has already dropped the victim's primary, so next round match.owned still lists it while the real inventory is [pip,tap]. Repro (seed 1, ?test=1&match=1): let time expire with a Tide survivor holding a primary, tag them during the 6s roundEnd, then compare M.owned(v) with ctx.combat.inventory(v) in the next buy phase (probe.json r4c: owned.primary 'zip', inventory pip+tap). In CS2 an exit frag pays the kill reward and the victim loses the gear. Count tags during roundEnd: pay the reward, set survived=false and resync the loadout.",
+"other_gaps":[
+ "An arm started with <=3.2s left finishes after the clock reads 0:00 (probe2 B: started at 1.0s left, armed 2.2s after 0:00, then a 35s fuse). DESIGN.md says Tide wins on time with no beacon armed, and CS2 ends the round at 0:00 mid-plant.",
+ "Ember players alive when time expires get the full loss bonus (round 1: all 5 got +1400). CS2 pays them $0, so saving costs nothing here.",
+ "Economy diverges from CS2: pistol-round loser gets 1400 (CS2 1900), there is no +800 plant-loss consolation, and objective wins pay 3250 instead of 3500. Planting has little economic value.",
+ "Information flow gaps: no match_point, last_round_of_half, 1vX/clutch, or team-only 'beacon dropped/picked up' announce ids. 'freeze' is the same as 'buy' (both pinned, both can buy), giving 18s of dead time with 3 voice cues. The buy window lasts only 10s into live (CS2 20s).",
+ "At halftime the HALFTIME/SWITCHING SIDES title is hidden behind the auto-opened scoreboard, which also shows stale $9,000 credits that are about to reset to 800 (s_halftime.png).",
+ "No beep at the moment the beacon arms: the first beep comes about 1s later."],
+"bugs":[
+ "Exit frags during roundEnd: no kill reward, victim keeps survived=true, and match.owned desyncs from the combat inventory (primary already dropped)",
+ "Beacon arming started just before 0:00 still completes, contradicting DESIGN.md's time-expiry rule",
+ "Halftime swapSides leaves hasBeacon on the old carrier, who is now Tide: the halftime scoreboard shows a defender holding the beacon",
+ "Cross-piece: after combat.give(local,'arc') and the local player being tagged, engine.advance throws TypeError at combat/viewmodel/index.js:330 (reading 'position')"],
+"strengths":["Phase timers are exact (12/6/105, fuse 35, end 6, half 8) and stable over 20+ rounds with 0 console errors","All win paths are correct: elimination, time, disarm, fuse, instant Ember win on a Tide wipe after arming, late kitless disarm loses to the fuse","Disarm handoff is right: a second defender can't steal it, and a new disarmer restarts from 0 when the first is tagged. Kit time is 2.5s","Halftime and overtime work: sides, scores and loss streaks swap, the 800 pistol reset applies, OT start has no swap, OT halves swap every 3 rounds, OT wins at base+4, OT credits are 5000","Loss levels step down by one on a win (CS2 rule), the cap and the -300 team-tag penalty apply, and spectate moves to the next living teammate automatically"],
+"pass":false}

@@ -8,6 +8,8 @@ const CHROME = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linu
 export async function open({ params = 'test=1', size = [1280, 720], url = GAME_URL, wait = 60000, headed = false } = {}) {
   const browser = await chromium.launch({ executablePath: CHROME, headless: !headed, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl', '--autoplay-policy=no-user-gesture-required', '--mute-audio', '--ignore-certificate-errors'] });
   const page = await browser.newPage({ viewport: { width: size[0], height: size[1] } });
+  // Another builder's edits make Vite hot-reload the page mid-run; neutralise the HMR socket so runs are stable.
+  await page.addInitScript(() => { const W = window.WebSocket; window.WebSocket = function (url, protocols) { if (protocols === 'vite-hmr' || (Array.isArray(protocols) && protocols.includes('vite-hmr'))) return { close() {}, send() {}, addEventListener() {}, removeEventListener() {}, readyState: 1 }; return new W(url, protocols); }; window.WebSocket.prototype = W.prototype; Object.assign(window.WebSocket, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 }); });
   const logs = []; page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' || m.type() === 'warning') logs.push(`[${m.type()}] ${t}`); }); page.on('pageerror', (e) => logs.push('[pageerror] ' + e.message));
   await page.goto(url + (url.includes('?') ? '&' : '?') + params.replace(/^\?/, ''), { waitUntil: 'load' });
   await page.waitForFunction(() => window.__game?.ready, null, { timeout: wait });
